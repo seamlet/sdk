@@ -20,3 +20,7 @@ The test site takes its content from a CMS at `CMS_ORIGIN` (`http://localhost:43
 ## Releases
 
 Raise `version` in `packages/astro/package.json`, merge, and push the tag `astro-v<version>`: the workflow checks the repository and publishes the package to npm with provenance.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
