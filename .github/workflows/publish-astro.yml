@@ -1,24 +1,30 @@
-# Publishes @seamlet/astro to npm when a tag `astro-v<version>` is pushed, the version being the one
-# in packages/astro/package.json. The repository is checked and built the same way as on every pull
-# request first; npm records where the package was built (provenance), which it does only for a
-# public repository like this one.
+# Publishes @seamlet/astro to npm: the version in packages/astro/package.json, started by hand from
+# the Actions tab on main ("Run workflow"). The repository is checked and built the same way as on
+# every pull request first; npm records where the package was built (provenance), which it does
+# only for a public repository like this one. A published version is marked with the tag
+# `astro-v<version>`, and a version already on npm is never published again.
 name: Publish @seamlet/astro
 
 on:
-  push:
-    tags: ["astro-v*"]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: publish-astro
+  cancel-in-progress: false
+
 jobs:
   publish:
     name: Publish
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: npm
     permissions:
-      contents: read
+      # Pushes the tag of the published version.
+      contents: write
       # Signs the provenance of the package.
       id-token: write
     steps:
@@ -29,15 +35,23 @@ jobs:
           cache: npm
           registry-url: https://registry.npmjs.org
       - run: npm ci
-      - name: The tag names the version of the package
+      - name: The version is not on npm yet
+        id: version
         shell: bash
         run: |
           version=$(node -p 'require("./packages/astro/package.json").version')
-          if [ "$GITHUB_REF_NAME" != "astro-v$version" ]; then
-            echo "::error::the tag $GITHUB_REF_NAME does not name the version $version of packages/astro"
+          if npm view "@seamlet/astro@$version" version > /dev/null 2>&1; then
+            echo "::error::@seamlet/astro@$version is already on npm: raise the version in packages/astro/package.json"
             exit 1
           fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - run: make check
       - run: npm publish --workspace @seamlet/astro
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Tag the published version
+        env:
+          TAG: astro-v${{ steps.version.outputs.version }}
+        run: |
+          git tag "$TAG"
+          git push origin "$TAG"
