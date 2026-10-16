@@ -1,0 +1,57 @@
+# Publishes @seamlet/design to npm: the version in packages/design/package.json, started by hand from
+# the Actions tab on main ("Run workflow"). The repository is checked and built the same way as on
+# every pull request first. npm trusts this workflow itself (trusted publishing over OIDC, set up
+# for the repository, this file and the environment `npm` on npmjs.com), so no npm token is kept
+# anywhere, and records where the package was built (provenance), which it does only for a public
+# repository like this one. A published version is marked with the tag `design-v<version>`, and a
+# version already on npm is never published again.
+name: Publish @seamlet/design
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-design
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: npm
+    permissions:
+      # Pushes the tag of the published version.
+      contents: write
+      # Proves to npm that this workflow publishes, and signs the provenance of the package.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - name: The version is not on npm yet
+        id: version
+        shell: bash
+        run: |
+          version=$(node -p 'require("./packages/design/package.json").version')
+          if npm view "@seamlet/design@$version" version > /dev/null 2>&1; then
+            echo "::error::@seamlet/design@$version is already on npm: raise the version in packages/design/package.json"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - run: make check
+      - run: npm publish --workspace @seamlet/design
+      - name: Tag the published version
+        env:
+          TAG: design-v${{ steps.version.outputs.version }}
+        run: |
+          git tag "$TAG"
+          git push origin "$TAG"

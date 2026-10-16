@@ -1,0 +1,46 @@
+{
+  "name": "@seamlet/design",
+  "version": "0.1.0",
+  "description": "The design tokens and fonts of Seamlet: one source for the landing page and the CMS.",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seamlet/sdk.git",
+    "directory": "packages/design"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./tokens.css": "./dist/tokens.css",
+    "./fonts.css": "./dist/fonts.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
+  "scripts": {
+    "build": "tsup"
+  },
+  "devDependencies": {
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@fontsource-variable/wix-madefor-display": "5.3.0",
+    "@fontsource-variable/wix-madefor-text": "5.3.0"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "homepage": "https://github.com/seamlet/sdk/tree/main/packages/design#readme",
+  "keywords": [
+    "seamlet",
+    "design-tokens"
+  ]
+}

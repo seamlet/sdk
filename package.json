@@ -10,11 +10,11 @@
     "examples/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace @seamlet/astro",
+    "build": "npm run build --workspace @seamlet/astro --workspace @seamlet/design",
     "dev:coffee-shop": "npm run dev --workspace coffee-shop",
     "build:coffee-shop": "npm run build --workspace coffee-shop",
     "start:coffee-shop": "npm run start --workspace coffee-shop",
-    "typecheck": "tsc --project packages/astro && astro check --root examples/coffee-shop",
+    "typecheck": "tsc --project packages/astro && tsc --project packages/design && astro check --root examples/coffee-shop",
     "lint": "eslint .",
     "test": "vitest run",
     "format": "prettier --write .",
