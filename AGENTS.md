@@ -18,7 +18,7 @@ What a site installs to be edited in the Seamlet CMS. The CMS (a separate, close
   - `src/index.ts` — the integration `seamlet({ cms, site })`: virtual modules for the site's build (`virtual:seamlet/config` with the CMS's origin, `virtual:seamlet/site`, the site's module), the preview (`/preview/[...page]`, `routes/preview.astro`, with `preview-requests.ts`: `GET` with the published content, `POST` with a JSON draft no bigger than 1 MB; `frame-ancestors` of the CMS, `noindex`, `no-store`) and the photos taken from the CMS (`/media/[site]/[file]`), both rendered on request. The bridge goes on every page as a tiny script (`client.ts`) that loads the bridge only on `/preview` in a frame: a script of the injected route would be left out of a static site's on-demand pages.
   - `src/site.ts` — `defineSeamletSite({ id, schema, pages })`, a site's one module, with `pageAt` and `loadPublishedContent`.
   - Its README is what a site's author reads.
-- `examples/coffee-shop` — the test site, connected the way every site is: it takes `@seamlet/astro` from the workspace as an installed package, so it checks the package as a site uses it. Its `Dockerfile` builds it for a server.
+- `examples/coffee-shop` — the test site, connected the way every site is: it takes `@seamlet/astro` from the workspace as an installed package, so it checks the package as a site uses it. It is not deployed: the demo of the CMS, the same coffee shop at https://zerno.bysavelii.com, is a repository of its own, seamlet/zerno, with the package from npm.
 
 Boundaries, enforced by ESLint: `src/schema` imports nothing outside itself; `src/bridge` imports only `src/schema`; examples take only `@seamlet/astro`.
 

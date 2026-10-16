@@ -5,6 +5,8 @@ What a site installs to be edited in the Seamlet CMS: the owner of a business ed
 - [`@seamlet/astro`](packages/astro/README.md) — for sites on [Astro](https://astro.build): the schema language that describes a site's content, the integration that adds the preview the CMS's editor frames, and the bridge between the two.
 - [`examples/coffee-shop`](examples/coffee-shop) — a test site connected the way every site is.
 
+The demo site, the same coffee shop on https://zerno.bysavelii.com, lives in its own repository, [seamlet/zerno](https://github.com/seamlet/zerno), and takes the package from npm.
+
 The CMS itself is a separate product; this repository holds only what runs on a site.
 
 ## Development
