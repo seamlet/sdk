@@ -2,6 +2,7 @@
   "name": "@seamlet/astro",
   "version": "0.1.0",
   "description": "Connects an Astro site to the Seamlet CMS: the schema of its content, the preview the editor frames, and its published content.",
+  "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",
