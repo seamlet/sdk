@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "projectId": "seamlet-sdk",
+  "harness": "0.14.0",
+  "workflow": "default",
+  "journal": ".cyberzavod/journal",
+  "agents": {
+    "planning": {
+      "provider": "anthropic",
+      "agent": "claude",
+      "model": "default"
+    },
+    "implementation": {
+      "provider": "anthropic",
+      "agent": "claude",
+      "model": "default"
+    },
+    "review": {
+      "provider": "anthropic",
+      "agent": "claude",
+      "model": "default"
+    },
+    "verification": {
+      "provider": "anthropic",
+      "agent": "claude",
+      "model": "default"
+    }
+  },
+  "verification": {
+    "commands": [
+      "make check"
+    ],
+    "paths": []
+  },
+  "stack": {
+    "languages": [
+      "javascript",
+      "typescript"
+    ],
+    "frameworks": [
+      "astro"
+    ],
+    "packageManager": "npm"
+  }
+}
