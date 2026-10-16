@@ -34,4 +34,4 @@ A site never renders content as raw HTML (`set:html`): the CMS's editor acts on 
 
 - `make check` — the package's build, formatting check, types (`tsc` for the package, `astro check` for the examples), ESLint, Vitest, the examples' build. It must pass before a commit.
 - `npm run dev:coffee-shop` — the test site on http://localhost:4322, its content from `CMS_ORIGIN` (`http://localhost:4321` by default).
-- `npm pack --workspace @seamlet/astro` — what would be published. A release: raise `version` in `packages/astro/package.json`, merge, run «Publish @seamlet/astro» from the Actions tab (`.github/workflows/publish-astro.yml`: a version already on npm is refused, the published one is tagged `astro-v<version>`; `NPM_TOKEN` of the `npm` environment).
+- `npm pack --workspace @seamlet/astro` — what would be published. A release: raise `version` in `packages/astro/package.json`, merge, run «Publish @seamlet/astro» from the Actions tab (`.github/workflows/publish-astro.yml`: a version already on npm is refused, the published one is tagged `astro-v<version>`; npm trusts the workflow itself, run in the `npm` environment, with no token: trusted publishing).
