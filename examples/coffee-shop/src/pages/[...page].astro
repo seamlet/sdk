@@ -1,0 +1,16 @@
+---
+// A page of the coffee shop with its published content.
+import site from "../seamlet";
+
+const NOT_FOUND = 404;
+
+const Page = site.pageAt(Astro.params.page);
+if (Page === undefined) {
+  return new Response("Нет такой страницы", { status: NOT_FOUND });
+}
+// The published site is framed by nobody; only its preview is, by the CMS.
+Astro.response.headers.set("Content-Security-Policy", "frame-ancestors 'none'");
+const content = await site.loadPublishedContent();
+---
+
+<Page content={content} />

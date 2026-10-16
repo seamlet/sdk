@@ -1,0 +1,72 @@
+---
+// The drinks of the menu, the same on every page that shows them, each marked for the CMS.
+import { editable } from "@seamlet/astro/schema";
+import { formatPrice } from "../format";
+import type { CoffeeShopContent } from "../schema";
+
+interface Props {
+  menu: CoffeeShopContent["menu"];
+  /** How many drinks to show from the top; all when not given. */
+  limit?: number;
+}
+
+const { menu, limit } = Astro.props;
+const shown = limit === undefined ? menu : menu.slice(0, limit);
+const edit = editable<CoffeeShopContent>();
+---
+
+<ul class="menu-list">
+  {shown.map((drink, index) => (
+    <li {...edit("menu", index)}>
+      <div class="drink-line">
+        <h3 {...edit("menu", index, "name")}>{drink.name}</h3>
+        {drink.price !== null && (
+          <span class="price" {...edit("menu", index, "price")}>
+            {formatPrice(drink.price)}
+          </span>
+        )}
+      </div>
+      {drink.description !== "" && (
+        <p {...edit("menu", index, "description")}>{drink.description}</p>
+      )}
+    </li>
+  ))}
+</ul>
+
+<style>
+  .menu-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    padding-block: 1rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .drink-line {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+
+  .price {
+    font-family: ui-monospace, monospace;
+    color: var(--terracotta);
+    white-space: nowrap;
+  }
+
+  p {
+    margin: 0.35rem 0 0;
+    color: var(--roast-muted);
+    line-height: 1.5;
+    white-space: pre-line;
+  }
+</style>

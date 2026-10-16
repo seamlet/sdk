@@ -1,0 +1,37 @@
+---
+// The preview the CMS's editor frames: a page of the site with the bridge to the editor.
+// `/preview` is the first page, `/preview/menu` the page at /menu. GET shows the published
+// content; POST shows the content in its JSON body, never saved: the bridge renders the editor's
+// draft this way.
+import { parseContent } from "@seamlet/astro/schema";
+import { readDraft } from "@seamlet/astro/preview-requests";
+import { cmsOrigin } from "virtual:seamlet/config";
+import site from "virtual:seamlet/site";
+
+const NOT_FOUND = 404;
+
+const Page = site.pageAt(Astro.params.page);
+if (Page === undefined) {
+  return new Response(null, { status: NOT_FOUND });
+}
+
+// Only the CMS's editor frames the preview, and nobody indexes or keeps it.
+Astro.response.headers.set(
+  "Content-Security-Policy",
+  `frame-ancestors ${cmsOrigin}`,
+);
+Astro.response.headers.set("X-Robots-Tag", "noindex");
+Astro.response.headers.set("Cache-Control", "no-store");
+
+const reading =
+  Astro.request.method === "POST" ? await readDraft(Astro.request) : undefined;
+if (reading !== undefined && !reading.isRead) {
+  return reading.response;
+}
+const content =
+  reading === undefined
+    ? await site.loadPublishedContent()
+    : parseContent(site.schema, reading.draft).content;
+---
+
+<Page content={content} />

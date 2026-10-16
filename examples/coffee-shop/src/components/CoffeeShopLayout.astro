@@ -1,0 +1,163 @@
+---
+// The frame of every page of the coffee shop: navigation, contacts and the shared design.
+import { editable } from "@seamlet/astro/schema";
+import { phoneHref } from "../format";
+import type { CoffeeShopContent } from "../schema";
+
+interface Props {
+  content: CoffeeShopContent;
+  /** The title of the page in the browser's tab. */
+  title: string;
+  /** The address of this page, to mark it in the navigation. */
+  path: string;
+}
+
+const { content, title, path } = Astro.props;
+const { contacts, links } = content;
+const edit = editable<CoffeeShopContent>();
+const pages = [
+  { path: "/", name: "Главная" },
+  { path: "/menu", name: "Меню" },
+];
+---
+
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title}</title>
+  </head>
+  <body class="coffee-shop">
+    <nav class="site-nav" aria-label="Страницы">
+      <a class="brand" href="/">
+        Зерно
+      </a>
+      <ul>
+        {pages.map((page) => (
+          <li>
+            <a
+              href={page.path}
+              aria-current={page.path === path ? "page" : undefined}
+            >
+              {page.name}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    <slot />
+
+    <footer class="contacts" {...edit("contacts")}>
+      {contacts.address !== "" && (
+        <p {...edit("contacts", "address")}>{contacts.address}</p>
+      )}
+      {contacts.phone !== "" && (
+        <p>
+          <a href={phoneHref(contacts.phone)} {...edit("contacts", "phone")}>
+            {contacts.phone}
+          </a>
+        </p>
+      )}
+      {contacts.hours !== "" && (
+        <p {...edit("contacts", "hours")}>{contacts.hours}</p>
+      )}
+      {links.length > 0 && (
+        <ul class="footer-links">
+          {links.map(
+            ({ link }, index) =>
+              link !== null &&
+              link.href !== "" && (
+                <li {...edit("links", index)}>
+                  <a href={link.href} {...edit("links", index, "link")}>
+                    {link.text || link.href}
+                  </a>
+                </li>
+              ),
+          )}
+        </ul>
+      )}
+    </footer>
+  </body>
+</html>
+
+<style>
+  .coffee-shop {
+    color-scheme: light;
+    --cream: #f5ede1;
+    --paper: #fffaf3;
+    --roast: #3b2418;
+    --roast-muted: #6e5546;
+    --terracotta: #b4532a;
+    --line: #e2d3c0;
+    margin: 0;
+    background: var(--cream);
+    color: var(--roast);
+    font-family: Georgia, "Times New Roman", serif;
+  }
+
+  .site-nav,
+  .contacts {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  .site-nav {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+    padding-block: 1.25rem;
+  }
+
+  .site-nav ul {
+    display: flex;
+    gap: 1.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .site-nav a {
+    color: var(--roast-muted);
+    text-decoration: none;
+  }
+
+  .site-nav a[aria-current="page"] {
+    color: var(--roast);
+    text-decoration: underline;
+    text-decoration-color: var(--terracotta);
+    text-underline-offset: 0.3em;
+  }
+
+  .site-nav .brand {
+    color: var(--roast);
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+
+  .contacts {
+    padding-block: 3rem;
+    color: var(--roast-muted);
+  }
+
+  .contacts p {
+    margin: 0 0 0.35rem;
+  }
+
+  .contacts a {
+    color: var(--terracotta);
+  }
+
+  .footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+    margin: 1rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+</style>

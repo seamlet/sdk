@@ -1,0 +1,43 @@
+# Publishes @seamlet/astro to npm when a tag `astro-v<version>` is pushed, the version being the one
+# in packages/astro/package.json. The repository is checked and built the same way as on every pull
+# request first; npm records where the package was built (provenance), which it does only for a
+# public repository like this one.
+name: Publish @seamlet/astro
+
+on:
+  push:
+    tags: ["astro-v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: npm
+    permissions:
+      contents: read
+      # Signs the provenance of the package.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - name: The tag names the version of the package
+        shell: bash
+        run: |
+          version=$(node -p 'require("./packages/astro/package.json").version')
+          if [ "$GITHUB_REF_NAME" != "astro-v$version" ]; then
+            echo "::error::the tag $GITHUB_REF_NAME does not name the version $version of packages/astro"
+            exit 1
+          fi
+      - run: make check
+      - run: npm publish --workspace @seamlet/astro
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

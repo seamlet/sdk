@@ -1,0 +1,6 @@
+{
+  // The repository's own configuration files; the package and the examples have their own.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": { "noEmit": true },
+  "include": ["vitest.config.ts"]
+}

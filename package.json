@@ -1,0 +1,39 @@
+{
+  "name": "seamlet-sdk",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @seamlet/astro",
+    "dev:coffee-shop": "npm run dev --workspace coffee-shop",
+    "build:coffee-shop": "npm run build --workspace coffee-shop",
+    "start:coffee-shop": "npm run start --workspace coffee-shop",
+    "typecheck": "tsc --project packages/astro && astro check --root examples/coffee-shop",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "astro": "^7.3.8",
+    "eslint": "^10.12.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-astro": "^3.2.1",
+    "jsdom": "^30.1.2",
+    "prettier": "^3.9.10",
+    "prettier-plugin-astro": "^1.1.1",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^5.0.4"
+  }
+}

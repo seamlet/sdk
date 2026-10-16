@@ -1,0 +1,68 @@
+---
+// The whole menu of the coffee shop.
+import { editable } from "@seamlet/astro/schema";
+import CoffeeShopLayout from "./CoffeeShopLayout.astro";
+import MenuList from "./MenuList.astro";
+import type { CoffeeShopContent } from "../schema";
+
+interface Props {
+  content: CoffeeShopContent;
+}
+
+const { content } = Astro.props;
+const { menuPage, menu } = content;
+const edit = editable<CoffeeShopContent>();
+---
+
+<CoffeeShopLayout
+  content={content}
+  title={`${menuPage.title} — ${content.hero.title}`}
+  path="/menu"
+>
+  <main>
+    <header class="page-heading" {...edit("menuPage")}>
+      <h1 {...edit("menuPage", "title")}>{menuPage.title}</h1>
+      {menuPage.intro !== "" && (
+        <p class="intro" {...edit("menuPage", "intro")}>
+          {menuPage.intro}
+        </p>
+      )}
+    </header>
+    <section class="menu" aria-label={menuPage.title}>
+      <MenuList menu={menu} />
+    </section>
+  </main>
+</CoffeeShopLayout>
+
+<style>
+  main {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  .page-heading {
+    padding-block: 2rem 1.5rem;
+  }
+
+  h1 {
+    margin: 0 0 0.75rem;
+    font-size: clamp(2.25rem, 1.5rem + 3vw, 3.5rem);
+    line-height: 1.05;
+  }
+
+  .intro {
+    max-width: 38rem;
+    margin: 0;
+    font-size: 1.2rem;
+    line-height: 1.5;
+    color: var(--roast-muted);
+    white-space: pre-line;
+  }
+
+  .menu {
+    padding: 0.5rem 1.5rem 1.5rem;
+    border-radius: 1.5rem;
+    background: var(--paper);
+  }
+</style>

@@ -1,0 +1,177 @@
+---
+// The first page of the coffee shop: who they are, what is popular and what is coming up.
+import { editable } from "@seamlet/astro/schema";
+import CoffeeShopLayout from "./CoffeeShopLayout.astro";
+import { formatEventDate } from "../format";
+import MenuList from "./MenuList.astro";
+import type { CoffeeShopContent } from "../schema";
+
+interface Props {
+  content: CoffeeShopContent;
+}
+
+const { content } = Astro.props;
+const { hero, menu, event } = content;
+// An event is announced only when both its title and its day are filled in.
+const eventDate = event.title.trim() === "" ? null : event.date;
+const POPULAR_COUNT = 3;
+const edit = editable<CoffeeShopContent>();
+---
+
+<CoffeeShopLayout content={content} title={hero.title} path="/">
+  <header class="hero" {...edit("hero")}>
+    <div class="hero-text">
+      <h1 {...edit("hero", "title")}>{hero.title}</h1>
+      {hero.subtitle !== "" && (
+        <p class="subtitle" {...edit("hero", "subtitle")}>
+          {hero.subtitle}
+        </p>
+      )}
+    </div>
+    {hero.photo !== null && (
+      <img
+        class="hero-photo"
+        {...edit("hero", "photo")}
+        src={hero.photo.src}
+        alt={hero.photo.alt}
+        width="800"
+        height="600"
+      />
+    )}
+  </header>
+
+  <main>
+    {menu.length > 0 && (
+      <section class="menu" aria-labelledby="popular-heading">
+        <h2 id="popular-heading">Популярное</h2>
+        <MenuList menu={menu} limit={POPULAR_COUNT} />
+        <a class="more" href="/menu">
+          Всё меню →
+        </a>
+      </section>
+    )}
+
+    {eventDate !== null && (
+      <section class="event" aria-labelledby="event-heading" {...edit("event")}>
+        <p class="event-label" id="event-heading">
+          Ближайшее событие
+        </p>
+        <p class="event-title" {...edit("event", "title")}>
+          {event.title}
+        </p>
+        <time datetime={eventDate} {...edit("event", "date")}>
+          {formatEventDate(eventDate)}
+        </time>
+        {event.signup !== null && event.signup.href !== "" && (
+          <a
+            class="event-signup"
+            href={event.signup.href}
+            {...edit("event", "signup")}
+          >
+            {event.signup.text || "Записаться"}
+          </a>
+        )}
+      </section>
+    )}
+  </main>
+</CoffeeShopLayout>
+
+<style>
+  .hero,
+  main {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  .hero {
+    display: grid;
+    gap: 1.5rem;
+    align-items: center;
+    padding-block: 2rem;
+  }
+
+  @media (min-width: 48rem) {
+    .hero {
+      grid-template-columns: 1fr 1fr;
+      padding-block: 3rem;
+    }
+  }
+
+  h1 {
+    margin: 0 0 1rem;
+    font-size: clamp(2.25rem, 1.5rem + 3vw, 3.5rem);
+    line-height: 1.05;
+  }
+
+  .subtitle {
+    margin: 0;
+    font-size: 1.2rem;
+    line-height: 1.5;
+    color: var(--roast-muted);
+    white-space: pre-line;
+  }
+
+  .hero-photo {
+    width: 100%;
+    height: auto;
+    border-radius: 1.5rem;
+    background: var(--paper);
+  }
+
+  h2 {
+    margin: 0 0 1.5rem;
+    font-size: 1.75rem;
+  }
+
+  .menu {
+    padding: 2rem 1.5rem;
+    border-radius: 1.5rem;
+    background: var(--paper);
+  }
+
+  .more {
+    display: inline-block;
+    margin-top: 1rem;
+    color: var(--terracotta);
+  }
+
+  .event {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    border-radius: 1.5rem;
+    background: var(--roast);
+    color: var(--paper);
+  }
+
+  .event p {
+    margin: 0;
+  }
+
+  .event-label {
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.8;
+  }
+
+  .event-signup {
+    display: inline-block;
+    margin-top: 1rem;
+    padding: 0.6rem 1.25rem;
+    border-radius: 999px;
+    background: var(--paper);
+    color: var(--roast);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .event time {
+    display: block;
+  }
+
+  .event-title {
+    margin-block: 0.5rem !important;
+    font-size: 1.5rem;
+  }
+</style>
