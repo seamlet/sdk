@@ -1,6 +1,6 @@
 # Seamlet SDK
 
-The rules of this repository for agents and humans.
+The rules of this project for agents and humans. The development process is set by Cyberzavod: stages, roles, and general principles come from its harness, and here is only what belongs to the project. The files for a specific agent (for example, `CLAUDE.md`) are created by `npx cyberzavod sync` on top of this file.
 
 ## About the project
 
@@ -24,13 +24,10 @@ Boundaries, enforced by ESLint: `src/schema` imports nothing outside itself; `sr
 
 A site never renders content as raw HTML (`set:html`): the CMS's editor acts on what the preview says.
 
-## Rules
+## Public API
 
-- Do what the task is about, and no more; name what you noticed along the way in the report.
-- New logic comes with a test next to it (`*.test.ts`). A test checks behavior, not the structure of the code.
-- No magic values: numbers and strings with a meaning get a name. A comment explains why, not what.
-- A change of the schema or of the messages is a change of the public API: it gets a version of the package, and a change of the messages the other side cannot read raises `PROTOCOL_VERSION`.
-- Keys, tokens and server addresses never go into the repository.
+- The package is public: a change of the schema language, of the messages or of what the integration adds is a change of its API, and it gets a version of the package (semver).
+- A change of the messages the other side cannot read raises `PROTOCOL_VERSION`: sites update the package when they like, so the CMS's editor meets bridges of other versions.
 - Commits follow Conventional Commits.
 
 ## Commands
