@@ -1,8 +1,10 @@
 # Publishes @seamlet/astro to npm: the version in packages/astro/package.json, started by hand from
 # the Actions tab on main ("Run workflow"). The repository is checked and built the same way as on
-# every pull request first; npm records where the package was built (provenance), which it does
-# only for a public repository like this one. A published version is marked with the tag
-# `astro-v<version>`, and a version already on npm is never published again.
+# every pull request first. npm trusts this workflow itself (trusted publishing over OIDC, set up
+# for the repository, this file and the environment `npm` on npmjs.com), so no npm token is kept
+# anywhere, and records where the package was built (provenance), which it does only for a public
+# repository like this one. A published version is marked with the tag `astro-v<version>`, and a
+# version already on npm is never published again.
 name: Publish @seamlet/astro
 
 on:
@@ -25,7 +27,7 @@ jobs:
     permissions:
       # Pushes the tag of the published version.
       contents: write
-      # Signs the provenance of the package.
+      # Proves to npm that this workflow publishes, and signs the provenance of the package.
       id-token: write
     steps:
       - uses: actions/checkout@v7
@@ -47,8 +49,6 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - run: make check
       - run: npm publish --workspace @seamlet/astro
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Tag the published version
         env:
           TAG: astro-v${{ steps.version.outputs.version }}
