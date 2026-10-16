@@ -12,7 +12,7 @@ export default defineConfig({
   integrations: [
     seamlet({
       // Where the content comes from and whose editor may frame the preview: development runs the
-      // CMS on its default port, a deployment sets the CMS's address when it builds the site.
+      // CMS on its default port, and `CMS_ORIGIN` names another.
       cms: process.env["CMS_ORIGIN"] ?? "http://localhost:4321",
       site: "./src/seamlet.ts",
     }),
