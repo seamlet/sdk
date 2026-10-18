@@ -76,6 +76,55 @@ Connects an [Astro](https://astro.build) site to the Seamlet CMS ([source](https
 
 The site's pages take their published content with `site.loadPublishedContent()`: at build time for a static site, on request otherwise.
 
+## Fields
+
+| Builder                                   | Holds                                                                   | Empty            |
+| ----------------------------------------- | ----------------------------------------------------------------------- | ---------------- |
+| `text({ label, multiline?, maxLength? })` | a string                                                                | `""`             |
+| `number({ label, min?, max? })`           | a number                                                                | `null`           |
+| `date({ label })`                         | `YYYY-MM-DD`                                                            | `null`           |
+| `time({ label })`                         | `HH:MM`, 00:00 to 23:59                                                 | `null`           |
+| `image({ label })`                        | `{ src, alt }`                                                          | `null`           |
+| `link({ label })`                         | `{ text, href }`: a page of the site, another site, a phone or an email | `null`           |
+| `url({ label })`                          | a web address without a text: a booking widget, a map                   | `null`           |
+| `toggle({ label })`                       | `true` or `false`                                                       | `false`          |
+| `choice({ label, options })`              | the `value` of one option                                               | `null`           |
+| `choices({ label, options })`             | the `value`s of any number of options                                   | `[]`             |
+| `group({ label, fields })`                | named fields shown together                                             | each field empty |
+| `collection({ label, item, itemTitle? })` | a list of records of the same fields                                    | `[]`             |
+
+Options are `{ value, label }`: the site reads `value`, the editor shows `label`, so a label can change without touching the site. The content has their exact type:
+
+```ts
+const level = choice({
+  label: "Нагрузка",
+  options: [
+    { value: "soft", label: "Мягко" },
+    { value: "active", label: "Активно" },
+  ],
+});
+// ContentOf gives "soft" | "active" | null
+```
+
+To let the owner hide a record without removing it, give the record a toggle and leave hidden records out:
+
+```ts
+item: { name: text({ label: "Название" }), isHidden: toggle({ label: "Скрыть с сайта" }) }
+// content.practices.filter((practice) => !practice.isHidden)
+```
+
+## What the page hides
+
+A field is edited where it is seen, so the editor opens what hides it when a person chooses it in the list of fields. A native `<details>` needs nothing: a click on its summary opens it in the editor too. A part the site hides and shows by itself (its own accordion, a step of a quiz, a dialog, a tab) gets the attribute `data-cms-reveal` (`REVEAL_ATTRIBUTE`). When a field inside it is chosen, the bridge sets `data-cms-revealed` on it and sends it the event `cms:reveal`, which bubbles; the site shows the part with CSS or with its own script:
+
+```css
+[data-cms-reveal][data-cms-revealed] {
+  display: block;
+}
+```
+
+What was opened stays open while the page is rendered anew after every edit.
+
 ## What the integration adds
 
 - `/preview` and `/preview/<page>`: the preview the CMS's editor frames. `GET` shows the published content; `POST` with the content as JSON shows that content without saving it, which is how the editor shows every edit at once. Only the CMS may frame it (`Content-Security-Policy: frame-ancestors`), and it is never indexed or cached.

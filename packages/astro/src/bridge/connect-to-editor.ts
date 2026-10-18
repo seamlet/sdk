@@ -1,4 +1,4 @@
-import type { Fields } from "../schema";
+import type { FieldPath, Fields } from "../schema";
 import { shortcutOf } from "./editor-shortcuts";
 import { imageFieldAt } from "./image-fields";
 import {
@@ -11,6 +11,7 @@ import {
 import { listenToPage } from "./page-events";
 import { createLayoutReports } from "./page-layout";
 import { findClosestMarkedElement } from "./page-markers";
+import { revealAround } from "./page-reveals";
 import { createPageRenderer } from "./page-rendering";
 import { createPageTyping } from "./page-typing";
 
@@ -142,10 +143,7 @@ export function connectPage(
         typing.stop();
         break;
       case "scroll-to":
-        findClosestMarkedElement(document, message.path)?.scrollIntoView({
-          block: "nearest",
-          behavior: "smooth",
-        });
+        scrollToField(document, message.path);
         break;
     }
   };
@@ -159,6 +157,15 @@ export function connectPage(
       stopListening();
     },
   };
+}
+
+/** Shows the field the editor chose: opens what hides it, then scrolls to it. */
+function scrollToField(document: Document, path: FieldPath): void {
+  const element = findClosestMarkedElement(document, path);
+  if (element === undefined) return;
+
+  revealAround(element);
+  element.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
 function editorKeyOf(event: KeyboardEvent): EditorKey | undefined {
