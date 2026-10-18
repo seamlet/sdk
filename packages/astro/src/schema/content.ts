@@ -19,9 +19,17 @@ import type {
   UrlField,
 } from "./fields";
 
+/** The point of a photo that must stay in view when a site crops it: 0 to 1 from the left and the top. */
+export interface ImageFocus {
+  readonly x: number;
+  readonly y: number;
+}
+
 export interface ImageValue {
   readonly src: string;
   readonly alt: string;
+  /** Unset: the middle of the photo (see imagePosition). */
+  readonly focus?: ImageFocus;
 }
 
 export interface LinkValue {
