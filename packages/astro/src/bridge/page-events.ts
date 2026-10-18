@@ -1,11 +1,11 @@
 import { carriesFiles } from "./file-drags";
 import { linkAround, markedElementAround, type PageLink } from "./page-markers";
-import { toggleDetailsAt } from "./page-reveals";
+import { flipSwitchAt, toggleDetailsAt } from "./page-reveals";
 
 // What the bridge hears from the site's page. In the editor a click selects what it points at and
 // does nothing else: links do not navigate and forms are not sent. A link that is not a field is
 // reported, so the editor can open the page it leads to. The summary of a `<details>` still opens
-// it: what it hides holds fields too.
+// it, and a switch (a tab, a filter) still flips: what they hide holds fields too.
 
 /**
  * How long after the last dragover a file drag counts as gone from the page. Browsers send
@@ -70,7 +70,9 @@ export function listenToPage(
     }
 
     const marked = markedElementAround(event.target);
-    toggleDetailsAt(event.target, marked !== undefined);
+    const isOnField = marked !== undefined;
+    toggleDetailsAt(event.target, isOnField);
+    flipSwitchAt(event.target, isOnField);
     listeners.onClick(
       marked === undefined
         ? undefined
@@ -122,6 +124,8 @@ export function listenToPage(
     ["scroll", listeners.onLayoutChange],
     // An opened or closed `<details>` moves what is below it; toggle does not bubble.
     ["toggle", listeners.onLayoutChange],
+    // A flipped switch shows and hides parts of the page.
+    ["change", listeners.onLayoutChange],
     // Images load after the page is shown and move what is below them; load does not bubble.
     ["load", listeners.onLayoutChange],
   ] as const;
