@@ -11,6 +11,8 @@ export {
   image,
   link,
   number,
+  reference,
+  references,
   text,
   time,
   toggle,
@@ -27,6 +29,9 @@ export {
   type ImageField,
   type LinkField,
   type NumberField,
+  type RecordFields,
+  type ReferenceField,
+  type ReferencesField,
   type TextField,
   type TimeField,
   type ToggleField,
@@ -41,6 +46,7 @@ export {
   type ImageValue,
   type LinkValue,
   type OptionValue,
+  type RecordOf,
   type ValueOf,
 } from "./content";
 export {
@@ -58,6 +64,15 @@ export {
   type FieldMarker,
 } from "./field-markers";
 export { resolveFieldPath, type FieldTarget } from "./field-paths";
+export {
+  collectionAt,
+  findRecord,
+  isRecordId,
+  newRecord,
+  RECORD_ID_KEY,
+  withRecordIds,
+  type CollectionRecords,
+} from "./record-ids";
 export {
   REVEAL_ATTRIBUTE,
   REVEAL_EVENT,

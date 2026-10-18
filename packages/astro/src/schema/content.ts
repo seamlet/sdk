@@ -10,6 +10,9 @@ import type {
   ImageField,
   LinkField,
   NumberField,
+  RecordFields,
+  ReferenceField,
+  ReferencesField,
   TextField,
   TimeField,
   ToggleField,
@@ -51,11 +54,23 @@ export type ValueOf<F extends Field> = F extends TextField
                   ? string | null
                   : F extends TimeField
                     ? string | null
-                    : F extends GroupField<infer Group>
-                      ? ContentOf<Group>
-                      : F extends CollectionField<infer Item>
-                        ? readonly ContentOf<Item>[]
-                        : never;
+                    : F extends ReferenceField
+                      ? string | null
+                      : F extends ReferencesField
+                        ? readonly string[]
+                        : F extends GroupField<infer Group>
+                          ? ContentOf<Group>
+                          : F extends CollectionField<infer Item>
+                            ? readonly RecordOf<Item>[]
+                            : never;
+
+/**
+ * A record of a collection: its fields and its id. The id is missing only in content no editor has
+ * saved yet, such as a site's initial content (see withRecordIds).
+ */
+export type RecordOf<F extends RecordFields> = ContentOf<F> & {
+  readonly id?: string;
+};
 
 /** The values a list of options stores: `"soft" | "active"` for options with those values. */
 export type OptionValue<O extends readonly ChoiceOption[]> = O[number]["value"];
@@ -88,6 +103,7 @@ export function defaultValue(field: Field): FieldValue {
     case "toggle":
       return false;
     case "choices":
+    case "references":
       return [];
     case "number":
     case "date":
@@ -96,6 +112,7 @@ export function defaultValue(field: Field): FieldValue {
     case "choice":
     case "url":
     case "time":
+    case "reference":
       return null;
     case "group":
       return defaultContent(field.fields);

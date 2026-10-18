@@ -90,6 +90,8 @@ The site's pages take their published content with `site.loadPublishedContent()`
 | `toggle({ label })`                       | `true` or `false`                                                       | `false`          |
 | `choice({ label, options })`              | the `value` of one option                                               | `null`           |
 | `choices({ label, options })`             | the `value`s of any number of options                                   | `[]`             |
+| `reference({ label, collection })`        | the `id` of a record of a collection of the schema                      | `null`           |
+| `references({ label, collection })`       | the `id`s of any number of such records                                 | `[]`             |
 | `group({ label, fields })`                | named fields shown together                                             | each field empty |
 | `collection({ label, item, itemTitle? })` | a list of records of the same fields                                    | `[]`             |
 
@@ -112,6 +114,33 @@ To let the owner hide a record without removing it, give the record a toggle and
 item: { name: text({ label: "Название" }), isHidden: toggle({ label: "Скрыть с сайта" }) }
 // content.practices.filter((practice) => !practice.isHidden)
 ```
+
+## Records and references
+
+Every record of a collection has an `id` of its own, which never changes when records move, so a record has no field named `id`. The CMS gives ids to records that have none (`withRecordIds`), so a site's initial content may leave them out, unless something refers to those records.
+
+A reference points at a record of another collection by its id: the teacher of a practice is chosen from the teachers, so renaming the teacher changes every practice at once. `collection` is where the collection is, its name or a path through groups:
+
+```ts
+const schema = defineSchema({
+  teachers: collection({
+    label: "Преподаватели",
+    itemTitle: "name",
+    item: { name: text({ label: "Имя" }) },
+  }),
+  practices: collection({
+    label: "Практики",
+    itemTitle: "name",
+    item: {
+      name: text({ label: "Название" }),
+      teacher: reference({ label: "Ведёт", collection: "teachers" }),
+    },
+  }),
+});
+// findRecord(content.teachers, practice.teacher)?.name
+```
+
+A reference to a record removed since is kept, with the issue `missing-record`: the content is not saved until the person picks another one or clears it.
 
 ## What the page hides
 
