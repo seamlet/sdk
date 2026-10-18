@@ -126,3 +126,80 @@ describe("a click on the summary of details", () => {
     stop();
   });
 });
+
+describe("a click on a switch of the page", () => {
+  const TABS = `
+    <fieldset>
+      <input type="radio" name="cafe" id="first" checked><label for="first">Московская</label>
+      <input type="radio" name="cafe" id="second"><label for="second" id="second-label">Ленина</label>
+      <label id="vegan-label"><input type="checkbox" id="vegan"> Только веганское</label>
+      <label><input type="checkbox" id="marked"><b data-cms-path="menu.filter">Фильтр</b></label>
+    </fieldset>
+    <section data-cms-path="menu.0.title">Капучино</section>`;
+  const listeners: PageListeners = {
+    onHover: vi.fn(),
+    onClick: vi.fn(),
+    onLinkHover: vi.fn(),
+    onLinkClick: vi.fn(),
+    onKeyDown: vi.fn(),
+    onFileDragOver: vi.fn(() => false),
+    onFileDragEnd: vi.fn(),
+    onFileDrop: vi.fn(),
+    onLayoutChange: vi.fn(),
+  };
+
+  function input(id: string): HTMLInputElement {
+    const found = document.querySelector<HTMLInputElement>(`input#${id}`);
+    if (found === null) throw new Error(`No input #${id} in the page`);
+    return found;
+  }
+
+  function click(selector: string): void {
+    element(selector).dispatchEvent(
+      new MouseEvent("click", { bubbles: true, cancelable: true }),
+    );
+  }
+
+  beforeEach(() => {
+    document.body.innerHTML = TABS;
+  });
+
+  it("switches a tab by its label and tells the site", () => {
+    const changed = vi.fn();
+    document.addEventListener("change", changed);
+    const stop = listenToPage(document, listeners);
+
+    click("#second-label");
+
+    expect(input("second").checked).toBe(true);
+    expect(input("first").checked).toBe(false);
+    expect(changed).toHaveBeenCalledTimes(1);
+    expect(listeners.onLayoutChange).toHaveBeenCalled();
+    stop();
+    document.removeEventListener("change", changed);
+  });
+
+  it("flips a checkbox, but not on a click that chooses a field in its label", () => {
+    const stop = listenToPage(document, listeners);
+
+    click("#vegan-label");
+    expect(input("vegan").checked).toBe(true);
+    click("#vegan");
+    expect(input("vegan").checked).toBe(false);
+
+    click("[data-cms-path='menu.filter']");
+    expect(input("marked").checked).toBe(false);
+    stop();
+  });
+
+  it("keeps the picked tab in a page rendered anew", () => {
+    const stop = listenToPage(document, listeners);
+    click("#second-label");
+    stop();
+
+    replacePageBody(document, `<html><body>${TABS}</body></html>`);
+
+    expect(input("second").checked).toBe(true);
+    expect(input("first").checked).toBe(false);
+  });
+});
