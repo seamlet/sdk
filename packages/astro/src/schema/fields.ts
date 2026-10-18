@@ -39,6 +39,50 @@ export interface LinkField {
   readonly label: string;
 }
 
+/** Yes or no, for example «Можно новичкам» or «Скрыть с сайта». */
+export interface ToggleField {
+  readonly kind: "toggle";
+  readonly label: string;
+}
+
+/** One of the options a person picks from, as the site names it and as the editor shows it. */
+export interface ChoiceOption {
+  /** What the content stores and the site reads; never shown to people. */
+  readonly value: string;
+  /** What the editor shows. */
+  readonly label: string;
+}
+
+/** One option of a fixed list, or none: a level, a category, a badge. */
+export interface ChoiceField<
+  O extends readonly ChoiceOption[] = readonly ChoiceOption[],
+> {
+  readonly kind: "choice";
+  readonly label: string;
+  readonly options: O;
+}
+
+/** Any number of options of a fixed list: tags, the days a class runs. */
+export interface ChoicesField<
+  O extends readonly ChoiceOption[] = readonly ChoiceOption[],
+> {
+  readonly kind: "choices";
+  readonly label: string;
+  readonly options: O;
+}
+
+/** A web address without a text: a booking widget, a map. Only `http://` and `https://`. */
+export interface UrlField {
+  readonly kind: "url";
+  readonly label: string;
+}
+
+/** A time of day without a date, stored as `HH:MM` (24 hours). */
+export interface TimeField {
+  readonly kind: "time";
+  readonly label: string;
+}
+
 /** Named fields shown and stored together, for example the first screen of a page. */
 export interface GroupField<F extends Fields = Fields> {
   readonly kind: "group";
@@ -61,6 +105,11 @@ export type Field =
   | DateField
   | ImageField
   | LinkField
+  | ToggleField
+  | ChoiceField
+  | ChoicesField
+  | UrlField
+  | TimeField
   | GroupField
   | CollectionField;
 
@@ -96,6 +145,31 @@ export function image(options: FieldOptions<ImageField>): ImageField {
 
 export function link(options: FieldOptions<LinkField>): LinkField {
   return { kind: "link", ...options };
+}
+
+export function toggle(options: FieldOptions<ToggleField>): ToggleField {
+  return { kind: "toggle", ...options };
+}
+
+/** `const` keeps the values of the options literal, so the content has their exact type. */
+export function choice<const O extends readonly ChoiceOption[]>(
+  options: FieldOptions<ChoiceField<O>>,
+): ChoiceField<O> {
+  return { kind: "choice", ...options };
+}
+
+export function choices<const O extends readonly ChoiceOption[]>(
+  options: FieldOptions<ChoicesField<O>>,
+): ChoicesField<O> {
+  return { kind: "choices", ...options };
+}
+
+export function url(options: FieldOptions<UrlField>): UrlField {
+  return { kind: "url", ...options };
+}
+
+export function time(options: FieldOptions<TimeField>): TimeField {
+  return { kind: "time", ...options };
 }
 
 export function group<F extends Fields>(

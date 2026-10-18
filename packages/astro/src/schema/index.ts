@@ -2,6 +2,8 @@
 // content. A site imports it as `@seamlet/astro/schema`; the CMS checks and stores content with the
 // same code.
 export {
+  choice,
+  choices,
   collection,
   date,
   defineSchema,
@@ -10,6 +12,12 @@ export {
   link,
   number,
   text,
+  time,
+  toggle,
+  url,
+  type ChoiceField,
+  type ChoiceOption,
+  type ChoicesField,
   type CollectionField,
   type DateField,
   type Field,
@@ -20,6 +28,9 @@ export {
   type LinkField,
   type NumberField,
   type TextField,
+  type TimeField,
+  type ToggleField,
+  type UrlField,
 } from "./fields";
 export {
   defaultContent,
@@ -29,6 +40,7 @@ export {
   type FieldValue,
   type ImageValue,
   type LinkValue,
+  type OptionValue,
   type ValueOf,
 } from "./content";
 export {
@@ -46,6 +58,11 @@ export {
   type FieldMarker,
 } from "./field-markers";
 export { resolveFieldPath, type FieldTarget } from "./field-paths";
+export {
+  REVEAL_ATTRIBUTE,
+  REVEAL_EVENT,
+  REVEALED_ATTRIBUTE,
+} from "./reveal-markers";
 export {
   hrefOf,
   linkTargetOf,

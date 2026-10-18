@@ -1,4 +1,5 @@
 import type { Content } from "../schema";
+import { restoreRevealedParts, revealedPartsOf } from "./page-reveals";
 
 // The site's page shows the editor's draft: the bridge posts the draft to the page's own address,
 // where the site renders the page with it, and swaps the body. The document stays, so do its
@@ -76,9 +77,14 @@ async function fetchRenderedPage(
   return response.text();
 }
 
-/** Replaces the body and the title of the page with those of a newly rendered one. */
+/**
+ * Replaces the body and the title of the page with those of a newly rendered one, with the parts
+ * that were opened for the editor opened again.
+ */
 export function replacePageBody(document: Document, html: string): void {
   const rendered = new DOMParser().parseFromString(html, "text/html");
+  const revealed = revealedPartsOf(document);
   document.title = rendered.title;
   document.body.replaceWith(document.importNode(rendered.body, true));
+  restoreRevealedParts(document, revealed);
 }
