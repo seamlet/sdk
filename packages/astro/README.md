@@ -115,6 +115,26 @@ item: { name: text({ label: "Название" }), isHidden: toggle({ label: "С
 // content.practices.filter((practice) => !practice.isHidden)
 ```
 
+A photo may carry the point that must stay in view when the site crops it, chosen in the editor: put `imagePosition(photo)` into its `object-position` (the middle when no point is chosen):
+
+```astro
+<img
+  src={photo.src}
+  alt={photo.alt}
+  style={`object-fit: cover; object-position: ${imagePosition(photo)}`}
+/>
+```
+
+## Presets
+
+Sets of fields almost every site has, edited the same way everywhere; they are plain groups and collections, rendered as the site likes:
+
+- `seoFields()` — `title`, `description` and `image` of a page for search engines and links shared in messengers;
+- `contactsFields()` — `phone` (a link), `address`, `map` (an address) and `messengers` (links);
+- `openingHoursField()` — rows of `days` (`WEEKDAYS`), `opens` and `closes` times and a `note`.
+
+Each takes `{ label }` to name it otherwise.
+
 ## Records and references
 
 Every record of a collection has an `id` of its own, which never changes when records move, so a record has no field named `id`. The CMS gives ids to records that have none (`withRecordIds`), so a site's initial content may leave them out, unless something refers to those records.

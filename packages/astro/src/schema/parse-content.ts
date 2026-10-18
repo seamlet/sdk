@@ -4,6 +4,7 @@ import {
   type Content,
   type ContentOf,
   type FieldValue,
+  type ImageFocus,
 } from "./content";
 import { linkTargetOf } from "./link-addresses";
 import { isRecordId, RECORD_ID_KEY } from "./record-ids";
@@ -256,7 +257,8 @@ function parseImage(
     return invalidType(defaultValue(field), path);
   }
 
-  const image = { src, alt };
+  const focus = isRecord(input) ? focusOf(input["focus"]) : undefined;
+  const image = focus === undefined ? { src, alt } : { src, alt, focus };
   if (src.trim() === "") {
     return { value: image, issues: [{ path, code: "missing-image-src" }] };
   }
@@ -448,6 +450,18 @@ function parseReferences(
 
   const ids: readonly string[] = [...new Set<string>(input)];
   return valid(ids);
+}
+
+/** A focus inside the photo, or none: a point outside it is no focus a person set. */
+function focusOf(input: unknown): ImageFocus | undefined {
+  if (!isRecord(input)) return undefined;
+  const { x, y } = input;
+  const isInside = isFraction(x) && isFraction(y);
+  return isInside ? { x, y } : undefined;
+}
+
+function isFraction(value: unknown): value is number {
+  return typeof value === "number" && value >= 0 && value <= 1;
 }
 
 /** `YYYY-MM-DD` that names a real day: 2026-02-30 is not one. */

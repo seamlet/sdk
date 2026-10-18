@@ -43,6 +43,7 @@ export {
   type Content,
   type ContentOf,
   type FieldValue,
+  type ImageFocus,
   type ImageValue,
   type LinkValue,
   type OptionValue,
@@ -84,3 +85,10 @@ export {
   type LinkKind,
   type LinkTarget,
 } from "./link-addresses";
+export { imagePosition } from "./image-position";
+export {
+  contactsFields,
+  openingHoursField,
+  seoFields,
+  WEEKDAYS,
+} from "./presets";
