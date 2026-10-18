@@ -178,7 +178,7 @@ What was opened stays open while the page is rendered anew after every edit.
 
 - `/preview` and `/preview/<page>`: the preview the CMS's editor frames. `GET` shows the published content; `POST` with the content as JSON shows that content without saving it, which is how the editor shows every edit at once. Only the CMS may frame it (`Content-Security-Policy: frame-ancestors`), and it is never indexed or cached.
 - The bridge on the preview: it tells the editor where the marked elements are and what a person does on the page, and types texts in place.
-- `/media/<site>/<file>`: the photos uploaded in the CMS, taken from it.
+- `/media/<site>/<file>`: the photos uploaded in the CMS, taken from it on request; a static build copies every uploaded photo its built pages refer to next to them, so a static host serves them too.
 
 A site never renders content as raw HTML (`set:html`): the editor acts on what its preview says.
 

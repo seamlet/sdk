@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 import type { AstroIntegration } from "astro";
+import { copyUploadedPhotos } from "./uploaded-photos";
 
 // Connects an Astro site to the CMS. The site describes itself in one module (its schema, its id in
 // the CMS and its pages), and the integration adds what every site needs alike: the preview the
@@ -61,6 +62,16 @@ export default function seamlet(options: SeamletOptions): AstroIntegration {
           entrypoint: "@seamlet/astro/routes/media",
           prerender: false,
         });
+      },
+      // A static host has no route to take the uploaded photos from the CMS on request: the photos
+      // the built pages refer to are copied next to them. Pages rendered on request take them
+      // through the route above.
+      "astro:build:done": async ({ dir, logger }) => {
+        const copied = await copyUploadedPhotos({
+          directory: fileURLToPath(dir),
+          cmsOrigin,
+        });
+        if (copied > 0) logger.info(`copied ${String(copied)} uploaded photos`);
       },
     },
   };
