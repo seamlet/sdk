@@ -7,6 +7,8 @@ import {
 } from "./content";
 import { linkTargetOf } from "./link-addresses";
 import type {
+  ChoiceField,
+  ChoicesField,
   CollectionField,
   DateField,
   Field,
@@ -15,6 +17,9 @@ import type {
   LinkField,
   NumberField,
   TextField,
+  TimeField,
+  ToggleField,
+  UrlField,
 } from "./fields";
 
 /** Where a value lives in the content: field names and, inside a collection, record indexes. */
@@ -23,6 +28,7 @@ export type FieldPath = readonly (string | number)[];
 export type ContentIssue =
   | { readonly path: FieldPath; readonly code: "invalid-type" }
   | { readonly path: FieldPath; readonly code: "invalid-date" }
+  | { readonly path: FieldPath; readonly code: "invalid-time" }
   | {
       readonly path: FieldPath;
       readonly code: "too-long";
@@ -40,7 +46,13 @@ export type ContentIssue =
     }
   | { readonly path: FieldPath; readonly code: "missing-image-src" }
   | { readonly path: FieldPath; readonly code: "missing-link-href" }
-  | { readonly path: FieldPath; readonly code: "unsupported-link-href" };
+  | { readonly path: FieldPath; readonly code: "unsupported-link-href" }
+  | { readonly path: FieldPath; readonly code: "unsupported-url" }
+  | {
+      readonly path: FieldPath;
+      readonly code: "unknown-choice";
+      readonly value: string;
+    };
 
 export interface ParsedContent<C> {
   readonly content: C;
@@ -53,6 +65,8 @@ interface ParsedValue<V extends FieldValue = FieldValue> {
 }
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
+/** `HH:MM` of a 24-hour day: 00:00 to 23:59. */
+const TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d$/u;
 const GRAPHEMES = new Intl.Segmenter("ru-RU", { granularity: "grapheme" });
 
 export function formatFieldPath(path: FieldPath): string {
@@ -125,6 +139,16 @@ function parseField(
       return parseImage(field, input, path);
     case "link":
       return parseLink(field, input, path);
+    case "toggle":
+      return parseToggle(field, input, path);
+    case "choice":
+      return parseChoice(field, input, path);
+    case "choices":
+      return parseChoices(field, input, path);
+    case "url":
+      return parseUrl(field, input, path);
+    case "time":
+      return parseTime(field, input, path);
     case "group":
       return parseFields(field.fields, input, path);
     case "collection":
@@ -246,6 +270,101 @@ function parseLink(
     return { value: link, issues: [{ path, code: "unsupported-link-href" }] };
   }
   return valid(link);
+}
+
+function parseToggle(
+  field: ToggleField,
+  input: unknown,
+  path: FieldPath,
+): ParsedValue {
+  if (typeof input !== "boolean") {
+    return invalidType(defaultValue(field), path);
+  }
+  return valid(input);
+}
+
+/** An option the schema no longer lists is kept with an issue: the person picks another one. */
+function parseChoice(
+  field: ChoiceField,
+  input: unknown,
+  path: FieldPath,
+): ParsedValue {
+  if (input === null) {
+    return valid(null);
+  }
+  if (typeof input !== "string") {
+    return invalidType(defaultValue(field), path);
+  }
+
+  const issues = unknownChoiceIssues(field, [input], path);
+  return { value: input, issues };
+}
+
+function parseChoices(
+  field: ChoicesField,
+  input: unknown,
+  path: FieldPath,
+): ParsedValue {
+  const isListOfStrings =
+    Array.isArray(input) &&
+    input.every((value: unknown) => typeof value === "string");
+  if (!isListOfStrings) {
+    return invalidType(defaultValue(field), path);
+  }
+
+  const picked: readonly string[] = [...new Set<string>(input)];
+  const issues = unknownChoiceIssues(field, picked, path);
+  return { value: picked, issues };
+}
+
+function unknownChoiceIssues(
+  field: ChoiceField | ChoicesField,
+  picked: readonly string[],
+  path: FieldPath,
+): readonly ContentIssue[] {
+  const known = new Set(field.options.map((option) => option.value));
+  const unknown = picked.filter((value) => !known.has(value));
+  return unknown.map((value) => ({ path, code: "unknown-choice", value }));
+}
+
+function parseUrl(
+  field: UrlField,
+  input: unknown,
+  path: FieldPath,
+): ParsedValue {
+  if (input === null) {
+    return valid(null);
+  }
+  if (typeof input !== "string") {
+    return invalidType(defaultValue(field), path);
+  }
+
+  const isWebAddress = linkTargetOf(input)?.kind === "web";
+  if (!isWebAddress) {
+    return { value: input, issues: [{ path, code: "unsupported-url" }] };
+  }
+  return valid(input);
+}
+
+function parseTime(
+  field: TimeField,
+  input: unknown,
+  path: FieldPath,
+): ParsedValue {
+  if (input === null) {
+    return valid(null);
+  }
+  if (typeof input !== "string") {
+    return invalidType(defaultValue(field), path);
+  }
+
+  if (!TIME_PATTERN.test(input)) {
+    return {
+      value: defaultValue(field),
+      issues: [{ path, code: "invalid-time" }],
+    };
+  }
+  return valid(input);
 }
 
 function parseCollection(
