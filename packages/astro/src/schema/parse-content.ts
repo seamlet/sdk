@@ -6,6 +6,8 @@ import {
   type FieldValue,
 } from "./content";
 import { linkTargetOf } from "./link-addresses";
+import { isRecordId, RECORD_ID_KEY } from "./record-ids";
+import { missingRecordIssues } from "./reference-checks";
 import type {
   ChoiceField,
   ChoicesField,
@@ -16,6 +18,8 @@ import type {
   ImageField,
   LinkField,
   NumberField,
+  ReferenceField,
+  ReferencesField,
   TextField,
   TimeField,
   ToggleField,
@@ -52,6 +56,11 @@ export type ContentIssue =
       readonly path: FieldPath;
       readonly code: "unknown-choice";
       readonly value: string;
+    }
+  | {
+      readonly path: FieldPath;
+      readonly code: "missing-record";
+      readonly id: string;
     };
 
 export interface ParsedContent<C> {
@@ -87,7 +96,8 @@ export function countCharacters(text: string): number {
  * - a value of the wrong type or format gets the default too, and an issue;
  * - a value of the right type that breaks a rule of its field (too long, below the minimum) is
  *   kept, with an issue: nothing a person typed is lost;
- * - keys the schema does not know are dropped.
+ * - keys the schema does not know are dropped; a record keeps its id (see withRecordIds);
+ * - a reference to a record its collection does not have (removed since) is kept, with an issue.
  * Content with issues is valid to show and edit, but not to save.
  */
 export function parseContent<F extends Fields>(
@@ -95,8 +105,12 @@ export function parseContent<F extends Fields>(
   input: unknown,
 ): ParsedContent<ContentOf<F>> {
   const parsed = parseFields(schema, input, []);
+  const missingRecords = missingRecordIssues(schema, parsed.value);
   // Every value is built from its field, so the content has exactly the shape the schema describes.
-  return { content: parsed.value as ContentOf<F>, issues: parsed.issues };
+  return {
+    content: parsed.value as ContentOf<F>,
+    issues: [...parsed.issues, ...missingRecords],
+  };
 }
 
 function parseFields(
@@ -149,6 +163,10 @@ function parseField(
       return parseUrl(field, input, path);
     case "time":
       return parseTime(field, input, path);
+    case "reference":
+      return parseReference(field, input, path);
+    case "references":
+      return parseReferences(field, input, path);
     case "group":
       return parseFields(field.fields, input, path);
     case "collection":
@@ -378,12 +396,58 @@ function parseCollection(
 
   const records: readonly unknown[] = input;
   const parsedRecords = records.map((record, index) =>
-    parseFields(field.item, record, [...path, index]),
+    parseRecord(field, record, [...path, index]),
   );
   return {
     value: parsedRecords.map((parsed) => parsed.value),
     issues: parsedRecords.flatMap((parsed) => parsed.issues),
   };
+}
+
+/** The fields of a record, and its id when it has a valid one. */
+function parseRecord(
+  field: CollectionField,
+  input: unknown,
+  path: FieldPath,
+): ParsedValue<Content> {
+  const parsed = parseFields(field.item, input, path);
+  const id = isRecord(input) ? input[RECORD_ID_KEY] : undefined;
+  if (!isRecordId(id)) return parsed;
+
+  return {
+    value: { ...parsed.value, [RECORD_ID_KEY]: id },
+    issues: parsed.issues,
+  };
+}
+
+/** An id that is no id at all is dropped; one that names no record is checked with the whole content. */
+function parseReference(
+  field: ReferenceField,
+  input: unknown,
+  path: FieldPath,
+): ParsedValue {
+  if (input === null) {
+    return valid(null);
+  }
+  if (!isRecordId(input)) {
+    return invalidType(defaultValue(field), path);
+  }
+  return valid(input);
+}
+
+function parseReferences(
+  field: ReferencesField,
+  input: unknown,
+  path: FieldPath,
+): ParsedValue {
+  const isListOfIds =
+    Array.isArray(input) && input.every((id: unknown) => isRecordId(id));
+  if (!isListOfIds) {
+    return invalidType(defaultValue(field), path);
+  }
+
+  const ids: readonly string[] = [...new Set<string>(input)];
+  return valid(ids);
 }
 
 /** `YYYY-MM-DD` that names a real day: 2026-02-30 is not one. */

@@ -11,14 +11,18 @@ export interface FieldMarker {
   readonly [FIELD_PATH_ATTRIBUTE]: string;
 }
 
+// Picked options and referenced ids are one field each too: a list, but not of records.
+type Leaf =
+  string | number | boolean | null | ImageValue | LinkValue | readonly string[];
+
 /**
  * Every path in content of type C, as a tuple: ["hero"], ["hero", "title"], ["menu", 2],
  * ["menu", 2, "price"]. Scalars, images and links are leaves: an image is one field, not two.
  */
-export type ContentPath<C> = C extends readonly (infer Record)[]
-  ? [number] | [number, ...ContentPath<Record>]
-  : C extends string | number | null | ImageValue | LinkValue
-    ? never
+export type ContentPath<C> = C extends Leaf
+  ? never
+  : C extends readonly (infer Record)[]
+    ? [number] | [number, ...ContentPath<Record>]
     : {
         [Name in keyof C & string]: [Name] | [Name, ...ContentPath<C[Name]>];
       }[keyof C & string];

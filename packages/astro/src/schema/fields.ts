@@ -83,6 +83,23 @@ export interface TimeField {
   readonly label: string;
 }
 
+/**
+ * A record of a collection of the schema, by its id: the teacher of a practice. `collection` is
+ * where that collection is, its name or a path through groups: "teachers", "studio.teachers".
+ */
+export interface ReferenceField {
+  readonly kind: "reference";
+  readonly label: string;
+  readonly collection: string;
+}
+
+/** Any number of records of a collection of the schema, by their ids: the practices a teacher leads. */
+export interface ReferencesField {
+  readonly kind: "references";
+  readonly label: string;
+  readonly collection: string;
+}
+
 /** Named fields shown and stored together, for example the first screen of a page. */
 export interface GroupField<F extends Fields = Fields> {
   readonly kind: "group";
@@ -90,8 +107,11 @@ export interface GroupField<F extends Fields = Fields> {
   readonly fields: F;
 }
 
-/** A list of records of the same shape, for example the items of a menu. */
-export interface CollectionField<F extends Fields = Fields> {
+/**
+ * A list of records of the same shape, for example the items of a menu. Every record also has an
+ * `id` of its own, which never changes (see withRecordIds), so a record has no field named `id`.
+ */
+export interface CollectionField<F extends RecordFields = RecordFields> {
   readonly kind: "collection";
   readonly label: string;
   readonly item: F;
@@ -110,6 +130,8 @@ export type Field =
   | ChoicesField
   | UrlField
   | TimeField
+  | ReferenceField
+  | ReferencesField
   | GroupField
   | CollectionField;
 
@@ -119,6 +141,9 @@ export type FieldKind = Field["kind"];
 export interface Fields {
   readonly [name: string]: Field;
 }
+
+/** The fields of a record of a collection: any fields but `id`, which is the record's own. */
+export type RecordFields = Fields & { readonly id?: never };
 
 type FieldOptions<F extends Field> = Omit<F, "kind">;
 
@@ -172,13 +197,25 @@ export function time(options: FieldOptions<TimeField>): TimeField {
   return { kind: "time", ...options };
 }
 
+export function reference(
+  options: FieldOptions<ReferenceField>,
+): ReferenceField {
+  return { kind: "reference", ...options };
+}
+
+export function references(
+  options: FieldOptions<ReferencesField>,
+): ReferencesField {
+  return { kind: "references", ...options };
+}
+
 export function group<F extends Fields>(
   options: FieldOptions<GroupField<F>>,
 ): GroupField<F> {
   return { kind: "group", ...options };
 }
 
-export function collection<F extends Fields>(
+export function collection<F extends RecordFields>(
   options: FieldOptions<CollectionField<F>>,
 ): CollectionField<F> {
   return { kind: "collection", ...options };
