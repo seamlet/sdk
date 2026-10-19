@@ -200,7 +200,7 @@ import RichText from "@seamlet/astro/components/RichText.astro";
 
 When the marked element holds the component alone, the editor types the text right on the page: a person clicks a paragraph and types, marks the selected words bold or italic (⌘B, ⌘I or the toolbar beside the selection) and puts a link on them. The element is then rendered with the same elements the component puts out, so style them from around it, never by classes of your own on them.
 
-`plainTextOf` gives its words without marks, for a page title or a description.
+`plainTextOf` gives its words without marks, for a page title or a description; `linesOf` gives its lines (the paragraphs and the items of its lists) in their order.
 
 ## Presets
 
@@ -249,15 +249,15 @@ A field is edited where it is seen, so the editor opens what hides it when a per
 }
 ```
 
-What was opened stays open while the page is rendered anew after every edit.
+What was opened stays open while the page is rendered anew after every edit: a part is known again by its `id`, or else by the field marked on it, in it or around it.
 
 ## What the integration adds
 
-- `/preview` and `/preview/<page>`: the preview the CMS's editor frames. `GET` shows the published content; `POST` with the content as JSON shows that content without saving it, which is how the editor shows every edit at once. Only the CMS may frame it (`Content-Security-Policy: frame-ancestors`), and it is never indexed or cached.
+- `/preview` and `/preview/<page>`: the preview the CMS's editor frames. `GET` shows the published content; `POST` with the content as JSON shows that content without saving it, which is how the editor shows every edit at once. Only the CMS may frame it (`Content-Security-Policy: frame-ancestors`), and it is never indexed or cached; its refusals (a page the site does not have, a draft that is not JSON or is over 1 MB) say the same.
 - The bridge on the preview: it tells the editor where the marked elements are and what a person does on the page, and types texts in place, formatted ones too.
 - `/seamlet/site.json`: what the site tells the CMS about itself (`SITE_DESCRIPTION_PATH`): its id and name from `seamlet.json`, its schema, the content it starts with and its pages. The CMS reads it with `readSiteDescription` whenever the site is opened in its editor.
 - `/seamlet-photos/<address>`: the site's own photo at an address its content gives it, found by `photos` of `defineSeamletSite`, for the CMS's editor.
-- `/media/<site>/<file>`: the photos uploaded in the CMS, taken from it on request; a static build copies every uploaded photo its built pages refer to next to them, so a static host serves them too.
+- `/media/<site>/<file>`: the photos uploaded for the site in the CMS, taken from it on request (`502` when the CMS does not answer in 10 seconds or fails); a static build copies every photo uploaded for the site that its built pages refer to next to them, a few at a time, so a static host serves them too. Loading the published content waits 30 seconds for the CMS and stops the build when it does not answer.
 
 A site never renders content as raw HTML (`set:html`): the editor acts on what its preview says.
 
