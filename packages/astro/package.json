@@ -1,6 +1,6 @@
 {
   "name": "@seamlet/astro",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Connects an Astro site to the Seamlet CMS: the schema of its content, the preview the editor frames, and its published content.",
   "license": "MIT",
   "type": "module",

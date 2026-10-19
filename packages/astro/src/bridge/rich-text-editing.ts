@@ -52,7 +52,7 @@ export interface RichTextEditing {
   readonly stop: () => void;
 }
 
-const EDITABLE = "true";
+export const EDITABLE_AS_RICH_TEXT = "true";
 const PASTED_LINE_BREAKS = /\s*\n\s*/gu;
 const SPACE = " ";
 
@@ -204,7 +204,7 @@ export function startRichTextEditing(
     options.onEnd(outcome);
   };
 
-  element.setAttribute("contenteditable", EDITABLE);
+  element.setAttribute("contenteditable", EDITABLE_AS_RICH_TEXT);
   element.addEventListener("input", reportInput);
   element.addEventListener("keydown", pressKey);
   element.addEventListener("paste", pastePlainText);
