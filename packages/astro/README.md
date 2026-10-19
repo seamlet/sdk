@@ -98,7 +98,7 @@ npx astro add @seamlet/astro node                   # the integration, and an ad
    });
    ```
 
-The site's pages take their published content with `site.loadPublishedContent()`: at build time for a static site, on request otherwise. A module that needs the content without importing every page takes it with `loadPublishedContent(schema)` of `@seamlet/astro/site`.
+The site's pages take their published content with `site.loadPublishedContent()`: at build time for a static site, on request otherwise. Until the first publication, and while the CMS does not know the site yet (a site connected from its repository is built before that), it is the site's initial content; any other refusal of the CMS stops the build. A module that needs the content without importing every page takes it with `loadPublishedContent(schema)` of `@seamlet/astro/site`.
 
 ## Fields
 

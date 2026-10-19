@@ -7,6 +7,7 @@ import {
   type Fields,
   type SiteDescription,
 } from "./schema";
+import { readPublishedAnswer } from "./published-answers";
 import { describeSite } from "./site-descriptions";
 
 /** The first page of every site. */
@@ -69,22 +70,27 @@ export function defineSeamletSite<F extends Fields>(
 
 /**
  * What the CMS published for the site, in the shape of its schema: the site's initial content until
- * the first publication. For a module that needs the content without the pages.
+ * the first publication, and while the CMS does not know the site yet. For a module that needs the
+ * content without the pages.
  */
 export async function loadPublishedContent<F extends Fields>(
   schema: F,
 ): Promise<ContentOf<F>> {
-  const published = await fetchPublished(siteId);
-  return parseContent(schema, published).content;
+  const url = new URL(`/api/sites/${siteId}/published`, cmsOrigin);
+  const answer = await readPublishedAnswer(await fetch(url), url);
+  const content =
+    answer.status === "published"
+      ? answer.content
+      : await initialContentOfSite();
+  return parseContent(schema, content).content;
 }
 
-async function fetchPublished(id: string): Promise<unknown> {
-  const url = new URL(`/api/sites/${id}/published`, cmsOrigin);
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(
-      `Loading the published content from ${url.href} failed with status ${String(response.status)}`,
-    );
-  }
-  return response.json();
+/** The initial content of the site's module, for a site the CMS does not know yet. */
+async function initialContentOfSite(): Promise<unknown> {
+  console.warn(
+    `@seamlet/astro: the CMS at ${cmsOrigin} does not know the site "${siteId}" yet; its initial content is shown`,
+  );
+  // Imported when needed: the site's module imports this one.
+  const { default: site } = await import("virtual:seamlet/site");
+  return site.description.initialContent;
 }
