@@ -106,6 +106,7 @@ export {
   type RichSpan,
   type RichText,
 } from "./rich-text";
+export { isJsonObject, type JsonObject } from "./json-values";
 export {
   checkFields,
   readFields,

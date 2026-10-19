@@ -4,6 +4,7 @@ import {
   REVEAL_EVENT,
   REVEALED_ATTRIBUTE,
 } from "../schema";
+import { asElement } from "./dom-nodes";
 
 // What a page hides until a visitor acts, opened for the editor: a field can be edited only where
 // it is seen. The bridge takes every click (a click selects, never acts), which would keep a native
@@ -137,10 +138,11 @@ function announceSwitch(control: HTMLInputElement): void {
 function switchAround(
   target: EventTarget | null,
 ): HTMLInputElement | undefined {
-  if (!isElement(target)) return undefined;
+  const element = asElement(target);
+  if (element === undefined) return undefined;
 
-  const label = target.closest("label");
-  const control = isLabel(label) ? label.control : target;
+  const label = element.closest("label");
+  const control = isLabel(label) ? label.control : element;
   return control !== null && isSwitch(control) ? control : undefined;
 }
 
@@ -154,7 +156,7 @@ function reveal(part: Element): void {
 function detailsOfSummaryAround(
   target: EventTarget | null,
 ): HTMLDetailsElement | undefined {
-  const summary = isElement(target) ? target.closest("summary") : null;
+  const summary = asElement(target)?.closest("summary");
   const details = summary?.parentElement;
   const isSummaryOfDetails =
     details !== null && details !== undefined && isDetails(details);
@@ -203,12 +205,4 @@ function isLabel(element: Element | null): element is HTMLLabelElement {
 
 function isSwitch(element: Element): element is HTMLInputElement {
   return element.matches(SWITCH_SELECTOR);
-}
-
-function isElement(value: EventTarget | null): value is Element {
-  return (
-    value !== null &&
-    "nodeType" in value &&
-    (value as Node).nodeType === Node.ELEMENT_NODE
-  );
 }

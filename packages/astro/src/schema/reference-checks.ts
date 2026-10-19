@@ -2,6 +2,7 @@ import type { Content, FieldValue } from "./content";
 import type { Field, Fields } from "./fields";
 import type { ContentIssue, FieldPath } from "./parse-content";
 import { collectionAt, RECORD_ID_KEY } from "./record-ids";
+import { isContentObject } from "./json-values";
 
 // A reference names a record of another collection of the same content, so it is checked once the
 // whole content is there: a record removed since leaves an issue at every reference to it.
@@ -46,7 +47,7 @@ function issuesInField(
     case "references":
       return missingIds(stringsOf(value), field, path, idsOf);
     case "group":
-      return isContent(value)
+      return isContentObject(value)
         ? issuesInFields(field.fields, value, path, idsOf)
         : [];
     case "collection":
@@ -91,14 +92,10 @@ function recordIdsAt(
 }
 
 function recordsOf(value: FieldValue | undefined): readonly Content[] {
-  return Array.isArray(value) ? value.filter(isContent) : [];
+  return Array.isArray(value) ? value.filter(isContentObject) : [];
 }
 
 function stringsOf(value: FieldValue | undefined): readonly string[] {
   const list: readonly unknown[] = Array.isArray(value) ? value : [];
   return list.filter((id) => typeof id === "string");
-}
-
-function isContent(value: unknown): value is Content {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

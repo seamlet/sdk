@@ -1,9 +1,8 @@
 import { FIELD_PATH_ATTRIBUTE, type FieldPath } from "../schema";
+import { asElement } from "./dom-nodes";
 import { closestMarkedPath } from "./marked-paths";
 
-// Finding the elements a site marked with the paths of its fields. Nodes are checked by their
-// shape, not with instanceof: the classes are those of the bridge's window, and a page driven from
-// another window (a test drives a frame) has classes of its own.
+// Finding the elements a site marked with the paths of its fields.
 
 const MARKER_SELECTOR = `[${FIELD_PATH_ATTRIBUTE}]`;
 const HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
@@ -85,13 +84,4 @@ export function findClosestMarkedElement(
 
 function isHtmlElement(value: unknown): value is HTMLElement {
   return asElement(value)?.namespaceURI === HTML_NAMESPACE;
-}
-
-function asElement(value: unknown): Element | undefined {
-  const isElement =
-    typeof value === "object" &&
-    value !== null &&
-    "nodeType" in value &&
-    value.nodeType === Node.ELEMENT_NODE;
-  return isElement ? (value as Element) : undefined;
 }

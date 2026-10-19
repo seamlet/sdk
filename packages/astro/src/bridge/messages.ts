@@ -1,5 +1,7 @@
 import {
+  isJsonObject,
   readRichText,
+  type JsonObject,
   type Content,
   type FieldPath,
   type Fields,
@@ -158,19 +160,17 @@ const TYPING_OUTCOMES: ReadonlySet<string> = new Set(TYPING_OUTCOME_NAMES);
 
 /** The message the page sent, or undefined for anything that is not one. */
 export function readPageMessage(posted: unknown): PageMessage | undefined {
-  if (!isRecord(posted)) return undefined;
+  if (!isJsonObject(posted)) return undefined;
   return isPageMessage(posted) ? posted : undefined;
 }
 
 /** The message the editor sent, or undefined for anything that is not one. */
 export function readEditorMessage(posted: unknown): EditorMessage | undefined {
-  if (!isRecord(posted)) return undefined;
+  if (!isJsonObject(posted)) return undefined;
   return isEditorMessage(posted) ? posted : undefined;
 }
 
-type MessageRecord = Readonly<Record<string, unknown>>;
-
-function isPageMessage(message: MessageRecord): message is PageMessage {
+function isPageMessage(message: JsonObject): message is PageMessage {
   switch (message["type"]) {
     case "ready":
       return isNumber(message["protocol"]);
@@ -214,12 +214,12 @@ function isPageMessage(message: MessageRecord): message is PageMessage {
   }
 }
 
-function isEditorMessage(message: MessageRecord): message is EditorMessage {
+function isEditorMessage(message: JsonObject): message is EditorMessage {
   switch (message["type"]) {
     case "connect":
-      return isRecord(message["schema"]);
+      return isJsonObject(message["schema"]);
     case "render":
-      return isRecord(message["content"]);
+      return isJsonObject(message["content"]);
     case "start-typing":
       return (
         isString(message["path"]) &&
@@ -248,7 +248,7 @@ function isEditorMessage(message: MessageRecord): message is EditorMessage {
 }
 
 function isLayout(value: unknown): value is PageLayout {
-  if (!isRecord(value)) return false;
+  if (!isJsonObject(value)) return false;
   const markers = value["markers"];
   return (
     Array.isArray(markers) &&
@@ -259,15 +259,17 @@ function isLayout(value: unknown): value is PageLayout {
 }
 
 function isMarkerBox(value: unknown): value is MarkerBox {
-  return isRecord(value) && isString(value["path"]) && isBox(value["box"]);
+  return isJsonObject(value) && isString(value["path"]) && isBox(value["box"]);
 }
 
 function isLinkBox(value: unknown): value is LinkBox {
-  return isRecord(value) && isString(value["href"]) && isBox(value["box"]);
+  return isJsonObject(value) && isString(value["href"]) && isBox(value["box"]);
 }
 
 function isClickTarget(value: unknown): boolean {
-  return isRecord(value) && isString(value["path"]) && isPoint(value["point"]);
+  return (
+    isJsonObject(value) && isString(value["path"]) && isPoint(value["point"])
+  );
 }
 
 function isRichText(value: unknown): value is RichText {
@@ -276,7 +278,7 @@ function isRichText(value: unknown): value is RichText {
 
 function isTypedSelection(value: unknown): value is TypedSelection {
   return (
-    isRecord(value) &&
+    isJsonObject(value) &&
     isBox(value["box"]) &&
     typeof value["isCollapsed"] === "boolean" &&
     isTextFormats(value["formats"])
@@ -285,7 +287,7 @@ function isTypedSelection(value: unknown): value is TypedSelection {
 
 function isTextFormats(value: unknown): value is TextFormats {
   return (
-    isRecord(value) &&
+    isJsonObject(value) &&
     typeof value["isBold"] === "boolean" &&
     typeof value["isItalic"] === "boolean" &&
     typeof value["isList"] === "boolean" &&
@@ -295,7 +297,7 @@ function isTextFormats(value: unknown): value is TextFormats {
 
 function isBox(value: unknown): value is Box {
   return (
-    isRecord(value) &&
+    isJsonObject(value) &&
     isNumber(value["top"]) &&
     isNumber(value["left"]) &&
     isNumber(value["width"]) &&
@@ -305,12 +307,12 @@ function isBox(value: unknown): value is Box {
 
 function isViewport(value: unknown): value is Viewport {
   return (
-    isRecord(value) && isNumber(value["width"]) && isNumber(value["height"])
+    isJsonObject(value) && isNumber(value["width"]) && isNumber(value["height"])
   );
 }
 
 function isPoint(value: unknown): value is Point {
-  return isRecord(value) && isNumber(value["x"]) && isNumber(value["y"]);
+  return isJsonObject(value) && isNumber(value["x"]) && isNumber(value["y"]);
 }
 
 function isFieldPath(value: unknown): value is FieldPath {
@@ -325,10 +327,6 @@ function isOptional(
   isPresent: (value: unknown) => boolean,
 ): boolean {
   return value === undefined || isPresent(value);
-}
-
-function isRecord(value: unknown): value is MessageRecord {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function isString(value: unknown): value is string {

@@ -1,5 +1,6 @@
 import { defaultContent, type Content, type ContentOf } from "./content";
 import type { CollectionField, Field, Fields, RecordFields } from "./fields";
+import { isContentObject } from "./json-values";
 
 // Every record of a collection has an id of its own: an index changes when records move, an id
 // never does, so a reference to a record and a page of a record keep pointing at it. Checking
@@ -71,11 +72,11 @@ function collectionIn(
   const isLast = rest.length === 0;
   switch (field.kind) {
     case "collection": {
-      const records = Array.isArray(value) ? value.filter(isContent) : [];
+      const records = Array.isArray(value) ? value.filter(isContentObject) : [];
       return isLast ? { collection: field, records } : undefined;
     }
     case "group":
-      return !isLast && isContent(value)
+      return !isLast && isContentObject(value)
         ? collectionIn(field.fields, value, rest)
         : undefined;
     case "text":
@@ -160,12 +161,12 @@ function withIdsIn(
 ): Content[string] {
   switch (field.kind) {
     case "group":
-      return isContent(value)
+      return isContentObject(value)
         ? withIdsInFields(field.fields, value, newId)
         : value;
     case "collection":
       return Array.isArray(value)
-        ? withIdsInRecords(field, value.filter(isContent), newId)
+        ? withIdsInRecords(field, value.filter(isContentObject), newId)
         : value;
     case "text":
     case "richText":
@@ -198,8 +199,4 @@ function withIdsInRecords(
     const fields = withIdsInFields(collection.item, record, newId);
     return { ...fields, [RECORD_ID_KEY]: id };
   });
-}
-
-function isContent(value: unknown): value is Content {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

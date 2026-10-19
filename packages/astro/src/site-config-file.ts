@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import {
+  isJsonObject,
   readSiteConfig,
   SITE_CONFIG_FILE,
   type SiteConfig,
@@ -30,7 +31,7 @@ export async function loadSiteConfig(
   const parsed = await readJsonFile(file);
   const isOverridden = cmsOverride !== undefined && cmsOverride !== "";
   const input = isOverridden
-    ? { ...asObject(parsed), cms: cmsOverride }
+    ? { ...(isJsonObject(parsed) ? parsed : {}), cms: cmsOverride }
     : parsed;
 
   const reading = readSiteConfig(input);
@@ -55,10 +56,6 @@ async function readJsonFile(file: URL): Promise<unknown> {
       cause: error,
     });
   }
-}
-
-function asObject(value: unknown): object {
-  return typeof value === "object" && value !== null ? value : {};
 }
 
 function invalidFieldsMessage(
