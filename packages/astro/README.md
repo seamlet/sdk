@@ -125,6 +125,22 @@ A photo may carry the point that must stay in view when the site crops it, chose
 />
 ```
 
+A photo may also be one of the site's own files, named by an address of the site (`/menu/01.jpg`) that the site turns into its image when it renders. Give `defineSeamletSite` a `photos` function that finds that image, and the CMS's editor shows the photo in its field too:
+
+```ts
+const MENU_FILES = import.meta.glob<{ default: ImageMetadata }>(
+  "./assets/menu/*.jpg",
+  { eager: true },
+);
+
+export default defineSeamletSite({
+  id: "zerno",
+  schema,
+  pages: { "/": HomePage },
+  photos: (src) => MENU_FILES[src.replace("/menu/", "./assets/menu/")]?.default,
+});
+```
+
 ## Presets
 
 Sets of fields almost every site has, edited the same way everywhere; they are plain groups and collections, rendered as the site likes:
@@ -178,6 +194,7 @@ What was opened stays open while the page is rendered anew after every edit.
 
 - `/preview` and `/preview/<page>`: the preview the CMS's editor frames. `GET` shows the published content; `POST` with the content as JSON shows that content without saving it, which is how the editor shows every edit at once. Only the CMS may frame it (`Content-Security-Policy: frame-ancestors`), and it is never indexed or cached.
 - The bridge on the preview: it tells the editor where the marked elements are and what a person does on the page, and types texts in place.
+- `/seamlet-photos/<address>`: the site's own photo at an address its content gives it, found by `photos` of `defineSeamletSite`, for the CMS's editor.
 - `/media/<site>/<file>`: the photos uploaded in the CMS, taken from it on request; a static build copies every uploaded photo its built pages refer to next to them, so a static host serves them too.
 
 A site never renders content as raw HTML (`set:html`): the editor acts on what its preview says.

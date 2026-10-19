@@ -12,6 +12,7 @@ export default defineConfig({
     client: "src/client.ts",
     "preview-requests": "src/preview-requests.ts",
     "routes/media": "src/routes/media.ts",
+    "routes/own-photos": "src/routes/own-photos.ts",
   },
   format: "esm",
   target: "node24",

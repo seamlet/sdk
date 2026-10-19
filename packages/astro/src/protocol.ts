@@ -19,3 +19,4 @@ export { carriesFiles } from "./bridge/file-drags";
 export { imageFieldAt } from "./bridge/image-fields";
 export type { InlineEditingOutcome } from "./bridge/inline-text-editing";
 export { closestMarkedPath } from "./bridge/marked-paths";
+export { isOwnPhotoSrc, OWN_PHOTOS_PATH, ownPhotoPath } from "./own-photos";
