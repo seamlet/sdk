@@ -1,7 +1,15 @@
-import type { Content, FieldPath, Fields } from "../schema";
+import {
+  readRichText,
+  type Content,
+  type FieldPath,
+  type Fields,
+  type RichText,
+} from "../schema";
 import type { Box, Viewport } from "./boxes";
 import type { Shortcut } from "./editor-shortcuts";
 import type { InlineEditingOutcome } from "./inline-text-editing";
+import type { TextFormat, TypedSelection } from "./rich-text-editing";
+import type { TextFormats } from "./rich-text-edits";
 
 // What the editor and the site's page say to each other. The page lives on the site's own origin,
 // in a frame of the editor, so the two talk only with postMessage. Each side reads what it gets
@@ -12,7 +20,7 @@ import type { InlineEditingOutcome } from "./inline-text-editing";
  * editor may meet a bridge of another version: it tells by this number, said with `ready`, instead
  * of misreading the page. Raised whenever a message changes in a way the other side cannot read.
  */
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 
 export interface Point {
   readonly x: number;
@@ -67,6 +75,18 @@ export type PageMessage =
   /** The element does not show the text as it is: the field is edited in a popover. */
   | { readonly type: "typing-refused"; readonly path: string }
   | { readonly type: "typed"; readonly path: string; readonly text: string }
+  /** The formatted text typed in place, after every character and every change of its marks. */
+  | {
+      readonly type: "rich-typed";
+      readonly path: string;
+      readonly text: RichText;
+    }
+  /** Where the selection in the typed formatted text is now, for the editor's toolbar. */
+  | {
+      readonly type: "typed-selection";
+      readonly path: string;
+      readonly selection: TypedSelection | undefined;
+    }
   | {
       readonly type: "typing-ended";
       readonly path: string;
@@ -89,6 +109,19 @@ export type EditorMessage =
       readonly isSingleLine: boolean;
       readonly point: Point;
     }
+  /** Type the formatted text of the field in its element, if the element shows it as it is. */
+  | {
+      readonly type: "start-rich-typing";
+      readonly path: string;
+      readonly text: RichText;
+      /** The words alone, in an element of one line. */
+      readonly isInline: boolean;
+      readonly point: Point;
+    }
+  /** Mark the selected words of the formatted text typed in place, or make its lines a list. */
+  | { readonly type: "format-typed"; readonly format: TextFormat }
+  /** The selected words of the typed text, or the link at the cursor, lead here, or nowhere. */
+  | { readonly type: "link-typed"; readonly href: string | undefined }
   | { readonly type: "stop-typing" }
   /** Bring the field, or the closest marked element around it, into view. */
   | { readonly type: "scroll-to"; readonly path: FieldPath };
@@ -98,6 +131,11 @@ const EDITOR_KEYS: ReadonlySet<string> = new Set<EditorKey>([
   "undo",
   "redo",
   "escape",
+]);
+const TEXT_FORMATS: ReadonlySet<string> = new Set<TextFormat>([
+  "bold",
+  "italic",
+  "list",
 ]);
 const TYPING_OUTCOMES: ReadonlySet<string> = new Set<InlineEditingOutcome>([
   "kept",
@@ -144,6 +182,13 @@ function isPageMessage(message: MessageRecord): message is PageMessage {
       return isString(message["path"]);
     case "typed":
       return isString(message["path"]) && isString(message["text"]);
+    case "rich-typed":
+      return isString(message["path"]) && isRichText(message["text"]);
+    case "typed-selection":
+      return (
+        isString(message["path"]) &&
+        isOptional(message["selection"], isTypedSelection)
+      );
     case "typing-ended":
       return (
         isString(message["path"]) &&
@@ -168,6 +213,17 @@ function isEditorMessage(message: MessageRecord): message is EditorMessage {
         typeof message["isSingleLine"] === "boolean" &&
         isPoint(message["point"])
       );
+    case "start-rich-typing":
+      return (
+        isString(message["path"]) &&
+        isRichText(message["text"]) &&
+        typeof message["isInline"] === "boolean" &&
+        isPoint(message["point"])
+      );
+    case "format-typed":
+      return isString(message["format"]) && TEXT_FORMATS.has(message["format"]);
+    case "link-typed":
+      return isOptional(message["href"], isString);
     case "stop-typing":
       return true;
     case "scroll-to":
@@ -198,6 +254,29 @@ function isLinkBox(value: unknown): value is LinkBox {
 
 function isClickTarget(value: unknown): boolean {
   return isRecord(value) && isString(value["path"]) && isPoint(value["point"]);
+}
+
+function isRichText(value: unknown): value is RichText {
+  return readRichText(value) !== undefined;
+}
+
+function isTypedSelection(value: unknown): value is TypedSelection {
+  return (
+    isRecord(value) &&
+    isBox(value["box"]) &&
+    typeof value["isCollapsed"] === "boolean" &&
+    isTextFormats(value["formats"])
+  );
+}
+
+function isTextFormats(value: unknown): value is TextFormats {
+  return (
+    isRecord(value) &&
+    typeof value["isBold"] === "boolean" &&
+    typeof value["isItalic"] === "boolean" &&
+    typeof value["isList"] === "boolean" &&
+    isOptional(value["href"], isString)
+  );
 }
 
 function isBox(value: unknown): value is Box {

@@ -19,4 +19,24 @@ export { carriesFiles } from "./bridge/file-drags";
 export { imageFieldAt } from "./bridge/image-fields";
 export type { InlineEditingOutcome } from "./bridge/inline-text-editing";
 export { closestMarkedPath } from "./bridge/marked-paths";
+export type { TextFormat, TypedSelection } from "./bridge/rich-text-editing";
+export {
+  insertPlainText,
+  readRichTextFrom,
+  readSelectionFrom,
+  renderRichText,
+  selectIn,
+} from "./bridge/rich-text-dom";
+export {
+  formatsAt,
+  isCollapsed,
+  linkSelectionAt,
+  setLink,
+  toggleList,
+  toggleMark,
+  type Mark,
+  type TextFormats,
+  type TextPoint,
+  type TextSelection,
+} from "./bridge/rich-text-edits";
 export { isOwnPhotoSrc, OWN_PHOTOS_PATH, ownPhotoPath } from "./own-photos";

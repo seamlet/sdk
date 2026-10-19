@@ -113,6 +113,18 @@ describe("listenToPage", () => {
     expect(listeners.onClick).not.toHaveBeenCalled();
   });
 
+  it("takes a link inside a text being typed as a part of the text", () => {
+    element("header").setAttribute("contenteditable", "true");
+    element("#inside").dispatchEvent(
+      new MouseEvent("click", { bubbles: true, cancelable: true }),
+    );
+
+    expect(listeners.onLinkClick).not.toHaveBeenCalled();
+    expect(listeners.onClick).toHaveBeenCalledWith(
+      expect.objectContaining({ path: "hero" }),
+    );
+  });
+
   it("takes a link that is a field as the field", () => {
     element("b").dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
     element("b").dispatchEvent(new MouseEvent("click", { bubbles: true }));
