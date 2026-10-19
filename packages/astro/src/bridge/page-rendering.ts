@@ -9,21 +9,36 @@ export interface PageRendererOptions {
   readonly document: Document;
   /** Whether a rendered page may replace the current one now (not while a text is typed in it). */
   readonly canReplacePage: () => boolean;
+  /**
+   * Whether a person presses on the page now. A page replaced between the press and the release
+   * would lose the click (the two land on different elements), so it waits for the release.
+   */
+  readonly isPagePressed: () => boolean;
   readonly onRendered: () => void;
   readonly onFailed: (error: unknown) => void;
 }
 
 export interface PageRenderer {
   readonly render: (content: Content) => void;
+  /** Shows a rendered page held back by a press, if the page may be replaced now. */
+  readonly showHeldPage: () => void;
   readonly stop: () => void;
 }
 
 /** Only the latest render counts: a new one cancels the request of the previous one. */
 export function createPageRenderer(options: PageRendererOptions): PageRenderer {
   let request: AbortController | undefined;
+  let heldPage: string | undefined;
+
+  const show = (html: string) => {
+    if (!options.canReplacePage()) return;
+    replacePageBody(options.document, html);
+    options.onRendered();
+  };
 
   const render = (content: Content) => {
     request?.abort();
+    heldPage = undefined;
     const currentRequest = new AbortController();
     request = currentRequest;
     fetchRenderedPage(
@@ -32,9 +47,11 @@ export function createPageRenderer(options: PageRendererOptions): PageRenderer {
       currentRequest.signal,
     )
       .then((html) => {
-        if (!options.canReplacePage()) return;
-        replacePageBody(options.document, html);
-        options.onRendered();
+        if (options.isPagePressed()) {
+          heldPage = html;
+          return;
+        }
+        show(html);
       })
       .catch((error: unknown) => {
         if (currentRequest.signal.aborted) return;
@@ -42,10 +59,18 @@ export function createPageRenderer(options: PageRendererOptions): PageRenderer {
       });
   };
 
+  const showHeldPage = () => {
+    const html = heldPage;
+    heldPage = undefined;
+    if (html !== undefined) show(html);
+  };
+
   return {
     render,
+    showHeldPage,
     stop: () => {
       request?.abort();
+      heldPage = undefined;
     },
   };
 }

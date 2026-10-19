@@ -20,12 +20,16 @@ function page(title: string): string {
   return `<!doctype html><html><head><title>${title}</title></head><body class="site"><h1>${title}</h1></body></html>`;
 }
 
-function renderer(canReplacePage = () => true) {
+function renderer(
+  canReplacePage = () => true,
+  isPagePressed: () => boolean = () => false,
+) {
   const onRendered = vi.fn();
   const onFailed = vi.fn();
   const pageRenderer = createPageRenderer({
     document,
     canReplacePage,
+    isPagePressed,
     onRendered,
     onFailed,
   });
@@ -79,6 +83,50 @@ describe("createPageRenderer", () => {
     await vi.waitFor(() => {
       expect(isAsked).toHaveBeenCalled();
     });
+
+    expect(document.title).toBe("Старое");
+    expect(onRendered).not.toHaveBeenCalled();
+  });
+
+  it("holds a page rendered during a press until the press is over", async () => {
+    let isPressed = true;
+    fetchMock.mockResolvedValue(new Response(page("Новое")));
+    const isPressAsked = vi.fn(() => isPressed);
+    const { pageRenderer, onRendered } = renderer(() => true, isPressAsked);
+
+    pageRenderer.render({ title: "Новое" });
+    await vi.waitFor(() => {
+      expect(isPressAsked).toHaveBeenCalled();
+    });
+
+    expect(document.title).toBe("Старое");
+
+    isPressed = false;
+    pageRenderer.showHeldPage();
+
+    expect(document.title).toBe("Новое");
+    expect(onRendered).toHaveBeenCalledOnce();
+  });
+
+  it("drops a held page once the click started typing", async () => {
+    fetchMock.mockResolvedValue(new Response(page("Новое")));
+    let isPressed = true;
+    let isTyping = false;
+    const isPressAsked = vi.fn(() => isPressed);
+    const { pageRenderer, onRendered } = renderer(
+      () => !isTyping,
+      isPressAsked,
+    );
+    pageRenderer.render({ title: "Новое" });
+    await vi.waitFor(() => {
+      expect(isPressAsked).toHaveBeenCalled();
+    });
+
+    isPressed = false;
+    isTyping = true;
+    pageRenderer.showHeldPage();
+    isTyping = false;
+    pageRenderer.showHeldPage();
 
     expect(document.title).toBe("Старое");
     expect(onRendered).not.toHaveBeenCalled();

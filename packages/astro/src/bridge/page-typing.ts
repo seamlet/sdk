@@ -34,7 +34,7 @@ export interface PageTyping {
    * then starts the typing, or the text is left as it was.
    */
   readonly prepare: (element: HTMLElement, kind: TypedKind) => void;
-  /** Whether a text is being typed on the page now. */
+  /** Whether a text is being typed on the page now, or was made ready to be by a tap. */
   readonly isTyping: () => boolean;
   /** Starts typing into the field's element if it shows the text as it is; tells the editor either way. */
   readonly start: (request: StartTyping) => void;
@@ -156,7 +156,7 @@ export function createPageTyping(options: {
 
   return {
     prepare,
-    isTyping: () => stopEditing !== undefined,
+    isTyping: () => stopEditing !== undefined || prepared !== undefined,
     start,
     startRich,
     format: (format) => richEditing?.format(format),
