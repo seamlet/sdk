@@ -13,6 +13,7 @@ export default defineConfig({
     "preview-requests": "src/preview-requests.ts",
     "routes/media": "src/routes/media.ts",
     "routes/own-photos": "src/routes/own-photos.ts",
+    "routes/site-description": "src/routes/site-description.ts",
   },
   format: "esm",
   target: "node24",

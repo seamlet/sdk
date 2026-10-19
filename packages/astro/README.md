@@ -46,20 +46,27 @@ Connects an [Astro](https://astro.build) site to the Seamlet CMS ([source](https
    <h1 {...edit("title")}>{content.title}</h1>
    ```
 
-3. Name the site's address in the CMS and its pages: components that take the content as their `content` prop.
+3. Describe the site for the CMS: its address and name there, its schema, the content it starts with, and its pages, each with the name the editor gives it and the component that renders it (it takes the content as its `content` prop). The home page `/` comes first; `searchTexts` names where the content holds a page's title and description for search engines, a group of a `title` and a `description` text (`seoFields`).
 
    ```ts
    // src/seamlet.ts
    import { defineSeamletSite } from "@seamlet/astro/site";
    import HomePage from "./components/HomePage.astro";
+   import { initialContent } from "./initial-content";
    import { schema } from "./schema";
 
    export default defineSeamletSite({
      id: "zerno",
+     title: "Кофейня «Зерно»",
      schema,
-     pages: { "/": HomePage },
+     initialContent,
+     pages: {
+       "/": { title: "Главная", component: HomePage, searchTexts: "seo.home" },
+     },
    });
    ```
+
+   The CMS takes all of it from the site itself, so connecting a site, or changing its schema, needs no change of the CMS.
 
 4. Add the integration:
 
@@ -136,8 +143,10 @@ const MENU_FILES = import.meta.glob<{ default: ImageMetadata }>(
 
 export default defineSeamletSite({
   id: "zerno",
+  title: "Кофейня «Зерно»",
   schema,
-  pages: { "/": HomePage },
+  initialContent,
+  pages: { "/": { title: "Главная", component: HomePage } },
   photos: (src) => MENU_FILES[src.replace("/menu/", "./assets/menu/")]?.default,
 });
 ```
@@ -219,9 +228,10 @@ What was opened stays open while the page is rendered anew after every edit.
 
 - `/preview` and `/preview/<page>`: the preview the CMS's editor frames. `GET` shows the published content; `POST` with the content as JSON shows that content without saving it, which is how the editor shows every edit at once. Only the CMS may frame it (`Content-Security-Policy: frame-ancestors`), and it is never indexed or cached.
 - The bridge on the preview: it tells the editor where the marked elements are and what a person does on the page, and types texts in place, formatted ones too.
+- `/seamlet/site.json`: what the site tells the CMS about itself (`SITE_DESCRIPTION_PATH`): its name, its schema, the content it starts with and its pages. The CMS reads it with `readSiteDescription` whenever the site is opened in its editor.
 - `/seamlet-photos/<address>`: the site's own photo at an address its content gives it, found by `photos` of `defineSeamletSite`, for the CMS's editor.
 - `/media/<site>/<file>`: the photos uploaded in the CMS, taken from it on request; a static build copies every uploaded photo its built pages refer to next to them, so a static host serves them too.
 
 A site never renders content as raw HTML (`set:html`): the editor acts on what its preview says.
 
-The preview's address goes on the site's settings page in the CMS: `https://<site>/preview`.
+To connect the site, an administrator of the CMS gives it the preview's address, `https://<site>/preview`; the CMS takes the site's description from its origin.
