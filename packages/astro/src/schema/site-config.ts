@@ -1,3 +1,5 @@
+import { isJsonObject, isText } from "./json-values";
+
 // What a site says about itself in `seamlet.json` at the root of its repository: what is known before
 // the site is built (its id and name in the CMS, the CMS it belongs to). The site's build takes it
 // from there, and the CMS reads the same file from the repository with this code, so a site's id is
@@ -47,7 +49,7 @@ export function isSiteId(value: unknown): value is string {
 
 /** The config the input gives (the parsed `seamlet.json`); fields it does not know are left out. */
 export function readSiteConfig(input: unknown): SiteConfigReading {
-  const fields = isRecord(input) ? input : {};
+  const fields = isJsonObject(input) ? input : {};
   const { id, title } = fields;
   const cms = originOf(fields["cms"]);
 
@@ -72,12 +74,4 @@ function originOf(value: unknown): string | undefined {
   if (typeof value !== "string" || !URL.canParse(value)) return undefined;
   const url = new URL(value);
   return WEB_PROTOCOLS.has(url.protocol) ? url.origin : undefined;
-}
-
-function isText(value: unknown): value is string {
-  return typeof value === "string" && value.trim() !== "";
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

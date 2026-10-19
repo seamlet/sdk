@@ -1,7 +1,7 @@
 // The keyboard shortcuts of the editor. Keys are read by their place on the keyboard, not by the
 // letter they type, so ⌘Z works the same with the Russian layout, where that key types «я».
 
-export type Shortcut = "save" | "undo" | "redo";
+import type { Shortcut } from "./messages";
 
 export function shortcutOf(event: KeyboardEvent): Shortcut | undefined {
   const hasCommandKey = event.metaKey || event.ctrlKey;

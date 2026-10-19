@@ -3,6 +3,15 @@
 // already outlines the field over the frame: two rings around one text. The ring is taken off for
 // as long as the element is editable, and its own outline comes back after.
 
+/** A text typed as it is: the site's markup inside it is never changed by formatting. */
+export const EDITABLE_AS_PLAIN_TEXT = "plaintext-only";
+/** A formatted text: the bridge applies its marks to the data and renders the element anew. */
+export const EDITABLE_AS_RICH_TEXT = "true";
+
+/** How an element of the page is typed in: the value of its `contenteditable`. */
+export type EditableAs =
+  typeof EDITABLE_AS_PLAIN_TEXT | typeof EDITABLE_AS_RICH_TEXT;
+
 const OUTLINE = "outline";
 const NO_OUTLINE = "none";
 const IMPORTANT = "important";
@@ -14,9 +23,12 @@ interface KeptOutline {
 
 const keptOutlines = new WeakMap<HTMLElement, KeptOutline>();
 
-/** Makes the element editable as `editable` says (`plaintext-only` or `true`), without a focus ring. */
-export function makeEditable(element: HTMLElement, editable: string): void {
-  element.setAttribute("contenteditable", editable);
+/** Makes the element editable as it is typed in, without a focus ring. */
+export function makeEditable(
+  element: HTMLElement,
+  editableAs: EditableAs,
+): void {
+  element.setAttribute("contenteditable", editableAs);
   if (keptOutlines.has(element)) return;
 
   // Set through the CSS object model: a site's policy may refuse style attributes, never this.

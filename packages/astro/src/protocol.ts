@@ -7,19 +7,22 @@ export {
   readPageMessage,
   type EditorKey,
   type EditorMessage,
+  type InlineEditingOutcome,
   type LinkBox,
   type MarkerBox,
   type PageLayout,
   type PageMessage,
   type Point,
+  type Shortcut,
+  type TextFormat,
+  type TextFormats,
+  type TypedSelection,
 } from "./bridge/messages";
 export type { Box, Viewport } from "./bridge/boxes";
-export { shortcutOf, type Shortcut } from "./bridge/editor-shortcuts";
+export { shortcutOf } from "./bridge/editor-shortcuts";
 export { carriesFiles } from "./bridge/file-drags";
 export { imageFieldAt } from "./bridge/image-fields";
-export type { InlineEditingOutcome } from "./bridge/inline-text-editing";
 export { closestMarkedPath } from "./bridge/marked-paths";
-export type { TextFormat, TypedSelection } from "./bridge/rich-text-editing";
 export {
   insertPlainText,
   readRichTextFrom,
@@ -35,7 +38,6 @@ export {
   toggleList,
   toggleMark,
   type Mark,
-  type TextFormats,
   type TextPoint,
   type TextSelection,
 } from "./bridge/rich-text-edits";

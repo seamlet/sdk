@@ -1,45 +1,32 @@
-import { asOneParagraph, readRichText, type RichText } from "../schema";
-import { boxOf, type Box } from "./boxes";
-import { makeEditable, makeUneditable } from "./editable-elements";
-import type { InlineEditingOutcome } from "./inline-text-editing";
+import { readRichText, safeHref, type RichText } from "../schema";
+import { EDITABLE_AS_RICH_TEXT } from "./editable-elements";
+import type {
+  InlineEditingOutcome,
+  TextFormat,
+  TypedSelection,
+} from "./messages";
 import { hasMarkedDescendants } from "./page-markers";
+import { insertPlainText } from "./rich-text-dom";
 import {
-  insertPlainText,
-  rangeOf,
-  readRichTextFrom,
-  readSelectionFrom,
-  renderInlineRichText,
-  renderRichText,
-  selectIn,
-} from "./rich-text-dom";
-import {
-  formatsAt,
   isCollapsed,
   linkSelectionAt,
   setLink,
   toggleList,
   toggleMark,
-  type TextFormats,
   type TextSelection,
 } from "./rich-text-edits";
+import type { RichTextLayout } from "./rich-text-layouts";
+import { createSelectionReports } from "./typed-selections";
+import { onElement } from "./event-listening";
+import { startTypingSession } from "./typing-sessions";
 
 // Typing formatted text right in the element of the site's page that shows it. The browser types
 // the words; bold, italic, lists and links are applied to the data and the element is rendered
 // anew, so what the element holds is always what the site would render.
 
-/** A change of formatting the editor's toolbar asks for. */
-export type TextFormat = "bold" | "italic" | "list";
-
-/** The selection in the typed text: where it is on the page and what its words have. */
-export interface TypedSelection {
-  readonly box: Box;
-  readonly isCollapsed: boolean;
-  readonly formats: TextFormats;
-}
-
 export interface RichTextEditingOptions {
-  /** The words alone, in an element of one line: Enter ends the typing, lists are not made. */
-  readonly isInline: boolean;
+  /** How the text stands in its element: paragraphs and lists, or the words of one line. */
+  readonly layout: RichTextLayout;
   readonly onInput: (text: RichText) => void;
   readonly onSelect: (selection: TypedSelection | undefined) => void;
   readonly onEnd: (outcome: InlineEditingOutcome) => void;
@@ -47,15 +34,17 @@ export interface RichTextEditingOptions {
 
 export interface RichTextEditing {
   readonly format: (format: TextFormat) => void;
-  /** The selected words, or the link at the cursor, lead to the address, or nowhere. */
+  /**
+   * The selected words, or the link at the cursor, lead to the address, or nowhere. An address a
+   * link may not have (see safeHref) changes nothing.
+   */
   readonly setLink: (href: string | undefined) => void;
   /** Ends the typing and keeps what was typed. */
   readonly stop: () => void;
 }
 
-export const EDITABLE_AS_RICH_TEXT = "true";
-const PASTED_LINE_BREAKS = /\s*\n\s*/gu;
-const SPACE = " ";
+/** A shortcut of the browser's own formatting that must not run: underline. */
+type RefusedShortcut = "refused";
 
 /**
  * Whether the formatted text of a field can be typed right in its element: the element shows the
@@ -64,78 +53,50 @@ const SPACE = " ";
 export function canEditRichTextInPlace(
   element: HTMLElement,
   value: RichText,
-  isInline: boolean,
+  layout: RichTextLayout,
 ): boolean {
   if (hasMarkedDescendants(element)) return false;
 
   const normalized = readRichText(value) ?? [];
-  const expected = isInline ? asOneParagraph(normalized) : normalized;
-  const shown = readTextOf(element, isInline);
+  const expected = layout.shapeOf(normalized);
+  const shown = layout.read(element);
   return JSON.stringify(shown) === JSON.stringify(expected);
 }
 
-/** Makes the element editable until Enter (inline), Escape or a click elsewhere on the page. */
+/** Makes the element editable until Enter (one line), Escape or a click elsewhere on the page. */
 export function startRichTextEditing(
   element: HTMLElement,
   options: RichTextEditingOptions,
 ): RichTextEditing {
-  const document = element.ownerDocument;
-  const view = document.defaultView;
-  // The selection outlives the focus: the editor's toolbar takes it to set a link's address.
-  let lastSelection: TextSelection | undefined;
-  let reportFrame: number | undefined;
-  let blurTimer: ReturnType<typeof setTimeout> | undefined;
-
-  const readText = () => readTextOf(element, options.isInline);
-  const liveSelection = () =>
-    isSelectionIn(element) ? readSelectionFrom(element) : undefined;
-
-  const reportSelection = () => {
-    reportFrame = undefined;
-    options.onSelect(measureSelection(element, readText(), lastSelection));
-  };
-  const scheduleReport = () => {
-    if (reportFrame !== undefined) return;
-    reportFrame = view?.requestAnimationFrame(reportSelection);
-  };
-  const followSelection = () => {
-    // Only a person on the page moves the selection; a page without the focus changes it only
-    // when its element is rendered anew under the editor's toolbar.
-    const selection = document.hasFocus() ? liveSelection() : undefined;
-    if (selection === undefined) return;
-    lastSelection = selection;
-    scheduleReport();
-  };
+  const { layout } = options;
+  const readText = () => layout.read(element);
+  const selections = createSelectionReports(
+    element,
+    readText,
+    options.onSelect,
+  );
 
   const reportInput = () => {
     options.onInput(readText());
-    followSelection();
+    selections.follow();
   };
   /** Changes the text and the element together, keeping the same words selected. */
   const change = (changed: RichText, selection: TextSelection) => {
-    render(element, changed, options.isInline);
-    lastSelection = selection;
-    // Selecting in a page that lost the focus to the editor would take the focus back.
-    if (document.hasFocus()) selectIn(element, selection);
+    layout.render(element, changed);
+    selections.keep(selection);
     options.onInput(changed);
-    scheduleReport();
   };
-
   const format = (requested: TextFormat) => {
-    const selection = liveSelection() ?? lastSelection;
-    const isListInLine = requested === "list" && options.isInline;
-    if (selection === undefined || isListInLine) return;
+    const selection = selections.current();
+    const isRefusedList = requested === "list" && !layout.canHoldLists;
+    if (selection === undefined || isRefusedList) return;
 
-    const current = readText();
-    const changed =
-      requested === "list"
-        ? toggleList(current, selection)
-        : toggleMark(current, selection, requested);
-    change(changed, selection);
+    change(formatted(readText(), selection, requested), selection);
   };
   const linkTo = (href: string | undefined) => {
-    const selection = lastSelection;
-    if (selection === undefined) return;
+    const selection = selections.last();
+    const isUnsafe = href !== undefined && safeHref(href) === undefined;
+    if (selection === undefined || isUnsafe) return;
 
     const current = readText();
     const target = isCollapsed(selection)
@@ -145,146 +106,115 @@ export function startRichTextEditing(
     change(setLink(current, target, href), selection);
   };
 
-  const pressKey = (event: KeyboardEvent) => {
-    const isEnd = event.key === "Enter" && options.isInline && !event.shiftKey;
-    const shortcut = formatShortcutOf(event);
-    if (event.key === "Escape") {
-      event.preventDefault();
-      end("reverted");
-    } else if (isEnd) {
-      event.preventDefault();
-      end("kept");
-    } else if (shortcut !== undefined) {
-      event.preventDefault();
-      if (shortcut !== "none") format(shortcut);
-    }
-  };
-  const pastePlainText = (event: ClipboardEvent) => {
-    event.preventDefault();
-    const pasted = event.clipboardData?.getData("text/plain") ?? "";
-    const words = options.isInline
-      ? pasted.replace(PASTED_LINE_BREAKS, SPACE)
-      : pasted;
-    insertPlainText(element, words);
-    reportInput();
-  };
-  // A dropped text would bring the formatting and the links of where it came from.
-  const refuseDrop = (event: DragEvent) => {
-    event.preventDefault();
-  };
-  // Focus that left the page for the editor (its toolbar, the address of a link) keeps the
-  // typing; a click elsewhere on the page ends it.
-  const endOnBlur = () => {
-    clearTimeout(blurTimer);
-    blurTimer = setTimeout(() => {
-      const isFocusOnPage = document.hasFocus();
-      const isFocusInText = document.activeElement === element;
-      if (isFocusOnPage && !isFocusInText) end("kept");
-    });
-  };
+  const blurs = endWhenFocusMovesOnPage(element, () => {
+    session.end("kept");
+  });
+  const session = startTypingSession(element, {
+    editableAs: EDITABLE_AS_RICH_TEXT,
+    isEndingKey: layout.isEndingKey,
+    listeners: [
+      onElement(element, "input", reportInput),
+      onElement(element, "keydown", (event) => {
+        formatOnShortcut(event, format);
+      }),
+      onElement(element, "paste", (event) => {
+        pastePlainText(event, element, layout);
+        reportInput();
+      }),
+      onElement(element, "drop", refuseDrop),
+      onElement(element, "blur", blurs.listener),
+      ...selections.listeners,
+    ],
+    onStop: () => {
+      blurs.stop();
+      selections.stop();
+    },
+    onEnd: (outcome) => {
+      options.onSelect(undefined);
+      options.onEnd(outcome);
+    },
+  });
 
-  const stopListening = () => {
-    clearTimeout(blurTimer);
-    if (reportFrame !== undefined) view?.cancelAnimationFrame(reportFrame);
-    element.removeEventListener("input", reportInput);
-    element.removeEventListener("keydown", pressKey);
-    element.removeEventListener("paste", pastePlainText);
-    element.removeEventListener("drop", refuseDrop);
-    element.removeEventListener("blur", endOnBlur);
-    document.removeEventListener("selectionchange", followSelection);
-    document.removeEventListener("scroll", scheduleReport, true);
-    view?.removeEventListener("resize", scheduleReport);
-    makeUneditable(element);
-  };
-  let hasEnded = false;
-  const end = (outcome: InlineEditingOutcome) => {
-    if (hasEnded) return;
-    hasEnded = true;
-    stopListening();
-    options.onSelect(undefined);
-    options.onEnd(outcome);
-  };
-
-  makeEditable(element, EDITABLE_AS_RICH_TEXT);
-  element.addEventListener("input", reportInput);
-  element.addEventListener("keydown", pressKey);
-  element.addEventListener("paste", pastePlainText);
-  element.addEventListener("drop", refuseDrop);
-  element.addEventListener("blur", endOnBlur);
-  document.addEventListener("selectionchange", followSelection);
-  document.addEventListener("scroll", scheduleReport, true);
-  view?.addEventListener("resize", scheduleReport);
-  element.focus();
   return {
     format,
     setLink: linkTo,
     stop: () => {
-      end("kept");
+      session.end("kept");
     },
   };
 }
 
-function readTextOf(element: HTMLElement, isInline: boolean): RichText {
-  const read = readRichTextFrom(element);
-  return isInline ? asOneParagraph(read) : read;
-}
-
-function render(element: HTMLElement, text: RichText, isInline: boolean) {
-  if (isInline) renderInlineRichText(element, text);
-  else renderRichText(element, text);
-}
-
-function measureSelection(
-  element: HTMLElement,
+function formatted(
   text: RichText,
-  selection: TextSelection | undefined,
-): TypedSelection | undefined {
-  if (selection === undefined) return undefined;
-
-  const range = isSelectionIn(element)
-    ? element.ownerDocument.getSelection()?.getRangeAt(0)
-    : rangeOf(element, selection);
-  const box =
-    (range === undefined ? undefined : boxOfRange(range)) ?? boxOf(element);
-  if (box === undefined) return undefined;
-  return {
-    box,
-    isCollapsed: isCollapsed(selection),
-    formats: formatsAt(text, selection),
-  };
+  selection: TextSelection,
+  format: TextFormat,
+): RichText {
+  return format === "list"
+    ? toggleList(text, selection)
+    : toggleMark(text, selection, format);
 }
 
-/** The box of a range; a cursor has no box of its own, only the line it stands in. */
-function boxOfRange(range: Range): Box | undefined {
-  const whole = range.getBoundingClientRect();
-  const rectangle =
-    whole.width > 0 || whole.height > 0 ? whole : range.getClientRects()[0];
-  if (rectangle === undefined) return undefined;
-  const isShown = rectangle.width > 0 || rectangle.height > 0;
-  if (!isShown) return undefined;
-  return {
-    top: rectangle.top,
-    left: rectangle.left,
-    width: rectangle.width,
-    height: rectangle.height,
-  };
+function formatOnShortcut(
+  event: KeyboardEvent,
+  format: (format: TextFormat) => void,
+): void {
+  const shortcut = formatShortcutOf(event);
+  if (shortcut === undefined) return;
+
+  event.preventDefault();
+  if (shortcut !== "refused") format(shortcut);
 }
 
-function isSelectionIn(element: HTMLElement): boolean {
-  const selection = element.ownerDocument.getSelection();
-  const anchor = selection?.anchorNode ?? null;
-  const hasRange = (selection?.rangeCount ?? 0) > 0;
-  return hasRange && anchor !== null && element.contains(anchor);
+/** A pasted text comes without the formatting and the links of where it came from. */
+function pastePlainText(
+  event: ClipboardEvent,
+  element: HTMLElement,
+  layout: RichTextLayout,
+): void {
+  event.preventDefault();
+  const pasted = event.clipboardData?.getData("text/plain") ?? "";
+  insertPlainText(element, layout.pastedWords(pasted));
+}
+
+/** A dropped text would bring the formatting and the links of where it came from. */
+function refuseDrop(event: Event): void {
+  event.preventDefault();
 }
 
 /**
- * The formatting a keyboard shortcut asks for; "none" for a shortcut of the browser's own
- * formatting that must not run (underline), undefined for any other key. Keys are read by their
- * place, so ⌘B works with the Russian layout, where that key types «и».
+ * Focus that left the page for the editor (its toolbar, the address of a link) keeps the typing;
+ * a click elsewhere on the page ends it. The focus has moved only once the blur is over.
+ */
+function endWhenFocusMovesOnPage(
+  element: HTMLElement,
+  end: () => void,
+): { readonly listener: () => void; readonly stop: () => void } {
+  let blurTimer: ReturnType<typeof setTimeout> | undefined;
+  const listener = () => {
+    clearTimeout(blurTimer);
+    blurTimer = setTimeout(() => {
+      const { ownerDocument } = element;
+      const isFocusOnPage = ownerDocument.hasFocus();
+      const isFocusInText = ownerDocument.activeElement === element;
+      if (isFocusOnPage && !isFocusInText) end();
+    });
+  };
+  return {
+    listener,
+    stop: () => {
+      clearTimeout(blurTimer);
+    },
+  };
+}
+
+/**
+ * The formatting a keyboard shortcut asks for; "refused" for a shortcut of the browser's own
+ * formatting that must not run, undefined for any other key. Keys are read by their place, so ⌘B
+ * works with the Russian layout, where that key types «и».
  */
 function formatShortcutOf(
   event: KeyboardEvent,
-): TextFormat | "none" | undefined {
+): TextFormat | RefusedShortcut | undefined {
   const hasCommandKey = event.metaKey || event.ctrlKey;
   if (!hasCommandKey || event.altKey || event.shiftKey) return undefined;
 
@@ -294,7 +224,7 @@ function formatShortcutOf(
     case "KeyI":
       return "italic";
     case "KeyU":
-      return "none";
+      return "refused";
     default:
       return undefined;
   }

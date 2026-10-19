@@ -1,9 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { readSiteConfig, SITE_CONFIG_FILE } from "../schema";
-import { siteFilesOf, siteIdOf } from "./site-files";
-import { writeSiteFiles } from "./write-site-files";
+import {
+  readSiteConfig,
+  SITE_CONFIG_FILE,
+  type SiteConfigReading,
+} from "../schema";
+import { configFileOf, moduleFilesOf, siteIdOf } from "./site-files";
+import { hasCode, writeSiteFiles, type WrittenFiles } from "./write-site-files";
 
 // `npx @seamlet/astro init`: starts a site's connection to the CMS in the Astro project it runs in.
 
@@ -12,6 +16,7 @@ const DEFAULT_CMS = "https://cms.seamlet.ru";
 const SUCCESS = 0;
 const FAILURE = 1;
 const MISUSE = 2;
+const MISSING = "ENOENT";
 
 const USAGE = `Usage: npx @seamlet/astro init [--id <id>] [--title <title>] [--cms <address>]
 
@@ -46,27 +51,84 @@ export async function runInit(run: InitRun): Promise<number> {
     return MISUSE;
   }
 
-  const packageName = await packageNameOf(run.root);
+  const existing = await existingConfigOf(run.root);
+  const reading = existing ?? (await configOfOptions(run.root, options));
+  if (reading.status === "invalid") {
+    run.log(invalidConfigMessage(reading, existing !== undefined));
+    return FAILURE;
+  }
+
+  const config = reading.config;
+  const configFile = await writeSiteFiles(run.root, [configFileOf(config)]);
+  const moduleFiles = await writeSiteFiles(run.root, moduleFilesOf(config));
+  logWritten(run, configFile);
+  logWritten(run, moduleFiles);
+  run.log(NEXT_STEPS);
+  return SUCCESS;
+}
+
+/** The config the options give, with the id from package.json and the title from the id by default. */
+async function configOfOptions(
+  root: string,
+  options: InitOptions,
+): Promise<SiteConfigReading> {
+  const packageName = await packageNameOf(root);
   const id = options.id ?? siteIdOf(packageName ?? "");
-  const reading = readSiteConfig({
+  return readSiteConfig({
     id,
     title: options.title ?? id,
     cms: options.cms ?? DEFAULT_CMS,
   });
-  if (reading.status === "invalid") {
-    const fields = reading.invalidFields
-      .map((field) => `--${field}`)
-      .join(", ");
-    run.log(`Give the site ${fields}.\n\n${USAGE}`);
-    return FAILURE;
-  }
+}
 
-  const files = await writeSiteFiles(run.root, siteFilesOf(reading.config));
+/**
+ * The site's own `seamlet.json`, which the modules are written for when it is there: modules named
+ * after another id would show another site's content. Undefined when the site has none.
+ */
+async function existingConfigOf(
+  root: string,
+): Promise<SiteConfigReading | undefined> {
+  const path = join(root, SITE_CONFIG_FILE);
+  let text: string;
+  try {
+    text = await readFile(path, "utf8");
+  } catch (error) {
+    if (hasCode(error, MISSING)) return undefined;
+    throw new Error(`@seamlet/astro: cannot read ${path}`, { cause: error });
+  }
+  return readSiteConfig(parsedOrNothing(text));
+}
+
+function parsedOrNothing(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    // Not JSON: every field of the config is missing, and the message names them.
+    return undefined;
+  }
+}
+
+function invalidConfigMessage(
+  reading: Extract<SiteConfigReading, { status: "invalid" }>,
+  isExisting: boolean,
+): string {
+  if (isExisting) {
+    const fields = reading.invalidFields
+      .map((field) => `"${field}"`)
+      .join(", ");
+    return `The site's ${SITE_CONFIG_FILE} needs ${fields}: fix it, or remove it to write a new one.`;
+  }
+  const options = reading.invalidFields.map((field) => `--${field}`).join(", ");
+  return `Give the site ${options}.\n\n${USAGE}`;
+}
+
+function logWritten(run: InitRun, files: WrittenFiles): void {
   for (const path of files.written) run.log(`wrote ${path}`);
-  for (const path of files.kept)
-    run.log(`kept ${path}: the site has it already`);
-  run.log(NEXT_STEPS);
-  return SUCCESS;
+  for (const path of files.kept) {
+    run.log(
+      `kept ${path}: the site has it, or a file that goes with it, already`,
+    );
+  }
 }
 
 interface InitOptions {

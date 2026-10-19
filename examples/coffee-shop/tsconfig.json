@@ -1,6 +1,6 @@
 {
   // The test site takes @seamlet/astro as an installed package, as every other site does.
   "extends": "../../tsconfig.base.json",
-  "include": [".astro/types.d.ts", "src"],
+  "include": [".astro/types.d.ts", "src", "vitest.config.ts"],
   "exclude": ["dist"]
 }

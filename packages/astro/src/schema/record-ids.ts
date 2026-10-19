@@ -1,5 +1,7 @@
 import { defaultContent, type Content, type ContentOf } from "./content";
 import type { CollectionField, Field, Fields, RecordFields } from "./fields";
+import { FIELD_PATH_SEPARATOR } from "./field-paths";
+import { isContentObject } from "./json-values";
 
 // Every record of a collection has an id of its own: an index changes when records move, an id
 // never does, so a reference to a record and a page of a record keep pointing at it. Checking
@@ -36,8 +38,6 @@ export function withRecordIds<F extends Fields>(
   return withIdsInFields(schema, content, newId) as ContentOf<F>;
 }
 
-const COLLECTION_PATH_SEPARATOR = ".";
-
 export interface CollectionRecords {
   readonly collection: CollectionField;
   readonly records: readonly Content[];
@@ -52,7 +52,7 @@ export function collectionAt(
   content: Content,
   path: string,
 ): CollectionRecords | undefined {
-  return collectionIn(schema, content, path.split(COLLECTION_PATH_SEPARATOR));
+  return collectionIn(schema, content, path.split(FIELD_PATH_SEPARATOR));
 }
 
 function collectionIn(
@@ -68,14 +68,68 @@ function collectionIn(
   if (name === undefined || field === undefined) return undefined;
 
   const value = content[name];
-  if (rest.length === 0 && field.kind === "collection") {
-    const records = Array.isArray(value) ? value.filter(isContent) : [];
-    return { collection: field, records };
+  const isLast = rest.length === 0;
+  switch (field.kind) {
+    case "collection": {
+      const records = Array.isArray(value) ? value.filter(isContentObject) : [];
+      return isLast ? { collection: field, records } : undefined;
+    }
+    case "group":
+      return !isLast && isContentObject(value)
+        ? collectionIn(field.fields, value, rest)
+        : undefined;
+    case "text":
+    case "richText":
+    case "number":
+    case "date":
+    case "image":
+    case "link":
+    case "toggle":
+    case "choice":
+    case "choices":
+    case "url":
+    case "time":
+    case "reference":
+    case "references":
+      return undefined;
   }
-  if (rest.length > 0 && field.kind === "group" && isContent(value)) {
-    return collectionIn(field.fields, value, rest);
+}
+
+/** The collection at a path of the schema through groups (`"studio.teachers"`), if it has one there. */
+export function collectionFieldAt(
+  schema: Fields,
+  path: string,
+): CollectionField | undefined {
+  const [name, ...rest] = path.split(FIELD_PATH_SEPARATOR);
+  const field =
+    name !== undefined && Object.hasOwn(schema, name)
+      ? schema[name]
+      : undefined;
+  if (field === undefined) return undefined;
+
+  const isLast = rest.length === 0;
+  switch (field.kind) {
+    case "collection":
+      return isLast ? field : undefined;
+    case "group":
+      return isLast
+        ? undefined
+        : collectionFieldAt(field.fields, rest.join(FIELD_PATH_SEPARATOR));
+    case "text":
+    case "richText":
+    case "number":
+    case "date":
+    case "image":
+    case "link":
+    case "toggle":
+    case "choice":
+    case "choices":
+    case "url":
+    case "time":
+    case "reference":
+    case "references":
+      return undefined;
   }
-  return undefined;
 }
 
 /** The record of the list with the id, if it is there. */
@@ -104,13 +158,30 @@ function withIdsIn(
   value: Content[string],
   newId: () => string,
 ): Content[string] {
-  if (field.kind === "group" && isContent(value)) {
-    return withIdsInFields(field.fields, value, newId);
+  switch (field.kind) {
+    case "group":
+      return isContentObject(value)
+        ? withIdsInFields(field.fields, value, newId)
+        : value;
+    case "collection":
+      return Array.isArray(value)
+        ? withIdsInRecords(field, value.filter(isContentObject), newId)
+        : value;
+    case "text":
+    case "richText":
+    case "number":
+    case "date":
+    case "image":
+    case "link":
+    case "toggle":
+    case "choice":
+    case "choices":
+    case "url":
+    case "time":
+    case "reference":
+    case "references":
+      return value;
   }
-  if (field.kind === "collection" && Array.isArray(value)) {
-    return withIdsInRecords(field, value.filter(isContent), newId);
-  }
-  return value;
 }
 
 function withIdsInRecords(
@@ -127,8 +198,4 @@ function withIdsInRecords(
     const fields = withIdsInFields(collection.item, record, newId);
     return { ...fields, [RECORD_ID_KEY]: id };
   });
-}
-
-function isContent(value: unknown): value is Content {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

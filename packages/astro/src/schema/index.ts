@@ -84,6 +84,7 @@ export {
 export {
   hrefOf,
   linkTargetOf,
+  safeHref,
   type LinkKind,
   type LinkTarget,
 } from "./link-addresses";
@@ -96,6 +97,7 @@ export {
 } from "./presets";
 export {
   asOneParagraph,
+  linesOf,
   normalizedLine,
   plainTextOf,
   readRichText,
@@ -105,7 +107,14 @@ export {
   type RichSpan,
   type RichText,
 } from "./rich-text";
-export { readFields } from "./read-fields";
+export { isJsonObject, type JsonObject } from "./json-values";
+export {
+  checkFields,
+  readFields,
+  type FieldsReading,
+  type SchemaProblem,
+  type SchemaProblemReason,
+} from "./read-fields";
 export {
   isSiteId,
   readSiteConfig,
@@ -115,9 +124,14 @@ export {
   type SiteConfigReading,
 } from "./site-config";
 export {
+  checkSiteDescription,
+  HOME_PAGE_PATH,
   isSearchTextsGroup,
   readSiteDescription,
   SITE_DESCRIPTION_PATH,
+  type PageProblemReason,
   type SiteDescription,
+  type SiteDescriptionProblem,
+  type SiteDescriptionReading,
   type SitePageDescription,
 } from "./site-description";

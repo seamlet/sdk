@@ -20,18 +20,29 @@ export interface PageRendererOptions {
 
 export interface PageRenderer {
   readonly render: (content: Content) => void;
-  /** Shows a rendered page held back by a press, if the page may be replaced now. */
+  /**
+   * Shows the latest rendered page held back by a press or by typing, if the page may be replaced
+   * now: call it when the press or the typing is over.
+   */
   readonly showHeldPage: () => void;
   readonly stop: () => void;
 }
 
-/** Only the latest render counts: a new one cancels the request of the previous one. */
+/**
+ * Only the latest render counts: a new one cancels the request of the previous one, and a page
+ * that may not be replaced yet is held until it may, unless a newer render comes first.
+ */
 export function createPageRenderer(options: PageRendererOptions): PageRenderer {
   let request: AbortController | undefined;
   let heldPage: string | undefined;
 
   const show = (html: string) => {
-    if (!options.canReplacePage()) return;
+    const isPageBusy = options.isPagePressed() || !options.canReplacePage();
+    if (isPageBusy) {
+      heldPage = html;
+      return;
+    }
+
     replacePageBody(options.document, html);
     options.onRendered();
   };
@@ -46,13 +57,7 @@ export function createPageRenderer(options: PageRendererOptions): PageRenderer {
       content,
       currentRequest.signal,
     )
-      .then((html) => {
-        if (options.isPagePressed()) {
-          heldPage = html;
-          return;
-        }
-        show(html);
-      })
+      .then(show)
       .catch((error: unknown) => {
         if (currentRequest.signal.aborted) return;
         options.onFailed(error);

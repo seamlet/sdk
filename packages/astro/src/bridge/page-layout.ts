@@ -1,5 +1,5 @@
 import { boxOf } from "./boxes";
-import type { MarkerBox, PageLayout } from "./messages";
+import type { LinkBox, MarkerBox, PageLayout } from "./messages";
 import { allMarkedElements, type PageLink } from "./page-markers";
 
 /** Where the marked elements of the page and the link under the pointer are now. */
@@ -14,15 +14,17 @@ export function measureLayout(
     },
   );
   const root = document.documentElement;
-  const linkBox = link === undefined ? undefined : boxOf(link.element);
   return {
     markers,
     viewport: { width: root.clientWidth, height: root.clientHeight },
-    link:
-      link === undefined || linkBox === undefined
-        ? undefined
-        : { href: link.href, box: linkBox },
+    link: link === undefined ? undefined : linkBoxOf(link),
   };
+}
+
+/** Where the link is, or undefined for a link that takes no space. */
+function linkBoxOf(link: PageLink): LinkBox | undefined {
+  const box = boxOf(link.element);
+  return box === undefined ? undefined : { href: link.href, box };
 }
 
 export interface LayoutReports {

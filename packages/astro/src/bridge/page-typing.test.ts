@@ -8,6 +8,7 @@ import {
 } from "./page-typing";
 
 const send = vi.fn<(message: PageMessage) => void>();
+const onTypingOver = vi.fn<() => void>();
 let typing: PageTyping;
 
 beforeEach(() => {
@@ -17,7 +18,13 @@ beforeEach(() => {
     <span data-cms-path="menu.0.price">150 ₽</span>
     <div data-cms-path="menu.0"><p data-cms-path="menu.0.name">Эспрессо</p></div>`;
   send.mockReset();
-  typing = createPageTyping({ document, send, onInput: () => undefined });
+  onTypingOver.mockReset();
+  typing = createPageTyping({
+    document,
+    send,
+    onInput: () => undefined,
+    onTypingOver,
+  });
 });
 
 function marked(path: string): HTMLElement {
@@ -50,6 +57,29 @@ function press(element: HTMLElement, key: string): void {
 }
 
 describe("createPageTyping", () => {
+  it("says when nothing is typed any more: the typing ended, or was refused", () => {
+    startAt("title", "Зерно");
+    expect(onTypingOver).not.toHaveBeenCalled();
+    press(marked("title"), "Enter");
+    expect(onTypingOver).toHaveBeenCalledTimes(1);
+
+    startAt("menu.0", "Эспрессо");
+    expect(onTypingOver).toHaveBeenCalledTimes(2);
+  });
+
+  it("says nothing while a tapped text waits for the editor, and says it once the wait is over", () => {
+    vi.useFakeTimers();
+    typing.prepare(marked("title"), "plain");
+    startAt("menu.0", "Эспрессо");
+    expect(onTypingOver).toHaveBeenCalledTimes(1);
+
+    typing.prepare(marked("title"), "plain");
+    expect(onTypingOver).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(PREPARED_TYPING_TIMEOUT_MS);
+    expect(onTypingOver).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
   it("types a text shown as it is and sends every typed character", () => {
     startAt("title", "Зерно");
     type(marked("title"), "Зерно и чай");

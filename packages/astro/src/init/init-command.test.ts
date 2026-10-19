@@ -1,4 +1,11 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -64,16 +71,51 @@ describe("runInit", () => {
     });
   });
 
-  it("keeps every file the site has already", async () => {
-    await writeFile(join(root, "seamlet.json"), "{}");
+  it("writes the modules for the site's own seamlet.json", async () => {
+    const own = {
+      id: "zerno",
+      title: "Кофейня «Зерно»",
+      cms: "https://cms.example",
+    };
+    await writeFile(join(root, "seamlet.json"), JSON.stringify(own));
+
+    const code = await init("init", "--id", "coffee-shop", "--title", "Другое");
+
+    expect(code).toBe(0);
+    await expect(readConfig()).resolves.toEqual(own);
+    await expect(
+      readFile(join(root, "src", "schema.ts"), "utf8"),
+    ).resolves.toContain('title: "Кофейня «Зерно»"');
+    expect(lines).toContain(
+      "kept seamlet.json: the site has it, or a file that goes with it, already",
+    );
+    expect(lines).toContain("wrote src/schema.ts");
+  });
+
+  it("refuses a seamlet.json it cannot read, and writes nothing", async () => {
+    await writeFile(join(root, "seamlet.json"), '{ "id": "Зерно" }');
+
+    const code = await init("init", "--id", "coffee-shop");
+
+    expect(code).toBe(1);
+    expect(lines[0]).toMatch(/seamlet\.json needs "id", "title", "cms"/u);
+    await expect(access(join(root, "src"))).rejects.toThrow();
+  });
+
+  it("writes none of the modules when the site has one of them", async () => {
+    await mkdir(join(root, "src"));
+    await writeFile(join(root, "src", "seamlet.ts"), "// the site's own");
 
     await init("init", "--id", "coffee-shop");
 
-    await expect(readFile(join(root, "seamlet.json"), "utf8")).resolves.toBe(
-      "{}",
+    await expect(
+      readFile(join(root, "src", "seamlet.ts"), "utf8"),
+    ).resolves.toBe("// the site's own");
+    await expect(access(join(root, "src", "schema.ts"))).rejects.toThrow();
+    expect(lines).toContain("wrote seamlet.json");
+    expect(lines).toContain(
+      "kept src/schema.ts: the site has it, or a file that goes with it, already",
     );
-    expect(lines).toContain("kept seamlet.json: the site has it already");
-    expect(lines).toContain("wrote src/schema.ts");
   });
 
   it("asks for an id the package's name does not give", async () => {

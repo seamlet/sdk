@@ -2,16 +2,14 @@ import type { ImageMetadata } from "astro";
 import type { AstroComponentFactory } from "astro/runtime/server/index.js";
 import { cmsOrigin, siteId, siteTitle } from "virtual:seamlet/config";
 import {
+  HOME_PAGE_PATH,
   parseContent,
   type ContentOf,
   type Fields,
   type SiteDescription,
 } from "./schema";
-import { readPublishedAnswer } from "./published-answers";
+import { fetchPublishedAnswer } from "./published-answers";
 import { describeSite } from "./site-descriptions";
-
-/** The first page of every site. */
-const HOME_PAGE_PATH = "/";
 
 /** A page of the site: how the editor names it, and the component that renders it. */
 export interface SeamletPage {
@@ -77,7 +75,7 @@ export async function loadPublishedContent<F extends Fields>(
   schema: F,
 ): Promise<ContentOf<F>> {
   const url = new URL(`/api/sites/${siteId}/published`, cmsOrigin);
-  const answer = await readPublishedAnswer(await fetch(url), url);
+  const answer = await fetchPublishedAnswer(url);
   const content =
     answer.status === "published"
       ? answer.content

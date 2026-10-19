@@ -78,6 +78,23 @@ describe("revealing what a page hides", () => {
     restoreRevealedParts(document, revealed);
     expect(details("yin").open).toBe(true);
   });
+
+  it("opens again the same parts when the draft adds one before them", () => {
+    const practice = (index: number) =>
+      `<details><summary data-cms-path="practices.${String(index)}.name">Практика</summary></details>`;
+    document.body.innerHTML = practice(0) + practice(1);
+    revealAround(element('[data-cms-path="practices.1.name"]'));
+    const revealed = revealedPartsOf(document);
+
+    const news = `<details><summary data-cms-path="news.0.title">Новость</summary></details>`;
+    document.body.innerHTML = news + practice(0) + practice(1);
+    restoreRevealedParts(document, revealed);
+
+    const open = [...document.querySelectorAll("details")].map(
+      (part) => part.open,
+    );
+    expect(open).toEqual([false, false, true]);
+  });
 });
 
 describe("a click on the summary of details", () => {

@@ -108,23 +108,38 @@ describe("createPageRenderer", () => {
     expect(onRendered).toHaveBeenCalledOnce();
   });
 
-  it("drops a held page once the click started typing", async () => {
+  it("holds a page rendered while a text is typed until the typing is over", async () => {
     fetchMock.mockResolvedValue(new Response(page("Новое")));
-    let isPressed = true;
-    let isTyping = false;
-    const isPressAsked = vi.fn(() => isPressed);
-    const { pageRenderer, onRendered } = renderer(
-      () => !isTyping,
-      isPressAsked,
-    );
+    let isTyping = true;
+    const isAsked = vi.fn(() => !isTyping);
+    const { pageRenderer, onRendered } = renderer(isAsked);
     pageRenderer.render({ title: "Новое" });
     await vi.waitFor(() => {
-      expect(isPressAsked).toHaveBeenCalled();
+      expect(isAsked).toHaveBeenCalled();
     });
 
-    isPressed = false;
-    isTyping = true;
     pageRenderer.showHeldPage();
+    expect(document.title).toBe("Старое");
+
+    isTyping = false;
+    pageRenderer.showHeldPage();
+
+    expect(document.title).toBe("Новое");
+    expect(onRendered).toHaveBeenCalledOnce();
+  });
+
+  it("forgets a held page once a newer render is asked for", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(page("Первое")));
+    fetchMock.mockReturnValueOnce(new Promise(() => undefined));
+    let isTyping = true;
+    const isAsked = vi.fn(() => !isTyping);
+    const { pageRenderer, onRendered } = renderer(isAsked);
+    pageRenderer.render({ title: "Первое" });
+    await vi.waitFor(() => {
+      expect(isAsked).toHaveBeenCalled();
+    });
+
+    pageRenderer.render({ title: "Второе" });
     isTyping = false;
     pageRenderer.showHeldPage();
 

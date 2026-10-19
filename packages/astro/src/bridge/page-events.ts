@@ -1,3 +1,10 @@
+import {
+  listenToAll,
+  onDocument,
+  onElement,
+  onWindow,
+  type EventListening,
+} from "./event-listening";
 import { carriesFiles } from "./file-drags";
 import {
   isInTypedText,
@@ -5,7 +12,7 @@ import {
   markedElementAround,
   type PageLink,
 } from "./page-markers";
-import { flipSwitchAt, toggleDetailsAt } from "./page-reveals";
+import { revealPartAt, togglePartAt } from "./page-reveals";
 
 // What the bridge hears from the site's page. In the editor a click selects what it points at and
 // does nothing else: links do not navigate and forms are not sent. A link that is not a field is
@@ -53,42 +60,82 @@ export function listenToPage(
   document: Document,
   listeners: PageListeners,
 ): () => void {
-  const view = document.defaultView;
-
-  const hover = (event: MouseEvent) => {
-    const link = linkToFollow(event.target);
-    listeners.onHover(
-      link === undefined ? markedElementAround(event.target)?.path : undefined,
-    );
-    listeners.onLinkHover(link);
-  };
+  const fileDrags = followFileDrags(listeners);
+  const { onLayoutChange } = listeners;
   const leave = () => {
     listeners.onHover(undefined);
     listeners.onLinkHover(undefined);
   };
-  const click = (event: MouseEvent) => {
-    event.preventDefault();
-    const link = linkToFollow(event.target);
-    if (link !== undefined) {
-      listeners.onLinkClick(link);
-      return;
-    }
 
-    const marked = markedElementAround(event.target);
-    const isOnField = marked !== undefined;
-    toggleDetailsAt(event.target, isOnField);
-    flipSwitchAt(event.target, isOnField);
-    listeners.onClick(
-      marked === undefined
-        ? undefined
-        : { ...marked, point: { x: event.clientX, y: event.clientY } },
-    );
+  const stopListening = listenToAll([
+    onDocument(document, "mouseover", (event) => {
+      hover(event, listeners);
+    }),
+    onDocument(document, "click", (event) => {
+      click(event, listeners);
+    }),
+    onDocument(document, "auxclick", preventDefault),
+    onDocument(document, "submit", preventDefault),
+    onDocument(document, "dragstart", preventDefault),
+    onDocument(document, "keydown", listeners.onKeyDown),
+    ...fileDrags.listenings(document),
+    onDocument(document, "scroll", onLayoutChange),
+    // An opened or closed `<details>` moves what is below it; toggle does not bubble.
+    onDocument(document, "toggle", onLayoutChange),
+    // A flipped switch shows and hides parts of the page.
+    onDocument(document, "change", onLayoutChange),
+    // Images load after the page is shown and move what is below them; load does not bubble.
+    onDocument(document, "load", onLayoutChange),
+    onElement(document.documentElement, "mouseleave", leave),
+    ...onWindow(document.defaultView, "resize", onLayoutChange),
+  ]);
+  return () => {
+    fileDrags.stop();
+    stopListening();
   };
-  const preventDefault = (event: Event) => {
-    event.preventDefault();
-  };
-  // A file dropped where nothing takes it would open in place of the page, so the browser's own
-  // drop is always stopped.
+}
+
+function hover(event: MouseEvent, listeners: PageListeners): void {
+  const link = linkToFollow(event.target);
+  const path =
+    link === undefined ? markedElementAround(event.target)?.path : undefined;
+  listeners.onHover(path);
+  listeners.onLinkHover(link);
+}
+
+/** A click selects what it points at: a link it follows, a field it chooses. */
+function click(event: MouseEvent, listeners: PageListeners): void {
+  event.preventDefault();
+  const link = linkToFollow(event.target);
+  if (link !== undefined) {
+    listeners.onLinkClick(link);
+    return;
+  }
+
+  const marked = markedElementAround(event.target);
+  if (marked === undefined) {
+    togglePartAt(event.target);
+    listeners.onClick(undefined);
+    return;
+  }
+
+  revealPartAt(event.target);
+  const point = { x: event.clientX, y: event.clientY };
+  listeners.onClick({ ...marked, point });
+}
+
+function preventDefault(event: Event): void {
+  event.preventDefault();
+}
+
+/**
+ * Follows a file dragged over the page. A file dropped where nothing takes it would open in place
+ * of the page, so the browser's own drop is always stopped.
+ */
+function followFileDrags(listeners: PageListeners): {
+  readonly listenings: (document: Document) => readonly EventListening[];
+  readonly stop: () => void;
+} {
   let dragGoneTimer: ReturnType<typeof setTimeout> | undefined;
   const dragFile = (event: DragEvent) => {
     if (!carriesFiles(event)) return;
@@ -116,37 +163,15 @@ export function listenToPage(
     dragGoneTimer = setTimeout(listeners.onFileDragEnd, DRAG_GONE_AFTER_MS);
   };
 
-  const documentListeners = [
-    ["mouseover", hover],
-    ["click", click],
-    ["auxclick", preventDefault],
-    ["submit", preventDefault],
-    ["dragstart", preventDefault],
-    ["keydown", listeners.onKeyDown],
-    ["dragover", dragFile],
-    ["drop", dropFile],
-    ["dragleave", leaveWithFile],
-    ["scroll", listeners.onLayoutChange],
-    // An opened or closed `<details>` moves what is below it; toggle does not bubble.
-    ["toggle", listeners.onLayoutChange],
-    // A flipped switch shows and hides parts of the page.
-    ["change", listeners.onLayoutChange],
-    // Images load after the page is shown and move what is below them; load does not bubble.
-    ["load", listeners.onLayoutChange],
-  ] as const;
-  for (const [type, listener] of documentListeners) {
-    document.addEventListener(type, listener as EventListener, true);
-  }
-  document.documentElement.addEventListener("mouseleave", leave);
-  view?.addEventListener("resize", listeners.onLayoutChange);
-
-  return () => {
-    clearTimeout(dragGoneTimer);
-    for (const [type, listener] of documentListeners) {
-      document.removeEventListener(type, listener as EventListener, true);
-    }
-    document.documentElement.removeEventListener("mouseleave", leave);
-    view?.removeEventListener("resize", listeners.onLayoutChange);
+  return {
+    listenings: (document) => [
+      onDocument(document, "dragover", dragFile),
+      onDocument(document, "drop", dropFile),
+      onDocument(document, "dragleave", leaveWithFile),
+    ],
+    stop: () => {
+      clearTimeout(dragGoneTimer);
+    },
   };
 }
 

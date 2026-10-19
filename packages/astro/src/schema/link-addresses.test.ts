@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hrefOf, linkTargetOf } from "./link-addresses";
+import { hrefOf, linkTargetOf, safeHref } from "./link-addresses";
 
 describe("linkTargetOf", () => {
   it("knows the four places a link of a site may lead", () => {
@@ -74,5 +74,37 @@ describe("hrefOf", () => {
     const href = hrefOf({ kind: "web", url: "javascript:alert(1)" });
 
     expect(linkTargetOf(href)).toBeUndefined();
+  });
+});
+
+describe("safeHref", () => {
+  it("keeps an address a link of a site may have as it is", () => {
+    const safe = [
+      "/menu#drinks",
+      "/%5Cevil.example",
+      "https://yclients.com/zerno",
+      "HTTPS://YCLIENTS.COM/zerno",
+      "tel:+70000000000",
+      "mailto:hello@zerno.example",
+    ];
+
+    for (const href of safe) expect(safeHref(href)).toBe(href);
+  });
+
+  it("gives nothing for an address that runs code or leads elsewhere than it shows", () => {
+    const unsafe = [
+      "javascript:alert(1)",
+      " JavaScript:alert(1)",
+      "data:text/html,<script>alert(1)</script>",
+      "vbscript:msgbox(1)",
+      "java\tscript:alert(1)",
+      "/\u0000/evil.example",
+      "/menu\u007f",
+      "tel:+7000\n0000000",
+      "https://zerno.example/\u0001",
+      "",
+    ];
+
+    for (const href of unsafe) expect(safeHref(href)).toBeUndefined();
   });
 });

@@ -1,5 +1,7 @@
 import {
+  linesOf,
   normalizedLine,
+  safeHref,
   type RichBlock,
   type RichLine,
   type RichSpan,
@@ -57,9 +59,7 @@ export function renderInlineRichText(
   text: RichText,
 ): void {
   const document = element.ownerDocument;
-  const lines = text.flatMap((block) =>
-    block.kind === "paragraph" ? [block.spans] : block.items,
-  );
+  const lines = linesOf(text);
   const nodes = lines.flatMap((line, index) => [
     ...(index > 0 ? [document.createElement("br")] : []),
     ...lineNodes(document, line),
@@ -173,10 +173,13 @@ function spanNode(document: Document, span: RichSpan): Node {
   const italic = span.italic === true ? wrapped(document, "em", words) : words;
   const bold =
     span.bold === true ? wrapped(document, "strong", italic) : italic;
-  if (span.href === undefined) return bold;
+  // The CMS renders formatted text on its own origin too: an address a link may not have, as an
+  // unsaved draft may hold, is never put on the page.
+  const href = span.href === undefined ? undefined : safeHref(span.href);
+  if (href === undefined) return bold;
 
   const link = wrapped(document, "a", bold);
-  link.setAttribute("href", span.href);
+  link.setAttribute("href", href);
   return link;
 }
 

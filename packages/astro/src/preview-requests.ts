@@ -8,6 +8,20 @@ const PAYLOAD_TOO_LARGE = 413;
 const UNSUPPORTED_MEDIA_TYPE = 415;
 const UPLOADED_PHOTO = /^[A-Za-z0-9_-]+\.webp$/u;
 
+/**
+ * What every answer of the preview says, a refusal too: only the CMS's editor frames it, and
+ * nobody indexes or keeps it.
+ */
+export function previewHeadersOf(
+  cmsOrigin: string,
+): Readonly<Record<string, string>> {
+  return {
+    "Content-Security-Policy": `frame-ancestors ${cmsOrigin}`,
+    "X-Robots-Tag": "noindex",
+    "Cache-Control": "no-store",
+  };
+}
+
 export type DraftReading =
   | { readonly isRead: true; readonly draft: unknown }
   | { readonly isRead: false; readonly response: Response };

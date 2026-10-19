@@ -1,3 +1,5 @@
+import { isJsonObject } from "./json-values";
+
 // Formatted text: paragraphs and lists of pieces, each plain, bold, italic or a link. It is data,
 // never HTML: a site renders it with its own elements, so a text typed in the CMS never runs as
 // code on the site, and a link leads only where linkTargetOf allows.
@@ -87,7 +89,7 @@ export function normalizedLine(spans: readonly RichSpan[]): RichLine {
 }
 
 function readBlock(input: unknown): RichBlock | undefined {
-  if (!isObject(input)) return undefined;
+  if (!isJsonObject(input)) return undefined;
 
   if (input["kind"] === "paragraph") {
     const spans = readLine(input["spans"]);
@@ -111,7 +113,7 @@ function readLine(input: unknown): RichLine | undefined {
 }
 
 function readSpan(input: unknown): RichSpan | undefined {
-  if (!isObject(input)) return undefined;
+  if (!isJsonObject(input)) return undefined;
 
   const { text, bold, italic, href } = input;
   const hasValidMarks =
@@ -143,7 +145,8 @@ function hasWords(block: RichBlock): boolean {
     : block.items.length > 0;
 }
 
-function linesOf(text: RichText): readonly RichLine[] {
+/** The lines of a text: its paragraphs and the items of its lists, in their order. */
+export function linesOf(text: RichText): readonly RichLine[] {
   return text.flatMap((block) =>
     block.kind === "paragraph" ? [block.spans] : block.items,
   );
@@ -157,8 +160,4 @@ function plainBlockOf(block: RichBlock): string {
 
 function plainLineOf(line: RichLine): string {
   return line.map((span) => span.text).join("");
-}
-
-function isObject(value: unknown): value is Readonly<Record<string, unknown>> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

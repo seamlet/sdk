@@ -15,6 +15,17 @@ export type FieldTarget =
 const RECORD_INDEX_PATTERN = /^\d+$/u;
 
 /**
+ * What separates the names of a path written as text: a field marker (`menu.2.price`) and the
+ * collection a reference names (`studio.teachers`). A field's name never holds it.
+ */
+export const FIELD_PATH_SEPARATOR = ".";
+
+/** Whether a segment of a path written as text is the place of a record: a whole number. */
+export function isRecordIndex(segment: string): boolean {
+  return RECORD_INDEX_PATTERN.test(segment);
+}
+
+/**
  * Reads a path from a field marker (`menu.2.price`) by the schema: names inside fields and
  * groups, indexes inside collections. A path the schema does not have gives undefined.
  */
@@ -22,7 +33,7 @@ export function resolveFieldPath(
   schema: Fields,
   text: string,
 ): FieldTarget | undefined {
-  return resolveInFields(schema, text.split("."), []);
+  return resolveInFields(schema, text.split(FIELD_PATH_SEPARATOR), []);
 }
 
 function resolveInFields(
@@ -51,13 +62,26 @@ function resolveInsideField(
   segments: readonly string[],
   path: FieldPath,
 ): FieldTarget | undefined {
-  if (field.kind === "group") {
-    return resolveInFields(field.fields, segments, path);
+  switch (field.kind) {
+    case "group":
+      return resolveInFields(field.fields, segments, path);
+    case "collection":
+      return resolveInCollection(field, segments, path);
+    case "text":
+    case "richText":
+    case "number":
+    case "date":
+    case "image":
+    case "link":
+    case "toggle":
+    case "choice":
+    case "choices":
+    case "url":
+    case "time":
+    case "reference":
+    case "references":
+      return undefined;
   }
-  if (field.kind === "collection") {
-    return resolveInCollection(field, segments, path);
-  }
-  return undefined;
 }
 
 function resolveInCollection(
@@ -66,7 +90,7 @@ function resolveInCollection(
   collectionPath: FieldPath,
 ): FieldTarget | undefined {
   const [indexText, ...rest] = segments;
-  if (indexText === undefined || !RECORD_INDEX_PATTERN.test(indexText)) {
+  if (indexText === undefined || !isRecordIndex(indexText)) {
     return undefined;
   }
 

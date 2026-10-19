@@ -1,4 +1,5 @@
 import { isSiteId, SITE_CONFIG_FILE, type SiteConfig } from "../schema";
+import { SITE_MODULE_FILE } from "../site-addresses";
 
 // The files `npx @seamlet/astro init` starts a site with: its seamlet.json and the smallest module
 // the CMS can edit (one text on one page). The site's own pages and config stay the author's.
@@ -9,21 +10,25 @@ export interface SiteFile {
   readonly text: string;
 }
 
-/** Where a site's module, schema and first page are, as the README names them. */
-export const SITE_MODULE_PATH = "src/seamlet.ts";
+/** Where a site's schema and first page are, as the README names them. */
 const SCHEMA_PATH = "src/schema.ts";
-const HOME_PAGE_PATH = "src/components/HomePage.astro";
+const HOME_PAGE_FILE = "src/components/HomePage.astro";
 const JSON_INDENT = 2;
 
-export function siteFilesOf(config: SiteConfig): readonly SiteFile[] {
+/** The site's `seamlet.json`. */
+export function configFileOf(config: SiteConfig): SiteFile {
+  return {
+    path: SITE_CONFIG_FILE,
+    text: `${JSON.stringify(config, null, JSON_INDENT)}\n`,
+  };
+}
+
+/** The site's module with the schema and the page it imports: they go together. */
+export function moduleFilesOf(config: SiteConfig): readonly SiteFile[] {
   return [
-    {
-      path: SITE_CONFIG_FILE,
-      text: `${JSON.stringify(config, null, JSON_INDENT)}\n`,
-    },
     { path: SCHEMA_PATH, text: schemaModuleOf(config.title) },
-    { path: SITE_MODULE_PATH, text: SITE_MODULE },
-    { path: HOME_PAGE_PATH, text: HOME_PAGE },
+    { path: SITE_MODULE_FILE, text: SITE_MODULE },
+    { path: HOME_PAGE_FILE, text: HOME_PAGE },
   ];
 }
 
@@ -46,7 +51,7 @@ function schemaModuleOf(title: string): string {
 // What the site's owner edits in the CMS. Add a field here, show it on a page and mark its element
 // with edit(...): the CMS builds its form from this schema alone.
 export const schema = defineSchema({
-  title: text({ label: "Заголовок", maxLength: 80 }),
+  title: text({ label: "Заголовок" }),
 });
 
 export type Content = ContentOf<typeof schema>;

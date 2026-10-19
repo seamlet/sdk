@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { RichText } from "../schema";
+import type { TypedSelection } from "./messages";
 import {
   canEditRichTextInPlace,
   startRichTextEditing,
-  type TypedSelection,
 } from "./rich-text-editing";
+import { richTextLayoutOf } from "./rich-text-layouts";
 
 const about: RichText = [
   {
@@ -35,7 +36,7 @@ function startEditing(element: HTMLElement, isInline = false) {
   const onSelect = vi.fn<(selection: TypedSelection | undefined) => void>();
   const onEnd = vi.fn<(outcome: "kept" | "reverted") => void>();
   const editing = startRichTextEditing(element, {
-    isInline,
+    layout: richTextLayoutOf(isInline),
     onInput,
     onSelect,
     onEnd,
@@ -60,23 +61,31 @@ describe("canEditRichTextInPlace", () => {
   it("takes an element that shows the text as it is", () => {
     const element = shown("<p>Студия <strong>на 11 этаже</strong></p>");
 
-    expect(canEditRichTextInPlace(element, about, false)).toBe(true);
+    expect(
+      canEditRichTextInPlace(element, about, richTextLayoutOf(false)),
+    ).toBe(true);
   });
 
   it("refuses an element that shows something else or holds other fields", () => {
     const other = shown("<p>Студия на 11 этаже</p>");
-    expect(canEditRichTextInPlace(other, about, false)).toBe(false);
+    expect(canEditRichTextInPlace(other, about, richTextLayoutOf(false))).toBe(
+      false,
+    );
 
     const withField = shown(
       '<p>Студия <strong data-cms-path="floor">на 11 этаже</strong></p>',
     );
-    expect(canEditRichTextInPlace(withField, about, false)).toBe(false);
+    expect(
+      canEditRichTextInPlace(withField, about, richTextLayoutOf(false)),
+    ).toBe(false);
   });
 
   it("takes the words alone in an element of one line", () => {
     const element = shown("Студия <strong>на 11 этаже</strong>");
 
-    expect(canEditRichTextInPlace(element, about, true)).toBe(true);
+    expect(canEditRichTextInPlace(element, about, richTextLayoutOf(true))).toBe(
+      true,
+    );
   });
 });
 
@@ -160,6 +169,17 @@ describe("startRichTextEditing", () => {
 
     expect(element.querySelector("a")).toBeNull();
     expect(onInput).toHaveBeenLastCalledWith(about);
+  });
+
+  it("puts no link that would run code", () => {
+    const element = shown("<p>Студия <strong>на 11 этаже</strong></p>");
+    const { editing, onInput } = startEditing(element);
+    selectWords(element, 0, 6);
+
+    editing.setLink("javascript:alert(1)");
+
+    expect(element.querySelector("a")).toBeNull();
+    expect(onInput).not.toHaveBeenCalled();
   });
 
   it("ends on Enter in an element of one line, and brings the text back on Escape", () => {

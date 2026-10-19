@@ -39,6 +39,23 @@ describe("formatted text in its editable element", () => {
     expect(readRichTextFrom(element)).toEqual(text);
   });
 
+  it("shows the words of a link that would run code without the link", () => {
+    const text: RichText = [
+      {
+        kind: "paragraph",
+        spans: [
+          { text: "Нажмите ", href: "javascript:alert(1)" },
+          { text: "здесь", bold: true, href: "data:text/html,<b>" },
+        ],
+      },
+    ];
+    const element = document.createElement("div");
+
+    renderRichText(element, text);
+
+    expect(element.innerHTML).toBe("<p>Нажмите <strong>здесь</strong></p>");
+  });
+
   it("reads what a browser makes of typing: lines in divs, b and i, a closing br", () => {
     const element = editable(
       "Первая<div><b>Вторая</b> <i>строка</i><br></div><div><br></div>",

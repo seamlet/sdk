@@ -102,6 +102,41 @@ describe("ids of records", () => {
     expect(withRecordIds(schema, given, counter())).toEqual(given);
   });
 
+  it("are given inside groups of groups and records of records too", () => {
+    const nested = defineSchema({
+      site: group({
+        label: "Сайт",
+        fields: {
+          menu: group({
+            label: "Меню",
+            fields: {
+              sections: collection({
+                label: "Разделы",
+                item: {
+                  dishes: collection({
+                    label: "Блюда",
+                    item: { name: text({ label: "Блюдо" }) },
+                  }),
+                },
+              }),
+            },
+          }),
+        },
+      }),
+    });
+    const parsed = parseContent(nested, {
+      site: {
+        menu: { sections: [{ dishes: [{ name: "Суп" }, { name: "Чай" }] }] },
+      },
+    });
+
+    const given = withRecordIds(nested, parsed.content, counter());
+
+    const section = given.site.menu.sections[0];
+    expect(section?.id).toBe("new-1");
+    expect(section?.dishes.map((dish) => dish.id)).toEqual(["new-2", "new-3"]);
+  });
+
   it("start a new record with its fields empty", () => {
     expect(newRecord(schema.practices, "fresh")).toEqual({
       id: "fresh",
@@ -142,6 +177,35 @@ describe("references", () => {
         id: "oksana",
       },
       { path: ["featured"], code: "missing-record", id: "gone" },
+    ]);
+  });
+
+  it("are checked inside groups of groups, against a collection inside a group", () => {
+    const nested = defineSchema({
+      ...schema,
+      home: group({
+        label: "Главная",
+        fields: {
+          hero: group({
+            label: "Первый экран",
+            fields: {
+              teacher: reference({
+                label: "Лицо студии",
+                collection: "studio.teachers",
+              }),
+            },
+          }),
+        },
+      }),
+    });
+
+    const parsed = parseContent(nested, {
+      ...content,
+      home: { hero: { teacher: "gone" } },
+    });
+
+    expect(parsed.issues).toEqual([
+      { path: ["home", "hero", "teacher"], code: "missing-record", id: "gone" },
     ]);
   });
 

@@ -11,7 +11,7 @@ npx @seamlet/astro init --title "Кофейня «Зерно»"   # seamlet.json
 npx astro add @seamlet/astro node                   # the integration, and an adapter for the preview
 ```
 
-`init` takes the id from the name in `package.json` unless `--id` gives it, and the CMS `https://cms.seamlet.ru` unless `--cms` names another; it never overwrites a file the site has, and says what to render in a page. The steps below are what it starts, one by one.
+`init` takes the id from the name in `package.json` unless `--id` gives it, and the CMS `https://cms.seamlet.ru` unless `--cms` names another; it never overwrites a file the site has: a `seamlet.json` the site has already names the site for the modules it writes, and the three modules are written together or, when the site has any of them, not at all. It says what to render in a page. The steps below are what it starts, one by one.
 
 1. Install the package. The site needs an adapter, because the preview is rendered on request; its own pages may stay static.
 
@@ -85,7 +85,7 @@ npx astro add @seamlet/astro node                   # the integration, and an ad
    });
    ```
 
-   The CMS takes all of it from the site itself, so connecting a site, or changing its schema, needs no change of the CMS.
+   The CMS takes all of it from the site itself, so connecting a site, or changing its schema, needs no change of the CMS. `defineSeamletSite` checks the description exactly as the CMS reads it (`checkSiteDescription`), so a site the CMS would refuse stops its own build and says what to fix: a page address that is not `/` or lower-case segments without a trailing slash (`/menu`, not `/Menu` or `/menu/`), a first page other than `/`, initial content the CMS could not save, `searchTexts` that name no group of a `title` and a `description`, or a schema that cannot work. A schema cannot work with a field name that is empty, holds a dot or is a number (a path of a field reads them as its separator and as a record), an option of the wrong kind (`maxLength: "10"`), a `reference` to a collection it does not have, or an `itemTitle` that names no `text` or `link` field of the record.
 
 5. Add the integration; it reads `seamlet.json` and `src/seamlet.ts` itself:
 
@@ -140,6 +140,18 @@ item: { name: text({ label: "Название" }), isHidden: toggle({ label: "С
 // content.practices.filter((practice) => !practice.isHidden)
 ```
 
+The preview renders the editor's draft before it is saved, and a draft may hold an address a link may not have (`javascript:…`, or one half typed). Put the address of a `link` or a `url` into `href` through `safeHref`, which gives it back when a link may lead there and nothing otherwise:
+
+```astro
+---
+import { safeHref } from "@seamlet/astro/schema";
+const href =
+  content.signup === null ? undefined : safeHref(content.signup.href);
+---
+
+{href !== undefined && <a href={href}>{content.signup?.text}</a>}
+```
+
 A photo may carry the point that must stay in view when the site crops it, chosen in the editor: put `imagePosition(photo)` into its `object-position` (the middle when no point is chosen):
 
 ```astro
@@ -188,7 +200,7 @@ import RichText from "@seamlet/astro/components/RichText.astro";
 
 When the marked element holds the component alone, the editor types the text right on the page: a person clicks a paragraph and types, marks the selected words bold or italic (⌘B, ⌘I or the toolbar beside the selection) and puts a link on them. The element is then rendered with the same elements the component puts out, so style them from around it, never by classes of your own on them.
 
-`plainTextOf` gives its words without marks, for a page title or a description.
+`plainTextOf` gives its words without marks, for a page title or a description; `linesOf` gives its lines (the paragraphs and the items of its lists) in their order.
 
 ## Presets
 
@@ -237,15 +249,15 @@ A field is edited where it is seen, so the editor opens what hides it when a per
 }
 ```
 
-What was opened stays open while the page is rendered anew after every edit.
+What was opened stays open while the page is rendered anew after every edit: a part is known again by its `id`, or else by the field marked on it, in it or around it.
 
 ## What the integration adds
 
-- `/preview` and `/preview/<page>`: the preview the CMS's editor frames. `GET` shows the published content; `POST` with the content as JSON shows that content without saving it, which is how the editor shows every edit at once. Only the CMS may frame it (`Content-Security-Policy: frame-ancestors`), and it is never indexed or cached.
+- `/preview` and `/preview/<page>`: the preview the CMS's editor frames. `GET` shows the published content; `POST` with the content as JSON shows that content without saving it, which is how the editor shows every edit at once. Only the CMS may frame it (`Content-Security-Policy: frame-ancestors`), and it is never indexed or cached; its refusals (a page the site does not have, a draft that is not JSON or is over 1 MB) say the same.
 - The bridge on the preview: it tells the editor where the marked elements are and what a person does on the page, and types texts in place, formatted ones too.
 - `/seamlet/site.json`: what the site tells the CMS about itself (`SITE_DESCRIPTION_PATH`): its id and name from `seamlet.json`, its schema, the content it starts with and its pages. The CMS reads it with `readSiteDescription` whenever the site is opened in its editor.
 - `/seamlet-photos/<address>`: the site's own photo at an address its content gives it, found by `photos` of `defineSeamletSite`, for the CMS's editor.
-- `/media/<site>/<file>`: the photos uploaded in the CMS, taken from it on request; a static build copies every uploaded photo its built pages refer to next to them, so a static host serves them too.
+- `/media/<site>/<file>`: the photos uploaded for the site in the CMS, taken from it on request (`502` when the CMS does not answer in 10 seconds or fails); a static build copies every photo uploaded for the site that its built pages refer to next to them, a few at a time, so a static host serves them too. Loading the published content waits 30 seconds for the CMS and stops the build when it does not answer.
 
 A site never renders content as raw HTML (`set:html`): the editor acts on what its preview says.
 

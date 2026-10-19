@@ -1,3 +1,5 @@
+import { listenToAll, onDocument, onWindow } from "./event-listening";
+
 // Whether a person presses on the site's page: from a pointer going down until it goes up. The
 // editor's draft must not replace the page in between, or the click is lost.
 
@@ -32,25 +34,19 @@ export function followPresses(
     if (event.buttons === 0) release();
   };
 
-  const listeners = [
-    ["pointerdown", press],
-    ["pointerup", release],
-    ["pointercancel", release],
-    ["pointermove", releaseOnMove],
-  ] as const;
-  for (const [type, listener] of listeners) {
-    document.addEventListener(type, listener as EventListener, true);
-  }
-  view?.addEventListener("blur", release);
+  const stopListening = listenToAll([
+    onDocument(document, "pointerdown", press),
+    onDocument(document, "pointerup", release),
+    onDocument(document, "pointercancel", release),
+    onDocument(document, "pointermove", releaseOnMove),
+    ...onWindow(view, "blur", release),
+  ]);
 
   return {
     isPressed: () => isPressed,
     stop: () => {
       clearTimeout(releaseTimer);
-      for (const [type, listener] of listeners) {
-        document.removeEventListener(type, listener as EventListener, true);
-      }
-      view?.removeEventListener("blur", release);
+      stopListening();
     },
   };
 }

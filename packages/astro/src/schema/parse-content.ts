@@ -6,6 +6,8 @@ import {
   type FieldValue,
   type ImageFocus,
 } from "./content";
+import { FIELD_PATH_SEPARATOR } from "./field-paths";
+import { isJsonObject } from "./json-values";
 import { linkTargetOf } from "./link-addresses";
 import {
   asOneParagraph,
@@ -88,7 +90,7 @@ const TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d$/u;
 const GRAPHEMES = new Intl.Segmenter("ru-RU", { granularity: "grapheme" });
 
 export function formatFieldPath(path: FieldPath): string {
-  return path.join(".");
+  return path.join(FIELD_PATH_SEPARATOR);
 }
 
 /**
@@ -127,7 +129,7 @@ function parseFields(
   input: unknown,
   path: FieldPath,
 ): ParsedValue<Content> {
-  if (!isRecord(input)) {
+  if (!isJsonObject(input)) {
     return invalidType(defaultContent(fields), path);
   }
 
@@ -295,13 +297,13 @@ function parseImage(
   if (input === null) {
     return valid(null);
   }
-  const src = isRecord(input) ? input["src"] : undefined;
-  const alt = isRecord(input) ? input["alt"] : undefined;
+  const src = isJsonObject(input) ? input["src"] : undefined;
+  const alt = isJsonObject(input) ? input["alt"] : undefined;
   if (typeof src !== "string" || typeof alt !== "string") {
     return invalidType(defaultValue(field), path);
   }
 
-  const focus = isRecord(input) ? focusOf(input["focus"]) : undefined;
+  const focus = isJsonObject(input) ? focusOf(input["focus"]) : undefined;
   const image = focus === undefined ? { src, alt } : { src, alt, focus };
   if (src.trim() === "") {
     return { value: image, issues: [{ path, code: "missing-image-src" }] };
@@ -317,7 +319,7 @@ function parseLink(
   if (input === null) {
     return valid(null);
   }
-  if (!isRecord(input)) {
+  if (!isJsonObject(input)) {
     return invalidType(defaultValue(field), path);
   }
   const { text, href } = input;
@@ -457,7 +459,7 @@ function parseRecord(
   path: FieldPath,
 ): ParsedValue<Content> {
   const parsed = parseFields(field.item, input, path);
-  const id = isRecord(input) ? input[RECORD_ID_KEY] : undefined;
+  const id = isJsonObject(input) ? input[RECORD_ID_KEY] : undefined;
   if (!isRecordId(id)) return parsed;
 
   return {
@@ -498,7 +500,7 @@ function parseReferences(
 
 /** A focus inside the photo, or none: a point outside it is no focus a person set. */
 function focusOf(input: unknown): ImageFocus | undefined {
-  if (!isRecord(input)) return undefined;
+  if (!isJsonObject(input)) return undefined;
   const { x, y } = input;
   const isInside = isFraction(x) && isFraction(y);
   return isInside ? { x, y } : undefined;
@@ -515,10 +517,6 @@ function isCalendarDate(value: string): boolean {
   }
   const time = Date.parse(`${value}T00:00:00Z`);
   return !Number.isNaN(time) && new Date(time).toISOString().startsWith(value);
-}
-
-function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function valid<V extends FieldValue>(value: V): ParsedValue<V> {

@@ -1,10 +1,11 @@
-import { makeEditable, makeUneditable } from "./editable-elements";
+import { EDITABLE_AS_PLAIN_TEXT } from "./editable-elements";
 import { readElementText } from "./element-text";
+import type { InlineEditingOutcome } from "./messages";
+import { onElement } from "./event-listening";
+import { startTypingSession } from "./typing-sessions";
 
 // Editing a text right in the element of the site's page that shows it. The element becomes
 // editable as plain text, so the site's markup inside it is never changed by formatting.
-
-export type InlineEditingOutcome = "kept" | "reverted";
 
 export interface InlineTextEditingOptions {
   /** A single-line field ends its editing on Enter instead of taking a line break. */
@@ -12,8 +13,6 @@ export interface InlineTextEditingOptions {
   readonly onInput: (text: string) => void;
   readonly onEnd: (outcome: InlineEditingOutcome) => void;
 }
-
-export const EDITABLE_AS_PLAIN_TEXT = "plaintext-only";
 
 /** Makes the element editable until Enter (single line), Escape or a click elsewhere; returns a stop. */
 export function startInlineTextEditing(
@@ -23,41 +22,22 @@ export function startInlineTextEditing(
   const reportInput = () => {
     options.onInput(readElementText(element));
   };
-  const endOnKey = (event: KeyboardEvent) => {
-    const isEnd = event.key === "Enter" && options.isSingleLine;
-    if (event.key === "Escape") {
-      event.preventDefault();
-      end("reverted");
-    } else if (isEnd) {
-      event.preventDefault();
-      end("kept");
-    }
-  };
   const endOnBlur = () => {
-    end("kept");
+    session.end("kept");
   };
 
-  const stop = () => {
-    element.removeEventListener("input", reportInput);
-    element.removeEventListener("keydown", endOnKey);
-    element.removeEventListener("blur", endOnBlur);
-    makeUneditable(element);
-  };
-  let hasEnded = false;
-  const end = (outcome: InlineEditingOutcome) => {
-    if (hasEnded) return;
-    hasEnded = true;
-    stop();
-    options.onEnd(outcome);
-  };
-
-  makeEditable(element, EDITABLE_AS_PLAIN_TEXT);
-  element.addEventListener("input", reportInput);
-  element.addEventListener("keydown", endOnKey);
-  element.addEventListener("blur", endOnBlur);
-  element.focus();
+  const session = startTypingSession(element, {
+    editableAs: EDITABLE_AS_PLAIN_TEXT,
+    isEndingKey: (event) => event.key === "Enter" && options.isSingleLine,
+    listeners: [
+      onElement(element, "input", reportInput),
+      onElement(element, "blur", endOnBlur),
+    ],
+    onStop: () => undefined,
+    onEnd: options.onEnd,
+  });
   return () => {
-    end("kept");
+    session.end("kept");
   };
 }
 

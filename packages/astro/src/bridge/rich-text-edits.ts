@@ -5,6 +5,7 @@ import {
   type RichSpan,
   type RichText,
 } from "../schema";
+import type { TextFormats } from "./messages";
 
 // What the toolbar of formatted text does to it: marks, links and lists over a selection. A
 // selection is given in lines (the paragraphs and the list items, in their order) and characters
@@ -31,14 +32,6 @@ export interface FlatLine {
 }
 
 /** What the selected words have, or the words at the cursor when nothing is selected. */
-export interface TextFormats {
-  readonly isBold: boolean;
-  readonly isItalic: boolean;
-  readonly isList: boolean;
-  /** The address of the link the selection is in, when all of it is in one link. */
-  readonly href: string | undefined;
-}
-
 /** Whether the selection holds no characters: it is a cursor. */
 export function isCollapsed(selection: TextSelection): boolean {
   return (
