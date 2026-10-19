@@ -1,4 +1,9 @@
-import { REVEAL_ATTRIBUTE, REVEAL_EVENT, REVEALED_ATTRIBUTE } from "../schema";
+import {
+  FIELD_PATH_ATTRIBUTE,
+  REVEAL_ATTRIBUTE,
+  REVEAL_EVENT,
+  REVEALED_ATTRIBUTE,
+} from "../schema";
 
 // What a page hides until a visitor acts, opened for the editor: a field can be edited only where
 // it is seen. The bridge takes every click (a click selects, never acts), which would keep a native
@@ -10,13 +15,18 @@ const DETAILS_SELECTOR = "details";
 const REVEAL_SELECTOR = `[${REVEAL_ATTRIBUTE}]`;
 /** The switches a site shows and hides its parts by with CSS alone: tabs, filters, toggles. */
 const SWITCH_SELECTOR = 'input[type="radio"], input[type="checkbox"]';
+const MARKER_SELECTOR = `[${FIELD_PATH_ATTRIBUTE}]`;
+const KEY_SEPARATOR = "\n";
 
-/** What is open on a page, by the order of such parts in it: the same parts in a page rendered anew. */
+/**
+ * What is open on a page, each part by its key (see partKeysOf): the same parts in a page rendered
+ * anew, even when the draft added a part before them.
+ */
 export interface RevealedParts {
-  readonly openDetails: readonly number[];
-  readonly revealed: readonly number[];
+  readonly openDetails: readonly string[];
+  readonly revealed: readonly string[];
   /** The switches a person flipped away from how the page came. */
-  readonly flippedSwitches: readonly number[];
+  readonly flippedSwitches: readonly string[];
 }
 
 /** Opens everything around the element that keeps it hidden. */
@@ -70,11 +80,9 @@ export function revealedPartsOf(document: Document): RevealedParts {
   const parts = [...document.querySelectorAll(REVEAL_SELECTOR)];
   const switches = [...document.querySelectorAll(SWITCH_SELECTOR)];
   return {
-    openDetails: indexesWhere(details, (part) => isDetails(part) && part.open),
-    revealed: indexesWhere(parts, (part) =>
-      part.hasAttribute(REVEALED_ATTRIBUTE),
-    ),
-    flippedSwitches: indexesWhere(
+    openDetails: keysWhere(details, (part) => isDetails(part) && part.open),
+    revealed: keysWhere(parts, (part) => part.hasAttribute(REVEALED_ATTRIBUTE)),
+    flippedSwitches: keysWhere(
       switches,
       (control) =>
         isSwitch(control) && control.checked !== control.defaultChecked,
@@ -86,28 +94,42 @@ export function restoreRevealedParts(
   document: Document,
   revealed: RevealedParts,
 ): void {
-  const details = [...document.querySelectorAll(DETAILS_SELECTOR)];
-  const parts = [...document.querySelectorAll(REVEAL_SELECTOR)];
-  for (const index of revealed.openDetails) {
-    const part = details[index];
-    if (part !== undefined && isDetails(part)) part.open = true;
+  const details = partsWithKeys(
+    document,
+    DETAILS_SELECTOR,
+    revealed.openDetails,
+  );
+  const parts = partsWithKeys(document, REVEAL_SELECTOR, revealed.revealed);
+  for (const part of details) {
+    if (isDetails(part)) part.open = true;
   }
-  for (const index of revealed.revealed) {
-    const part = parts[index];
-    if (part !== undefined) reveal(part);
-  }
+  for (const part of parts) reveal(part);
   // Last: a tab the person picked wins over a part revealed in it before.
-  restoreSwitches(document, revealed.flippedSwitches);
+  const switches = partsWithKeys(
+    document,
+    SWITCH_SELECTOR,
+    revealed.flippedSwitches,
+  );
+  for (const control of switches) {
+    if (isSwitch(control)) flipFromDefault(control);
+  }
 }
 
-function restoreSwitches(document: Document, flipped: readonly number[]): void {
-  const switches = [...document.querySelectorAll(SWITCH_SELECTOR)];
-  for (const index of flipped) {
-    const control = switches[index];
-    if (control === undefined || !isSwitch(control)) continue;
-    control.checked = !control.defaultChecked;
-    announceSwitch(control);
-  }
+function flipFromDefault(control: HTMLInputElement): void {
+  control.checked = !control.defaultChecked;
+  announceSwitch(control);
+}
+
+/** The parts of the page the selector finds whose keys are among the given ones. */
+function partsWithKeys(
+  document: Document,
+  selector: string,
+  keys: readonly string[],
+): readonly Element[] {
+  const wanted = new Set(keys);
+  const parts = [...document.querySelectorAll(selector)];
+  const partKeys = partKeysOf(parts);
+  return parts.filter((_, index) => wanted.has(partKeys[index] ?? ""));
 }
 
 /** Tells the site's scripts, which follow a switch by its events, as a visitor's click would. */
@@ -143,13 +165,35 @@ function detailsOfSummaryAround(
   return isSummaryOfDetails ? details : undefined;
 }
 
-function indexesWhere(
+function keysWhere(
   elements: readonly Element[],
   isPicked: (element: Element) => boolean,
-): readonly number[] {
+): readonly string[] {
+  const keys = partKeysOf(elements);
   return elements.flatMap((element, index) =>
-    isPicked(element) ? [index] : [],
+    isPicked(element) ? [keys[index] ?? ""] : [],
   );
+}
+
+/**
+ * What names each part in a page rendered anew: its id, or else the field marked on it, in it or
+ * around it, with its place among the parts named the same. A part added before it with other
+ * fields leaves it its key, where its place in the whole page would change.
+ */
+function partKeysOf(parts: readonly Element[]): readonly string[] {
+  const names = parts.map(partNameOf);
+  return names.map((name, index) => {
+    const place = names.slice(0, index).filter((each) => each === name).length;
+    return `${name}${KEY_SEPARATOR}${String(place)}`;
+  });
+}
+
+function partNameOf(part: Element): string {
+  if (part.id !== "") return `#${part.id}`;
+
+  const marked =
+    part.closest(MARKER_SELECTOR) ?? part.querySelector(MARKER_SELECTOR);
+  return marked?.getAttribute(FIELD_PATH_ATTRIBUTE) ?? "";
 }
 
 /** By its tag, not instanceof: a page driven from another window has classes of its own. */
