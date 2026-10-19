@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import type { AstroIntegration } from "astro";
 import { copyUploadedPhotos } from "./uploaded-photos";
 import { OWN_PHOTOS_PATH } from "./own-photos";
+import { SITE_DESCRIPTION_PATH } from "./schema";
 
 // Connects an Astro site to the CMS. The site describes itself in one module (its schema, its id in
 // the CMS and its pages), and the integration adds what every site needs alike: the preview the
@@ -61,6 +62,11 @@ export default function seamlet(options: SeamletOptions): AstroIntegration {
         injectRoute({
           pattern: "/media/[site]/[file]",
           entrypoint: "@seamlet/astro/routes/media",
+          prerender: false,
+        });
+        injectRoute({
+          pattern: SITE_DESCRIPTION_PATH,
+          entrypoint: "@seamlet/astro/routes/site-description",
           prerender: false,
         });
         injectRoute({
