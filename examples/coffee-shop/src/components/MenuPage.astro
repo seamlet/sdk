@@ -1,5 +1,6 @@
 ---
 // The whole menu of the coffee shop.
+import RichText from "@seamlet/astro/components/RichText.astro";
 import { editable } from "@seamlet/astro/schema";
 import CoffeeShopLayout from "./CoffeeShopLayout.astro";
 import MenuList from "./MenuList.astro";
@@ -22,10 +23,10 @@ const edit = editable<CoffeeShopContent>();
   <main>
     <header class="page-heading" {...edit("menuPage")}>
       <h1 {...edit("menuPage", "title")}>{menuPage.title}</h1>
-      {menuPage.intro !== "" && (
-        <p class="intro" {...edit("menuPage", "intro")}>
-          {menuPage.intro}
-        </p>
+      {menuPage.intro.length > 0 && (
+        <div class="intro" {...edit("menuPage", "intro")}>
+          <RichText value={menuPage.intro} />
+        </div>
       )}
     </header>
     <section class="menu" aria-label={menuPage.title}>
@@ -57,7 +58,10 @@ const edit = editable<CoffeeShopContent>();
     font-size: 1.2rem;
     line-height: 1.5;
     color: var(--roast-muted);
-    white-space: pre-line;
+  }
+
+  .intro :global(p) {
+    margin: 0;
   }
 
   .menu {

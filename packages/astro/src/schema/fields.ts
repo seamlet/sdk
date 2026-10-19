@@ -11,6 +11,19 @@ export interface TextField {
   readonly maxLength?: number;
 }
 
+/**
+ * A text with paragraphs, lists, bold, italic and links inside it: a paragraph with a link in a
+ * sentence stays one field. `inline` keeps it one paragraph without lists, for a text inside an
+ * element that holds one line of words.
+ */
+export interface RichTextField {
+  readonly kind: "richText";
+  readonly label: string;
+  readonly inline?: boolean;
+  /** In characters of its words as people see them, without the marks. */
+  readonly maxLength?: number;
+}
+
 export interface NumberField {
   readonly kind: "number";
   readonly label: string;
@@ -121,6 +134,7 @@ export interface CollectionField<F extends RecordFields = RecordFields> {
 
 export type Field =
   | TextField
+  | RichTextField
   | NumberField
   | DateField
   | ImageField
@@ -154,6 +168,10 @@ export function defineSchema<F extends Fields>(fields: F): F {
 
 export function text(options: FieldOptions<TextField>): TextField {
   return { kind: "text", ...options };
+}
+
+export function richText(options: FieldOptions<RichTextField>): RichTextField {
+  return { kind: "richText", ...options };
 }
 
 export function number(options: FieldOptions<NumberField>): NumberField {

@@ -78,22 +78,23 @@ The site's pages take their published content with `site.loadPublishedContent()`
 
 ## Fields
 
-| Builder                                   | Holds                                                                   | Empty            |
-| ----------------------------------------- | ----------------------------------------------------------------------- | ---------------- |
-| `text({ label, multiline?, maxLength? })` | a string                                                                | `""`             |
-| `number({ label, min?, max? })`           | a number                                                                | `null`           |
-| `date({ label })`                         | `YYYY-MM-DD`                                                            | `null`           |
-| `time({ label })`                         | `HH:MM`, 00:00 to 23:59                                                 | `null`           |
-| `image({ label })`                        | `{ src, alt }`                                                          | `null`           |
-| `link({ label })`                         | `{ text, href }`: a page of the site, another site, a phone or an email | `null`           |
-| `url({ label })`                          | a web address without a text: a booking widget, a map                   | `null`           |
-| `toggle({ label })`                       | `true` or `false`                                                       | `false`          |
-| `choice({ label, options })`              | the `value` of one option                                               | `null`           |
-| `choices({ label, options })`             | the `value`s of any number of options                                   | `[]`             |
-| `reference({ label, collection })`        | the `id` of a record of a collection of the schema                      | `null`           |
-| `references({ label, collection })`       | the `id`s of any number of such records                                 | `[]`             |
-| `group({ label, fields })`                | named fields shown together                                             | each field empty |
-| `collection({ label, item, itemTitle? })` | a list of records of the same fields                                    | `[]`             |
+| Builder                                    | Holds                                                                   | Empty            |
+| ------------------------------------------ | ----------------------------------------------------------------------- | ---------------- |
+| `text({ label, multiline?, maxLength? })`  | a string                                                                | `""`             |
+| `richText({ label, inline?, maxLength? })` | paragraphs and lists of pieces, bold, italic or links (below)           | `[]`             |
+| `number({ label, min?, max? })`            | a number                                                                | `null`           |
+| `date({ label })`                          | `YYYY-MM-DD`                                                            | `null`           |
+| `time({ label })`                          | `HH:MM`, 00:00 to 23:59                                                 | `null`           |
+| `image({ label })`                         | `{ src, alt }`                                                          | `null`           |
+| `link({ label })`                          | `{ text, href }`: a page of the site, another site, a phone or an email | `null`           |
+| `url({ label })`                           | a web address without a text: a booking widget, a map                   | `null`           |
+| `toggle({ label })`                        | `true` or `false`                                                       | `false`          |
+| `choice({ label, options })`               | the `value` of one option                                               | `null`           |
+| `choices({ label, options })`              | the `value`s of any number of options                                   | `[]`             |
+| `reference({ label, collection })`         | the `id` of a record of a collection of the schema                      | `null`           |
+| `references({ label, collection })`        | the `id`s of any number of such records                                 | `[]`             |
+| `group({ label, fields })`                 | named fields shown together                                             | each field empty |
+| `collection({ label, item, itemTitle? })`  | a list of records of the same fields                                    | `[]`             |
 
 Options are `{ value, label }`: the site reads `value`, the editor shows `label`, so a label can change without touching the site. The content has their exact type:
 
@@ -140,6 +141,28 @@ export default defineSeamletSite({
   photos: (src) => MENU_FILES[src.replace("/menu/", "./assets/menu/")]?.default,
 });
 ```
+
+A text with a link in a sentence, bold words or a list is one `richText` field, not a text cut around the link. Its value is data, never HTML: paragraphs (`{ kind: "paragraph", spans }`) and lists (`{ kind: "list", items }`) of pieces `{ text, bold?, italic?, href? }`, where `href` leads where a `link` may. `inline` keeps it one paragraph without lists, for a text inside an element that holds one line. A saved plain string is read as paragraphs, so a `text` field turned into `richText` keeps its words. Render it with the component of the package, which puts out paragraphs and lists (or, with `inline`, the words alone) and never raw HTML; style its elements from around it:
+
+```astro
+---
+import RichText from "@seamlet/astro/components/RichText.astro";
+---
+
+<div class="about" {...edit("about")}>
+  <RichText value={content.about} />
+</div>
+<p {...edit("note")}>
+  <RichText value={content.note} inline />
+</p>
+<style>
+  .about :global(a) {
+    color: inherit;
+  }
+</style>
+```
+
+`plainTextOf` gives its words without marks, for a page title or a description.
 
 ## Presets
 

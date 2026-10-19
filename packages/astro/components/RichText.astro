@@ -1,0 +1,42 @@
+---
+// Formatted text of the CMS as the site's own elements: paragraphs and lists, or, with `inline`,
+// the words alone for an element that holds one line (`<p>`, `<h2>`). Nothing is rendered as raw
+// HTML, and a link leads only where linkTargetOf allows. The site styles the elements from
+// around it: `.about :global(a)`.
+import type { RichText } from "@seamlet/astro/schema";
+import RichLine from "./RichLine.astro";
+
+interface Props {
+  readonly value: RichText;
+  /** Only the words, without paragraphs and lists; its lines are joined with line breaks. */
+  readonly inline?: boolean;
+}
+
+const { value, inline = false } = Astro.props;
+const lines = value.flatMap((block) =>
+  block.kind === "paragraph" ? [block.spans] : block.items,
+);
+---
+
+{inline
+  ? lines.map((line, index) => (
+      <>
+        {index > 0 && <br />}
+        <RichLine spans={line} />
+      </>
+    ))
+  : value.map((block) =>
+      block.kind === "paragraph" ? (
+        <p>
+          <RichLine spans={block.spans} />
+        </p>
+      ) : (
+        <ul>
+          {block.items.map((item) => (
+            <li>
+              <RichLine spans={item} />
+            </li>
+          ))}
+        </ul>
+      ),
+    )}

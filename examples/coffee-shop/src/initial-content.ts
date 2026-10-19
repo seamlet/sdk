@@ -35,8 +35,16 @@ export const coffeeShopInitialContent: CoffeeShopContent = {
   ],
   menuPage: {
     title: "Меню",
-    intro:
-      "Готовим на зерне собственной обжарки. Молоко — коровье или овсяное, без доплаты.",
+    intro: [
+      {
+        kind: "paragraph",
+        spans: [
+          { text: "Готовим на зерне " },
+          { text: "собственной обжарки", bold: true },
+          { text: ". Молоко — коровье или овсяное, без доплаты." },
+        ],
+      },
+    ],
   },
   event: {
     title: "Дегустация кофе из Эфиопии",

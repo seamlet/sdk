@@ -54,6 +54,7 @@ function issuesInField(
         issuesInFields(field.item, record, [...path, index], idsOf),
       );
     case "text":
+    case "richText":
     case "number":
     case "date":
     case "image":
