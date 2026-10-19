@@ -46,7 +46,7 @@ function schemaModuleOf(title: string): string {
 // What the site's owner edits in the CMS. Add a field here, show it on a page and mark its element
 // with edit(...): the CMS builds its form from this schema alone.
 export const schema = defineSchema({
-  title: text({ label: "Заголовок", maxLength: 80 }),
+  title: text({ label: "Заголовок" }),
 });
 
 export type Content = ContentOf<typeof schema>;

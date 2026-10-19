@@ -1,5 +1,9 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { readSiteConfig } from "../schema";
+import { readSiteConfig, readSiteDescription } from "../schema";
 import { siteFilesOf, siteIdOf } from "./site-files";
 
 const config = {
@@ -52,3 +56,45 @@ describe("siteIdOf", () => {
     expect(siteIdOf("кофейня")).toBeUndefined();
   });
 });
+
+describe("the schema module of a new site", () => {
+  it("takes a long title the CMS accepts as the site's description", async () => {
+    const title = "Очень длинное название студии ".repeat(4).trim();
+    const { schema, initialContent } = await importSchemaModule(title);
+
+    const description = readSiteDescription({
+      id: config.id,
+      title,
+      schema,
+      initialContent,
+      pages: [{ path: "/", title: "Главная" }],
+    });
+
+    expect(title.length).toBeGreaterThan(100);
+    expect(description?.initialContent).toEqual({ title });
+  });
+});
+
+/** The generated `src/schema.ts`, imported with the schema language of this package. */
+async function importSchemaModule(
+  title: string,
+): Promise<{ schema: unknown; initialContent: unknown }> {
+  const file = siteFilesOf({ ...config, title }).find(
+    (each) => each.path === "src/schema.ts",
+  );
+  const schemaLanguage = fileURLToPath(
+    new URL("../schema/index.ts", import.meta.url),
+  );
+  const text = (file?.text ?? "").replace(
+    '"@seamlet/astro/schema"',
+    JSON.stringify(schemaLanguage),
+  );
+  const directory = await mkdtemp(join(tmpdir(), "seamlet-schema-"));
+  const path = join(directory, "schema.ts");
+  await writeFile(path, text);
+  try {
+    return (await import(path)) as { schema: unknown; initialContent: unknown };
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
