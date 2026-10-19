@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { readSiteConfig, readSiteDescription } from "../schema";
-import { siteFilesOf, siteIdOf } from "./site-files";
+import { configFileOf, moduleFilesOf, siteIdOf } from "./site-files";
 
 const config = {
   id: "dzen-yoga",
@@ -14,20 +14,17 @@ const config = {
 
 describe("siteFilesOf", () => {
   it("starts the site with a seamlet.json the integration and the CMS read", () => {
-    const file = siteFilesOf(config).find(
-      (each) => each.path === "seamlet.json",
-    );
+    const file = configFileOf(config);
 
-    const reading = readSiteConfig(JSON.parse(file?.text ?? "null"));
+    const reading = readSiteConfig(JSON.parse(file.text));
 
     expect(reading).toEqual({ status: "read", config });
   });
 
   it("gives the module, its schema and a first page the README names", () => {
-    const paths = siteFilesOf(config).map((file) => file.path);
+    const paths = moduleFilesOf(config).map((file) => file.path);
 
     expect(paths).toEqual([
-      "seamlet.json",
       "src/schema.ts",
       "src/seamlet.ts",
       "src/components/HomePage.astro",
@@ -35,7 +32,7 @@ describe("siteFilesOf", () => {
   });
 
   it("starts the content with the site's title, written as a string of TypeScript", () => {
-    const schema = siteFilesOf({ ...config, title: 'Кафе "Ёлка"' }).find(
+    const schema = moduleFilesOf({ ...config, title: 'Кафе "Ёлка"' }).find(
       (file) => file.path === "src/schema.ts",
     );
 
@@ -79,7 +76,7 @@ describe("the schema module of a new site", () => {
 async function importSchemaModule(
   title: string,
 ): Promise<{ schema: unknown; initialContent: unknown }> {
-  const file = siteFilesOf({ ...config, title }).find(
+  const file = moduleFilesOf({ ...config, title }).find(
     (each) => each.path === "src/schema.ts",
   );
   const schemaLanguage = fileURLToPath(

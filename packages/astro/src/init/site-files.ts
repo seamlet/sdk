@@ -12,18 +12,23 @@ export interface SiteFile {
 /** Where a site's module, schema and first page are, as the README names them. */
 export const SITE_MODULE_PATH = "src/seamlet.ts";
 const SCHEMA_PATH = "src/schema.ts";
-const HOME_PAGE_PATH = "src/components/HomePage.astro";
+const HOME_PAGE_FILE = "src/components/HomePage.astro";
 const JSON_INDENT = 2;
 
-export function siteFilesOf(config: SiteConfig): readonly SiteFile[] {
+/** The site's `seamlet.json`. */
+export function configFileOf(config: SiteConfig): SiteFile {
+  return {
+    path: SITE_CONFIG_FILE,
+    text: `${JSON.stringify(config, null, JSON_INDENT)}\n`,
+  };
+}
+
+/** The site's module with the schema and the page it imports: they go together. */
+export function moduleFilesOf(config: SiteConfig): readonly SiteFile[] {
   return [
-    {
-      path: SITE_CONFIG_FILE,
-      text: `${JSON.stringify(config, null, JSON_INDENT)}\n`,
-    },
     { path: SCHEMA_PATH, text: schemaModuleOf(config.title) },
     { path: SITE_MODULE_PATH, text: SITE_MODULE },
-    { path: HOME_PAGE_PATH, text: HOME_PAGE },
+    { path: HOME_PAGE_FILE, text: HOME_PAGE },
   ];
 }
 
