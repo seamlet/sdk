@@ -9,6 +9,10 @@ import { isUploadedPhoto } from "./preview-requests";
 /** `/media/<site>/<file>`: the site's id is the part a CMS gives sites, lowercase with dashes. */
 const PHOTO_ADDRESS = /\/media\/([a-z0-9-]+)\/([A-Za-z0-9_-]+\.webp)/gu;
 const HTML_EXTENSION = ".html";
+/** Photos copied at the same time: enough to be quick, few enough not to flood the CMS. */
+const PHOTOS_COPIED_AT_ONCE = 6;
+/** A build waits this long for a photo; a CMS that does not answer stops it instead of hanging it. */
+const PHOTO_TIMEOUT_MS = 60_000;
 
 /** The addresses of the uploaded photos a page refers to, each once. */
 export function uploadedPhotoAddresses(html: string): readonly string[] {
@@ -27,10 +31,8 @@ export async function copyUploadedPhotos(options: {
   const texts = await Promise.all(pages.map((page) => readFile(page, "utf8")));
   const addresses = new Set(texts.flatMap(uploadedPhotoAddresses));
 
-  await Promise.all(
-    [...addresses].map((address) =>
-      copyPhoto(address, options.directory, options.cmsOrigin),
-    ),
+  await inTurns([...addresses], PHOTOS_COPIED_AT_ONCE, (address) =>
+    copyPhoto(address, options.directory, options.cmsOrigin),
   );
   return addresses.size;
 }
@@ -41,7 +43,7 @@ async function copyPhoto(
   cmsOrigin: string,
 ): Promise<void> {
   const url = new URL(address, cmsOrigin);
-  const response = await fetch(url);
+  const response = await fetchPhoto(url);
   if (!response.ok) {
     throw new Error(
       `Copying the photo ${url.href} into the build failed with status ${String(response.status)}`,
@@ -51,6 +53,40 @@ async function copyPhoto(
   const target = join(directory, address);
   await mkdir(dirname(target), { recursive: true });
   await writeFile(target, new Uint8Array(await response.arrayBuffer()));
+}
+
+async function fetchPhoto(url: URL): Promise<Response> {
+  try {
+    return await fetch(url, { signal: AbortSignal.timeout(PHOTO_TIMEOUT_MS) });
+  } catch (error) {
+    throw new Error(
+      `Copying the photo ${url.href} into the build failed: the CMS did not answer`,
+      { cause: error },
+    );
+  }
+}
+
+/** Runs the task for every item, at most `limit` at a time. */
+async function inTurns<T>(
+  items: readonly T[],
+  limit: number,
+  task: (item: T) => Promise<void>,
+): Promise<void> {
+  const waiting = [...items];
+  const runInTurn = async () => {
+    for (
+      let item = waiting.shift();
+      item !== undefined;
+      item = waiting.shift()
+    ) {
+      await task(item);
+    }
+  };
+  const runners = Array.from(
+    { length: Math.min(limit, waiting.length) },
+    runInTurn,
+  );
+  await Promise.all(runners);
 }
 
 async function htmlFilesIn(directory: string): Promise<readonly string[]> {

@@ -1,5 +1,9 @@
-import { describe, expect, it } from "vitest";
-import { readPublishedAnswer } from "./published-answers";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  fetchPublishedAnswer,
+  PUBLISHED_CONTENT_TIMEOUT_MS,
+  readPublishedAnswer,
+} from "./published-answers";
 
 const url = new URL("https://cms.seamlet.ru/api/sites/dzen-yoga/published");
 
@@ -31,5 +35,31 @@ describe("readPublishedAnswer", () => {
     await expect(readPublishedAnswer(broken, url)).rejects.toThrow(
       "failed with status 500",
     );
+  });
+});
+
+describe("fetchPublishedAnswer", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("gives up on a CMS that does not answer in time, naming the address", async () => {
+    const timeout = vi
+      .spyOn(AbortSignal, "timeout")
+      .mockImplementation(() =>
+        AbortSignal.abort(new DOMException("timed out", "TimeoutError")),
+      );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: URL, init?: RequestInit) =>
+        Promise.reject(init?.signal?.reason as Error),
+      ),
+    );
+
+    await expect(fetchPublishedAnswer(url)).rejects.toThrow(
+      "Loading the published content from https://cms.seamlet.ru/api/sites/dzen-yoga/published failed: the CMS did not answer",
+    );
+    expect(timeout).toHaveBeenCalledWith(PUBLISHED_CONTENT_TIMEOUT_MS);
+    timeout.mockRestore();
   });
 });

@@ -4,12 +4,30 @@
 // the build, as a wrong address of the CMS would otherwise go unnoticed.
 
 const NOT_FOUND = 404;
+/** A build waits this long for the CMS; a CMS that does not answer stops it instead of hanging it. */
+export const PUBLISHED_CONTENT_TIMEOUT_MS = 30_000;
 /** What the CMS answers for a site it has not connected. */
 const UNKNOWN_SITE = "unknown-site";
 
 export type PublishedAnswer =
   | { readonly status: "published"; readonly content: unknown }
   | { readonly status: "unknown-site" };
+
+/** Asks the CMS at the address what it published for the site. */
+export async function fetchPublishedAnswer(url: URL): Promise<PublishedAnswer> {
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      signal: AbortSignal.timeout(PUBLISHED_CONTENT_TIMEOUT_MS),
+    });
+  } catch (error) {
+    throw new Error(
+      `Loading the published content from ${url.href} failed: the CMS did not answer`,
+      { cause: error },
+    );
+  }
+  return readPublishedAnswer(response, url);
+}
 
 export async function readPublishedAnswer(
   response: Response,

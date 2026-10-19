@@ -7,7 +7,7 @@ import {
   type Fields,
   type SiteDescription,
 } from "./schema";
-import { readPublishedAnswer } from "./published-answers";
+import { fetchPublishedAnswer } from "./published-answers";
 import { describeSite } from "./site-descriptions";
 
 /** The first page of every site. */
@@ -77,7 +77,7 @@ export async function loadPublishedContent<F extends Fields>(
   schema: F,
 ): Promise<ContentOf<F>> {
   const url = new URL(`/api/sites/${siteId}/published`, cmsOrigin);
-  const answer = await readPublishedAnswer(await fetch(url), url);
+  const answer = await fetchPublishedAnswer(url);
   const content =
     answer.status === "published"
       ? answer.content
