@@ -1,3 +1,4 @@
+import { makeEditable, makeUneditable } from "./editable-elements";
 import { canEditTextInPlace } from "./element-text";
 import {
   EDITABLE_AS_PLAIN_TEXT,
@@ -72,7 +73,7 @@ export function createPageTyping(options: {
     clearTimeout(prepared.timer);
     if (!isTyped && stopEditing === undefined) {
       prepared.element.blur();
-      prepared.element.removeAttribute("contenteditable");
+      makeUneditable(prepared.element);
     }
     prepared = undefined;
   };
@@ -80,7 +81,7 @@ export function createPageTyping(options: {
     const isTypedAlready = element.hasAttribute("contenteditable");
     if (isTypedAlready) return;
     takePrepared(false);
-    element.setAttribute("contenteditable", EDITABLE_VALUES[kind]);
+    makeEditable(element, EDITABLE_VALUES[kind]);
     element.focus({ preventScroll: true });
     const timer = setTimeout(() => {
       takePrepared(false);

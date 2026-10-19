@@ -1,3 +1,4 @@
+import { makeEditable, makeUneditable } from "./editable-elements";
 import { readElementText } from "./element-text";
 
 // Editing a text right in the element of the site's page that shows it. The element becomes
@@ -40,7 +41,7 @@ export function startInlineTextEditing(
     element.removeEventListener("input", reportInput);
     element.removeEventListener("keydown", endOnKey);
     element.removeEventListener("blur", endOnBlur);
-    element.removeAttribute("contenteditable");
+    makeUneditable(element);
   };
   let hasEnded = false;
   const end = (outcome: InlineEditingOutcome) => {
@@ -50,7 +51,7 @@ export function startInlineTextEditing(
     options.onEnd(outcome);
   };
 
-  element.setAttribute("contenteditable", EDITABLE_AS_PLAIN_TEXT);
+  makeEditable(element, EDITABLE_AS_PLAIN_TEXT);
   element.addEventListener("input", reportInput);
   element.addEventListener("keydown", endOnKey);
   element.addEventListener("blur", endOnBlur);

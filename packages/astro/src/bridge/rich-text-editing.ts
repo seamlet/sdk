@@ -1,5 +1,6 @@
 import { asOneParagraph, readRichText, type RichText } from "../schema";
 import { boxOf, type Box } from "./boxes";
+import { makeEditable, makeUneditable } from "./editable-elements";
 import type { InlineEditingOutcome } from "./inline-text-editing";
 import { hasMarkedDescendants } from "./page-markers";
 import {
@@ -193,7 +194,7 @@ export function startRichTextEditing(
     document.removeEventListener("selectionchange", followSelection);
     document.removeEventListener("scroll", scheduleReport, true);
     view?.removeEventListener("resize", scheduleReport);
-    element.removeAttribute("contenteditable");
+    makeUneditable(element);
   };
   let hasEnded = false;
   const end = (outcome: InlineEditingOutcome) => {
@@ -204,7 +205,7 @@ export function startRichTextEditing(
     options.onEnd(outcome);
   };
 
-  element.setAttribute("contenteditable", EDITABLE_AS_RICH_TEXT);
+  makeEditable(element, EDITABLE_AS_RICH_TEXT);
   element.addEventListener("input", reportInput);
   element.addEventListener("keydown", pressKey);
   element.addEventListener("paste", pastePlainText);
