@@ -1,7 +1,8 @@
 import { defineConfig } from "vitest/config";
 
 // Tests run in Node; a test of the DOM asks for jsdom itself (`// @vitest-environment jsdom`).
-// A test of an Astro component or route (`*.astro.test.ts`) runs with Astro's compiler.
+// A test of an Astro component, route or site module (`*.astro.test.ts`) runs with Astro's compiler,
+// in the project of its package or site.
 export default defineConfig({
   test: {
     projects: [
@@ -16,6 +17,7 @@ export default defineConfig({
         },
       },
       "packages/astro/vitest.config.ts",
+      "examples/*/vitest.config.ts",
     ],
   },
 });

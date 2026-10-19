@@ -87,6 +87,62 @@ describe("connectToEditor", () => {
     expect(said()).toEqual([{ type: "ready", protocol: PROTOCOL_VERSION }]);
   });
 
+  it("ignores every message of another origin or another window, once connected", () => {
+    connect();
+    const fetchPage = vi.fn<typeof fetch>();
+    vi.stubGlobal("fetch", fetchPage);
+    const messages: readonly EditorMessage[] = [
+      { type: "connect", schema },
+      { type: "render", content: { title: "Чужое" } },
+      {
+        type: "start-typing",
+        path: "title",
+        text: "Зерно",
+        isSingleLine: true,
+        point: { x: 0, y: 0 },
+      },
+      {
+        type: "start-rich-typing",
+        path: "title",
+        text: [],
+        isInline: true,
+        point: { x: 0, y: 0 },
+      },
+      { type: "format-typed", format: "bold" },
+      { type: "link-typed", href: "/menu" },
+      { type: "stop-typing" },
+      { type: "scroll-to", path: ["title"] },
+    ];
+
+    for (const message of messages) {
+      say(message, "https://evil.example");
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: message,
+          origin: EDITOR_ORIGIN,
+          source: window,
+        }),
+      );
+    }
+
+    expect(said().map((message) => message.type)).toEqual(["ready", "layout"]);
+    expect(fetchPage).not.toHaveBeenCalled();
+    expect(document.querySelector("[contenteditable]")).toBeNull();
+    vi.unstubAllGlobals();
+  });
+
+  it("hears the page once after the editor connects again", () => {
+    connect();
+    say({ type: "connect", schema });
+
+    document
+      .querySelector("h1")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    const clicks = said().filter((message) => message.type === "click");
+    expect(clicks).toHaveLength(1);
+  });
+
   it("reports clicks, links and shortcuts and keeps the page from acting on them", () => {
     connect();
     const click = new MouseEvent("click", { bubbles: true, cancelable: true });
