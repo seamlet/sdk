@@ -81,7 +81,7 @@ Connects an [Astro](https://astro.build) site to the Seamlet CMS ([source](https
    });
    ```
 
-The site's pages take their published content with `site.loadPublishedContent()`: at build time for a static site, on request otherwise.
+The site's pages take their published content with `site.loadPublishedContent()`: at build time for a static site, on request otherwise. A module that needs the content without importing every page takes it with `loadPublishedContent(id, schema)` of `@seamlet/astro/site`.
 
 ## Fields
 

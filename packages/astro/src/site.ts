@@ -64,13 +64,23 @@ export function defineSeamletSite<F extends Fields>(
     schema: definition.schema,
     pageAt: (rest) =>
       pages.get(rest === undefined ? HOME_PAGE_PATH : `/${rest}`)?.component,
-    loadPublishedContent: async () => {
-      const published = await fetchPublished(definition.id);
-      return parseContent(definition.schema, published).content;
-    },
+    loadPublishedContent: () =>
+      loadPublishedContent(definition.id, definition.schema),
     ownPhotoAt: (src) => definition.photos?.(src),
     description: describeSite(definition),
   };
+}
+
+/**
+ * What the CMS published for the site with this id, in the shape of its schema: the site's initial
+ * content until the first publication. For a module that needs the content without the pages.
+ */
+export async function loadPublishedContent<F extends Fields>(
+  siteId: string,
+  schema: F,
+): Promise<ContentOf<F>> {
+  const published = await fetchPublished(siteId);
+  return parseContent(schema, published).content;
 }
 
 async function fetchPublished(siteId: string): Promise<unknown> {
