@@ -162,6 +162,17 @@ describe("startRichTextEditing", () => {
     expect(onInput).toHaveBeenLastCalledWith(about);
   });
 
+  it("puts no link that would run code", () => {
+    const element = shown("<p>Студия <strong>на 11 этаже</strong></p>");
+    const { editing, onInput } = startEditing(element);
+    selectWords(element, 0, 6);
+
+    editing.setLink("javascript:alert(1)");
+
+    expect(element.querySelector("a")).toBeNull();
+    expect(onInput).not.toHaveBeenCalled();
+  });
+
   it("ends on Enter in an element of one line, and brings the text back on Escape", () => {
     const heading = shown("Студия <strong>на 11 этаже</strong>");
     const inline = startEditing(heading, true);

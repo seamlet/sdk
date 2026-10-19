@@ -19,7 +19,7 @@ const SITE_ORIGIN = "https://site.invalid";
 /** Below this code a character is a control character, which browsers drop from a URL. */
 const FIRST_PRINTABLE_CODE = 0x20;
 const DELETE_CODE = 0x7f;
-const BACKSLASH_CODE = 0x5c;
+const BACKSLASH = "\\";
 const WEB_ADDRESS = /^https?:\/\/[^\s/?#]+[^\s]*$/iu;
 /** `mailto:`, `javascript:`, but not `zerno.ru:8080`, where a port follows the colon. */
 const ANY_SCHEME = /^[a-z][a-z\d+.-]*:(?!\d)/iu;
@@ -34,7 +34,7 @@ const EMAIL_ADDRESS = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 export function linkTargetOf(href: string): LinkTarget | undefined {
   const address = href;
   const hasSpacesAround = address !== address.trim();
-  if (hasSpacesAround) {
+  if (hasSpacesAround || hasControlCharacter(address)) {
     return undefined;
   }
   if (isSitePath(address)) {
@@ -52,6 +52,15 @@ export function linkTargetOf(href: string): LinkTarget | undefined {
     return { kind: "email", address: email };
   }
   return undefined;
+}
+
+/**
+ * The address as it is when a link of a site may lead there, or undefined when it may not: what a
+ * site puts into `href` of content it renders, since content that is not saved yet (the editor's
+ * draft in the preview) may hold any address.
+ */
+export function safeHref(href: string): string | undefined {
+  return linkTargetOf(href) === undefined ? undefined : href;
 }
 
 /**
@@ -76,27 +85,25 @@ function webAddressOf(typed: string): string {
   return hasScheme || typed === "" ? typed : `${WEB_PREFIX}${typed}`;
 }
 
+/** A path of the site; a backslash, which a browser reads as a slash, would make `/\\evil.example` lead off it. */
 function isSitePath(address: string): boolean {
-  if (!address.startsWith("/") || hasAmbiguousCharacter(address)) {
+  if (!address.startsWith("/") || address.includes(BACKSLASH)) {
     return false;
   }
   return new URL(address, SITE_ORIGIN).origin === SITE_ORIGIN;
 }
 
 /**
- * Whether a browser would read the address differently from how it is written: a backslash is a
- * slash to it, tabs and line breaks it drops. With them `/\\evil.example` or `/<tab>/evil.example`
- * would lead off the site.
+ * Whether the address holds a character a browser drops or reads differently from how it is
+ * written: with a tab or a line break `/<tab>/evil.example` would lead off the site, and
+ * `tel:+7<line break>…` would call another number than the one shown.
  */
-function hasAmbiguousCharacter(address: string): boolean {
+function hasControlCharacter(address: string): boolean {
   const codes = Array.from({ length: address.length }, (_, index) =>
     address.charCodeAt(index),
   );
   return codes.some(
-    (code) =>
-      code === BACKSLASH_CODE ||
-      code < FIRST_PRINTABLE_CODE ||
-      code === DELETE_CODE,
+    (code) => code < FIRST_PRINTABLE_CODE || code === DELETE_CODE,
   );
 }
 

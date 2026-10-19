@@ -1,6 +1,6 @@
 ---
 // The frame of every page of the coffee shop: navigation, contacts and the shared design.
-import { editable } from "@seamlet/astro/schema";
+import { editable, safeHref } from "@seamlet/astro/schema";
 import { phoneHref } from "../format";
 import type { CoffeeShopContent } from "../schema";
 
@@ -15,6 +15,13 @@ interface Props {
 const { content, title, path } = Astro.props;
 const { contacts, links } = content;
 const edit = editable<CoffeeShopContent>();
+// The preview renders the editor's draft, which may hold an address a link may not have yet.
+const footerLinks = links.flatMap(({ link }, index) => {
+  const href = link === null ? undefined : safeHref(link.href);
+  return link === null || href === undefined
+    ? []
+    : [{ index, href, text: link.text || link.href }];
+});
 const pages = [
   { path: "/", name: "Главная" },
   { path: "/menu", name: "Меню" },
@@ -64,19 +71,15 @@ const pages = [
       {contacts.hours !== "" && (
         <p {...edit("contacts", "hours")}>{contacts.hours}</p>
       )}
-      {links.length > 0 && (
+      {footerLinks.length > 0 && (
         <ul class="footer-links">
-          {links.map(
-            ({ link }, index) =>
-              link !== null &&
-              link.href !== "" && (
-                <li {...edit("links", index)}>
-                  <a href={link.href} {...edit("links", index, "link")}>
-                    {link.text || link.href}
-                  </a>
-                </li>
-              ),
-          )}
+          {footerLinks.map(({ index, href, text }) => (
+            <li {...edit("links", index)}>
+              <a href={href} {...edit("links", index, "link")}>
+                {text}
+              </a>
+            </li>
+          ))}
         </ul>
       )}
     </footer>

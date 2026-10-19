@@ -140,6 +140,18 @@ item: { name: text({ label: "Название" }), isHidden: toggle({ label: "С
 // content.practices.filter((practice) => !practice.isHidden)
 ```
 
+The preview renders the editor's draft before it is saved, and a draft may hold an address a link may not have (`javascript:…`, or one half typed). Put the address of a `link` or a `url` into `href` through `safeHref`, which gives it back when a link may lead there and nothing otherwise:
+
+```astro
+---
+import { safeHref } from "@seamlet/astro/schema";
+const href =
+  content.signup === null ? undefined : safeHref(content.signup.href);
+---
+
+{href !== undefined && <a href={href}>{content.signup?.text}</a>}
+```
+
 A photo may carry the point that must stay in view when the site crops it, chosen in the editor: put `imagePosition(photo)` into its `object-position` (the middle when no point is chosen):
 
 ```astro

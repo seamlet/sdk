@@ -1,6 +1,6 @@
 ---
 // The pieces of one line of formatted text with their marks.
-import { linkTargetOf, type RichLine } from "@seamlet/astro/schema";
+import { safeHref, type RichLine } from "@seamlet/astro/schema";
 
 interface Props {
   readonly spans: RichLine;
@@ -13,10 +13,7 @@ const pieces = spans.map((span) => ({
   ...span,
   lines: span.text.split(LINE_BREAK),
   // Content is checked when it is saved; a site never renders an address a link may not have.
-  safeHref:
-    span.href !== undefined && linkTargetOf(span.href) !== undefined
-      ? span.href
-      : undefined,
+  safeHref: span.href === undefined ? undefined : safeHref(span.href),
 }));
 ---
 

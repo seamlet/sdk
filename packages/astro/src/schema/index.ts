@@ -84,6 +84,7 @@ export {
 export {
   hrefOf,
   linkTargetOf,
+  safeHref,
   type LinkKind,
   type LinkTarget,
 } from "./link-addresses";

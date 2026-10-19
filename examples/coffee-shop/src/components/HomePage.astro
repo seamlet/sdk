@@ -1,6 +1,6 @@
 ---
 // The first page of the coffee shop: who they are, what is popular and what is coming up.
-import { editable } from "@seamlet/astro/schema";
+import { editable, safeHref } from "@seamlet/astro/schema";
 import CoffeeShopLayout from "./CoffeeShopLayout.astro";
 import { formatEventDate } from "../format";
 import MenuList from "./MenuList.astro";
@@ -14,6 +14,8 @@ const { content } = Astro.props;
 const { hero, menu, event } = content;
 // An event is announced only when both its title and its day are filled in.
 const eventDate = event.title.trim() === "" ? null : event.date;
+const signupHref =
+  event.signup === null ? undefined : safeHref(event.signup.href);
 const POPULAR_COUNT = 3;
 const edit = editable<CoffeeShopContent>();
 ---
@@ -62,13 +64,13 @@ const edit = editable<CoffeeShopContent>();
         <time datetime={eventDate} {...edit("event", "date")}>
           {formatEventDate(eventDate)}
         </time>
-        {event.signup !== null && event.signup.href !== "" && (
+        {signupHref !== undefined && (
           <a
             class="event-signup"
-            href={event.signup.href}
+            href={signupHref}
             {...edit("event", "signup")}
           >
-            {event.signup.text || "Записаться"}
+            {event.signup?.text || "Записаться"}
           </a>
         )}
       </section>

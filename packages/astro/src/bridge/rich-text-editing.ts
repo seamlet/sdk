@@ -1,4 +1,9 @@
-import { asOneParagraph, readRichText, type RichText } from "../schema";
+import {
+  asOneParagraph,
+  readRichText,
+  safeHref,
+  type RichText,
+} from "../schema";
 import { boxOf, type Box } from "./boxes";
 import { makeEditable, makeUneditable } from "./editable-elements";
 import type { InlineEditingOutcome } from "./inline-text-editing";
@@ -47,7 +52,10 @@ export interface RichTextEditingOptions {
 
 export interface RichTextEditing {
   readonly format: (format: TextFormat) => void;
-  /** The selected words, or the link at the cursor, lead to the address, or nowhere. */
+  /**
+   * The selected words, or the link at the cursor, lead to the address, or nowhere. An address a
+   * link may not have (see safeHref) changes nothing.
+   */
   readonly setLink: (href: string | undefined) => void;
   /** Ends the typing and keeps what was typed. */
   readonly stop: () => void;
@@ -135,7 +143,8 @@ export function startRichTextEditing(
   };
   const linkTo = (href: string | undefined) => {
     const selection = lastSelection;
-    if (selection === undefined) return;
+    const isUnsafe = href !== undefined && safeHref(href) === undefined;
+    if (selection === undefined || isUnsafe) return;
 
     const current = readText();
     const target = isCollapsed(selection)
