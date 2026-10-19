@@ -100,6 +100,7 @@ export default function seamlet(): AstroIntegration {
         if (siteConfig === undefined) return;
         const copied = await copyUploadedPhotos({
           directory: fileURLToPath(dir),
+          siteId: siteConfig.id,
           cmsOrigin: siteConfig.cms,
         });
         if (copied > 0) logger.info(`copied ${String(copied)} uploaded photos`);

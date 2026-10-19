@@ -10,7 +10,7 @@ describe("uploadedPhotoAddresses", () => {
   it("finds the uploaded photos a page refers to, each once, in src and srcset alike", () => {
     const html = `<img src="${PHOTO}"><img srcset="${PHOTO} 1x, /media/dzen-yoga/b_2.webp 2x"><a href="/media/dzen-yoga/b_2.webp">`;
 
-    expect(uploadedPhotoAddresses(html)).toEqual([
+    expect(uploadedPhotoAddresses(html, "dzen-yoga")).toEqual([
       PHOTO,
       "/media/dzen-yoga/b_2.webp",
     ]);
@@ -19,7 +19,13 @@ describe("uploadedPhotoAddresses", () => {
   it("leaves out what no upload can be", () => {
     const html = `<img src="/media/dzen-yoga/photo.jpg"><img src="/media/../secret.webp"><img src="/_astro/hall.webp">`;
 
-    expect(uploadedPhotoAddresses(html)).toEqual([]);
+    expect(uploadedPhotoAddresses(html, "dzen-yoga")).toEqual([]);
+  });
+
+  it("leaves out the uploads of another site", () => {
+    const html = `<img src="/media/lampgreen/0123456789abcdef.webp">`;
+
+    expect(uploadedPhotoAddresses(html, "dzen-yoga")).toEqual([]);
   });
 });
 
@@ -49,6 +55,7 @@ describe("copyUploadedPhotos", () => {
 
     const copied = await copyUploadedPhotos({
       directory,
+      siteId: "dzen-yoga",
       cmsOrigin: "https://cms.example",
     });
 
@@ -68,7 +75,11 @@ describe("copyUploadedPhotos", () => {
     );
 
     await expect(
-      copyUploadedPhotos({ directory, cmsOrigin: "https://cms.example" }),
+      copyUploadedPhotos({
+        directory,
+        siteId: "dzen-yoga",
+        cmsOrigin: "https://cms.example",
+      }),
     ).rejects.toThrow(/failed with status 404/u);
   });
 
@@ -93,6 +104,7 @@ describe("copyUploadedPhotos", () => {
 
     const copied = await copyUploadedPhotos({
       directory,
+      siteId: "dzen-yoga",
       cmsOrigin: "https://cms.example",
     });
 
@@ -108,7 +120,11 @@ describe("copyUploadedPhotos", () => {
     );
 
     await expect(
-      copyUploadedPhotos({ directory, cmsOrigin: "https://cms.example" }),
+      copyUploadedPhotos({
+        directory,
+        siteId: "dzen-yoga",
+        cmsOrigin: "https://cms.example",
+      }),
     ).rejects.toThrow(
       `Copying the photo https://cms.example${PHOTO} into the build failed: the CMS did not answer`,
     );

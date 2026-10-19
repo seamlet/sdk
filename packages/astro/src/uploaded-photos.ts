@@ -6,18 +6,25 @@ import { isUploadedPhoto } from "./preview-requests";
 // addresses its content gives (`/media/<site>/<file>.webp`), and a static host has no route to take
 // them from the CMS on request, so the build puts every photo its pages refer to next to them.
 
-/** `/media/<site>/<file>`: the site's id is the part a CMS gives sites, lowercase with dashes. */
-const PHOTO_ADDRESS = /\/media\/([a-z0-9-]+)\/([A-Za-z0-9_-]+\.webp)/gu;
+/** `/media/<site>/<file>`; only the site's own photos are its uploads (see isUploadedPhoto). */
+const PHOTO_ADDRESS = /\/media\/([^/\s"'<>]+)\/([^/\s"'<>?#]+)/gu;
 const HTML_EXTENSION = ".html";
 /** Photos copied at the same time: enough to be quick, few enough not to flood the CMS. */
 const PHOTOS_COPIED_AT_ONCE = 6;
 /** A build waits this long for a photo; a CMS that does not answer stops it instead of hanging it. */
 const PHOTO_TIMEOUT_MS = 60_000;
 
-/** The addresses of the uploaded photos a page refers to, each once. */
-export function uploadedPhotoAddresses(html: string): readonly string[] {
+/**
+ * The addresses of the photos uploaded for the site that a page refers to, each once. Another
+ * site's uploads are not the site's: its route of photos would not serve them either.
+ */
+export function uploadedPhotoAddresses(
+  html: string,
+  siteId: string,
+): readonly string[] {
   const addresses = [...html.matchAll(PHOTO_ADDRESS)].flatMap(
-    ([address, , fileName]) => (isUploadedPhoto(fileName) ? [address] : []),
+    ([address, site, fileName]) =>
+      site === siteId && isUploadedPhoto(fileName) ? [address] : [],
   );
   return [...new Set(addresses)];
 }
@@ -25,11 +32,14 @@ export function uploadedPhotoAddresses(html: string): readonly string[] {
 /** Copies every uploaded photo the built pages in the directory refer to from the CMS. */
 export async function copyUploadedPhotos(options: {
   readonly directory: string;
+  readonly siteId: string;
   readonly cmsOrigin: string;
 }): Promise<number> {
   const pages = await htmlFilesIn(options.directory);
   const texts = await Promise.all(pages.map((page) => readFile(page, "utf8")));
-  const addresses = new Set(texts.flatMap(uploadedPhotoAddresses));
+  const addresses = new Set(
+    texts.flatMap((text) => uploadedPhotoAddresses(text, options.siteId)),
+  );
 
   await inTurns([...addresses], PHOTOS_COPIED_AT_ONCE, (address) =>
     copyPhoto(address, options.directory, options.cmsOrigin),
