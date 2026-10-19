@@ -20,7 +20,7 @@ const FIELD_RULES: Readonly<Record<SiteConfigField, string>> = {
 /**
  * The config in `seamlet.json` at the site's root. `cmsOverride` takes the place of its `cms` when
  * given: the environment's `CMS_ORIGIN`, which a build for another CMS (development, the CMS's
- * builder) sets.
+ * builder) sets. An empty one is not given: an image built without the build argument has it so.
  */
 export async function loadSiteConfig(
   root: URL,
@@ -28,10 +28,10 @@ export async function loadSiteConfig(
 ): Promise<SiteConfig> {
   const file = new URL(SITE_CONFIG_FILE, root);
   const parsed = await readJsonFile(file);
-  const input =
-    cmsOverride === undefined
-      ? parsed
-      : { ...asObject(parsed), cms: cmsOverride };
+  const isOverridden = cmsOverride !== undefined && cmsOverride !== "";
+  const input = isOverridden
+    ? { ...asObject(parsed), cms: cmsOverride }
+    : parsed;
 
   const reading = readSiteConfig(input);
   if (reading.status === "read") return reading.config;
