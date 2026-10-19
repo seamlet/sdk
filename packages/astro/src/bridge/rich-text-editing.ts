@@ -98,7 +98,9 @@ export function startRichTextEditing(
     reportFrame = view?.requestAnimationFrame(reportSelection);
   };
   const followSelection = () => {
-    const selection = liveSelection();
+    // Only a person on the page moves the selection; a page without the focus changes it only
+    // when its element is rendered anew under the editor's toolbar.
+    const selection = document.hasFocus() ? liveSelection() : undefined;
     if (selection === undefined) return;
     lastSelection = selection;
     scheduleReport();
@@ -174,8 +176,9 @@ export function startRichTextEditing(
   const endOnBlur = () => {
     clearTimeout(blurTimer);
     blurTimer = setTimeout(() => {
-      const isFocusInEditor = document.activeElement === element;
-      if (!isFocusInEditor) end("kept");
+      const isFocusOnPage = document.hasFocus();
+      const isFocusInText = document.activeElement === element;
+      if (isFocusOnPage && !isFocusInText) end("kept");
     });
   };
 
