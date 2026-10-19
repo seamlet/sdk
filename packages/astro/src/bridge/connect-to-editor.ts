@@ -13,6 +13,7 @@ import { listenToPage } from "./page-events";
 import { createLayoutReports } from "./page-layout";
 import { findClosestMarkedElement } from "./page-markers";
 import { revealAround } from "./page-reveals";
+import { followPresses } from "./page-presses";
 import { createPageRenderer } from "./page-rendering";
 import { createPageTyping } from "./page-typing";
 
@@ -73,10 +74,14 @@ export function connectPage(
     send({ type: "layout", layout: measured });
   });
   const typing = createPageTyping({ document, send, onInput: layout.schedule });
+  const presses = followPresses(document, () => {
+    renderer.showHeldPage();
+  });
   const renderer = createPageRenderer({
     document,
     // Replacing the page under a text being typed would throw the typing away.
     canReplacePage: () => !typing.isTyping(),
+    isPagePressed: presses.isPressed,
     onRendered: () => {
       layout.reportNow();
       send({ type: "rendered" });
@@ -168,6 +173,7 @@ export function connectPage(
     stop: () => {
       typing.stop();
       renderer.stop();
+      presses.stop();
       layout.stop();
       stopListening();
     },
