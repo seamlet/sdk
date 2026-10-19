@@ -21,15 +21,23 @@ export async function writeSiteFiles(
   files: readonly SiteFile[],
 ): Promise<WrittenFiles> {
   const paths = files.map((file) => file.path);
-  const existing = await Promise.all(
-    paths.map((path) => isThere(join(root, path))),
-  );
-  if (existing.includes(true)) return { written: [], kept: paths };
+  if (await isAnyThere(root, paths)) return { written: [], kept: paths };
 
   for (const file of files) {
     await writeNewFile(join(root, file.path), file.text);
   }
   return { written: paths, kept: [] };
+}
+
+/** Looked at one by one, so a folder that cannot be read is named the same every time. */
+async function isAnyThere(
+  root: string,
+  paths: readonly string[],
+): Promise<boolean> {
+  for (const path of paths) {
+    if (await isThere(join(root, path))) return true;
+  }
+  return false;
 }
 
 async function isThere(path: string): Promise<boolean> {
