@@ -1,6 +1,6 @@
 {
   "name": "@seamlet/astro",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "Connects an Astro site to the Seamlet CMS: the schema of its content, the preview the editor frames, and its published content.",
   "license": "MIT",
   "type": "module",
@@ -42,6 +42,10 @@
     "./routes/media": {
       "types": "./dist/routes/media.d.ts",
       "default": "./dist/routes/media.js"
+    },
+    "./routes/own-photos": {
+      "types": "./dist/routes/own-photos.d.ts",
+      "default": "./dist/routes/own-photos.js"
     }
   },
   "files": [
