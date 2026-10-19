@@ -1,18 +1,20 @@
-import { makeEditable, makeUneditable } from "./editable-elements";
-import { canEditTextInPlace } from "./element-text";
 import {
   EDITABLE_AS_PLAIN_TEXT,
-  placeCaretAt,
-  startInlineTextEditing,
-} from "./inline-text-editing";
+  EDITABLE_AS_RICH_TEXT,
+  makeEditable,
+  makeUneditable,
+  type EditableAs,
+} from "./editable-elements";
+import { canEditTextInPlace } from "./element-text";
+import { placeCaretAt, startInlineTextEditing } from "./inline-text-editing";
 import type { EditorMessage, PageMessage, TextFormat } from "./messages";
 import { findMarkedElement } from "./page-markers";
 import {
   canEditRichTextInPlace,
-  EDITABLE_AS_RICH_TEXT,
   startRichTextEditing,
   type RichTextEditing,
 } from "./rich-text-editing";
+import { richTextLayoutOf } from "./rich-text-layouts";
 import type { TypedKind } from "./typed-fields";
 
 type StartTyping = Extract<EditorMessage, { type: "start-typing" }>;
@@ -21,7 +23,7 @@ type StartRichTyping = Extract<EditorMessage, { type: "start-rich-typing" }>;
 /** How long a text made ready by a tap waits for the editor to start typing it. */
 export const PREPARED_TYPING_TIMEOUT_MS = 3000;
 
-const EDITABLE_VALUES: Readonly<Record<TypedKind, string>> = {
+const EDITABLE_VALUES: Readonly<Record<TypedKind, EditableAs>> = {
   plain: EDITABLE_AS_PLAIN_TEXT,
   rich: EDITABLE_AS_RICH_TEXT,
 };
@@ -134,11 +136,12 @@ export function createPageTyping(options: {
 
   const startRich = (request: StartRichTyping) => {
     stop();
-    const { path, isInline } = request;
+    const { path } = request;
+    const layout = richTextLayoutOf(request.isInline);
     const element = findMarkedElement(options.document, path);
     const canType =
       element !== undefined &&
-      canEditRichTextInPlace(element, request.text, isInline);
+      canEditRichTextInPlace(element, request.text, layout);
     if (!canType) {
       takePrepared(false);
       options.send({ type: "typing-refused", path });
@@ -149,7 +152,7 @@ export function createPageTyping(options: {
     takePrepared(true);
     options.send({ type: "typing-started", path });
     const editing = startRichTextEditing(element, {
-      isInline,
+      layout,
       onInput: (text) => {
         options.send({ type: "rich-typed", path, text });
         options.onInput();
