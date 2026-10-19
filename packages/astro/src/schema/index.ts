@@ -97,6 +97,7 @@ export {
 } from "./presets";
 export {
   asOneParagraph,
+  linesOf,
   normalizedLine,
   plainTextOf,
   readRichText,

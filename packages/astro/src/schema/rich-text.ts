@@ -145,7 +145,8 @@ function hasWords(block: RichBlock): boolean {
     : block.items.length > 0;
 }
 
-function linesOf(text: RichText): readonly RichLine[] {
+/** The lines of a text: its paragraphs and the items of its lists, in their order. */
+export function linesOf(text: RichText): readonly RichLine[] {
   return text.flatMap((block) =>
     block.kind === "paragraph" ? [block.spans] : block.items,
   );

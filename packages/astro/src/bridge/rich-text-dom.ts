@@ -1,4 +1,5 @@
 import {
+  linesOf,
   normalizedLine,
   safeHref,
   type RichBlock,
@@ -58,9 +59,7 @@ export function renderInlineRichText(
   text: RichText,
 ): void {
   const document = element.ownerDocument;
-  const lines = text.flatMap((block) =>
-    block.kind === "paragraph" ? [block.spans] : block.items,
-  );
+  const lines = linesOf(text);
   const nodes = lines.flatMap((line, index) => [
     ...(index > 0 ? [document.createElement("br")] : []),
     ...lineNodes(document, line),
