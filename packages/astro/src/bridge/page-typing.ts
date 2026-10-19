@@ -57,6 +57,8 @@ export function createPageTyping(options: {
   readonly send: (message: PageMessage) => void;
   /** A typed character changed the page: what the editor draws over it must move. */
   readonly onInput: () => void;
+  /** Nothing is typed or made ready to be typed any more: the page may be rendered anew. */
+  readonly onTypingOver: () => void;
 }): PageTyping {
   let stopEditing: (() => void) | undefined;
   let richEditing: RichTextEditing | undefined;
@@ -66,6 +68,11 @@ export function createPageTyping(options: {
         readonly timer: ReturnType<typeof setTimeout>;
       }
     | undefined;
+
+  const isTyping = () => stopEditing !== undefined || prepared !== undefined;
+  const reportIfOver = () => {
+    if (!isTyping()) options.onTypingOver();
+  };
 
   /** The prepared text, now typed or refused: the typing takes it over, or it is left. */
   const takePrepared = (isTyped: boolean) => {
@@ -85,6 +92,7 @@ export function createPageTyping(options: {
     element.focus({ preventScroll: true });
     const timer = setTimeout(() => {
       takePrepared(false);
+      reportIfOver();
     }, PREPARED_TYPING_TIMEOUT_MS);
     prepared = { element, timer };
   };
@@ -96,6 +104,7 @@ export function createPageTyping(options: {
     stopEditing = undefined;
     richEditing = undefined;
     options.send({ type: "typing-ended", path, outcome });
+    reportIfOver();
   };
 
   const start = (request: StartTyping) => {
@@ -107,6 +116,7 @@ export function createPageTyping(options: {
     if (!canType) {
       takePrepared(false);
       options.send({ type: "typing-refused", path });
+      reportIfOver();
       return;
     }
 
@@ -133,6 +143,7 @@ export function createPageTyping(options: {
     if (!canType) {
       takePrepared(false);
       options.send({ type: "typing-refused", path });
+      reportIfOver();
       return;
     }
 
@@ -156,7 +167,7 @@ export function createPageTyping(options: {
 
   return {
     prepare,
-    isTyping: () => stopEditing !== undefined || prepared !== undefined,
+    isTyping,
     start,
     startRich,
     format: (format) => richEditing?.format(format),

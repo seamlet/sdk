@@ -73,10 +73,16 @@ export function connectPage(
   const layout = createLayoutReports(document, (measured) => {
     send({ type: "layout", layout: measured });
   });
-  const typing = createPageTyping({ document, send, onInput: layout.schedule });
-  const presses = followPresses(document, () => {
+  const showHeldPage = () => {
     renderer.showHeldPage();
+  };
+  const typing = createPageTyping({
+    document,
+    send,
+    onInput: layout.schedule,
+    onTypingOver: showHeldPage,
   });
+  const presses = followPresses(document, showHeldPage);
   const renderer = createPageRenderer({
     document,
     // Replacing the page under a text being typed would throw the typing away.
