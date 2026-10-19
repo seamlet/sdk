@@ -37,6 +37,12 @@ export function linkAround(target: EventTarget | null): PageLink | undefined {
   return isLink ? { element, href } : undefined;
 }
 
+/** Whether the target of an event is inside a text being typed on the page. */
+export function isInTypedText(target: EventTarget | null): boolean {
+  const editable = asElement(target)?.closest("[contenteditable]");
+  return editable !== null && editable !== undefined;
+}
+
 /** The first element marked with the path. */
 export function findMarkedElement(
   document: Document,

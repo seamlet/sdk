@@ -108,4 +108,49 @@ describe("createPageTyping", () => {
       outcome: "kept",
     });
   });
+
+  it("types formatted text shown as it is and sends it with every change", () => {
+    document.body.innerHTML = `<div data-cms-path="about"><p>Студия</p></div>`;
+    const about = marked("about");
+    typing.startRich({
+      type: "start-rich-typing",
+      path: "about",
+      text: [{ kind: "paragraph", spans: [{ text: "Студия" }] }],
+      isInline: false,
+      point: { x: 0, y: 0 },
+    });
+    about.querySelector("p")?.append(" йоги");
+    about.dispatchEvent(new Event("input"));
+    typing.stop();
+
+    expect(send.mock.calls).toEqual([
+      [{ type: "typing-started", path: "about" }],
+      [
+        {
+          type: "rich-typed",
+          path: "about",
+          text: [{ kind: "paragraph", spans: [{ text: "Студия йоги" }] }],
+        },
+      ],
+      [{ type: "typed-selection", path: "about", selection: undefined }],
+      [{ type: "typing-ended", path: "about", outcome: "kept" }],
+    ]);
+    expect(typing.isTyping()).toBe(false);
+  });
+
+  it("refuses formatted text its element does not show as it is", () => {
+    typing.startRich({
+      type: "start-rich-typing",
+      path: "title",
+      text: [{ kind: "paragraph", spans: [{ text: "Зерно", bold: true }] }],
+      isInline: true,
+      point: { x: 0, y: 0 },
+    });
+
+    expect(send).toHaveBeenCalledWith({
+      type: "typing-refused",
+      path: "title",
+    });
+    expect(typing.isTyping()).toBe(false);
+  });
 });

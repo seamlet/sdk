@@ -1,5 +1,10 @@
 import { carriesFiles } from "./file-drags";
-import { linkAround, markedElementAround, type PageLink } from "./page-markers";
+import {
+  isInTypedText,
+  linkAround,
+  markedElementAround,
+  type PageLink,
+} from "./page-markers";
 import { flipSwitchAt, toggleDetailsAt } from "./page-reveals";
 
 // What the bridge hears from the site's page. In the editor a click selects what it points at and
@@ -51,7 +56,7 @@ export function listenToPage(
   const view = document.defaultView;
 
   const hover = (event: MouseEvent) => {
-    const link = nearerLink(event.target);
+    const link = linkToFollow(event.target);
     listeners.onHover(
       link === undefined ? markedElementAround(event.target)?.path : undefined,
     );
@@ -63,7 +68,7 @@ export function listenToPage(
   };
   const click = (event: MouseEvent) => {
     event.preventDefault();
-    const link = nearerLink(event.target);
+    const link = linkToFollow(event.target);
     if (link !== undefined) {
       listeners.onLinkClick(link);
       return;
@@ -143,6 +148,11 @@ export function listenToPage(
     document.documentElement.removeEventListener("mouseleave", leave);
     view?.removeEventListener("resize", listeners.onLayoutChange);
   };
+}
+
+/** A link that opens where it leads; a link inside a text being typed is a part of the text. */
+function linkToFollow(target: EventTarget | null): PageLink | undefined {
+  return isInTypedText(target) ? undefined : nearerLink(target);
 }
 
 /**

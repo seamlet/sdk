@@ -32,6 +32,32 @@ describe("readPageMessage", () => {
     expect(readPageMessage(drop)).toBe(drop);
   });
 
+  it("reads formatted text typed in place and where its selection is", () => {
+    const typed = {
+      type: "rich-typed",
+      path: "about",
+      text: [{ kind: "paragraph", spans: [{ text: "Чай", bold: true }] }],
+    };
+    const selection = {
+      type: "typed-selection",
+      path: "about",
+      selection: {
+        box,
+        isCollapsed: false,
+        formats: { isBold: true, isItalic: false, isList: false, href: "/" },
+      },
+    };
+
+    expect(readPageMessage(typed)).toEqual(typed);
+    expect(readPageMessage(selection)).toEqual(selection);
+    expect(
+      readPageMessage({ ...typed, text: [{ kind: "table" }] }),
+    ).toBeUndefined();
+    expect(
+      readPageMessage({ ...selection, selection: { box } }),
+    ).toBeUndefined();
+  });
+
   it("drops anything that is not a message of the page", () => {
     expect(readPageMessage("ready")).toBeUndefined();
     expect(readPageMessage({ type: "ready" })).toBeUndefined();
@@ -74,6 +100,28 @@ describe("readEditorMessage", () => {
       },
     );
     expect(readEditorMessage({ type: "render", content: {} })).toBeDefined();
+  });
+
+  it("reads the typing of formatted text and the changes of its marks", () => {
+    const typing = {
+      type: "start-rich-typing",
+      path: "about",
+      text: [{ kind: "paragraph", spans: [{ text: "Чай" }] }],
+      isInline: false,
+      point: { x: 1, y: 2 },
+    };
+
+    expect(readEditorMessage(typing)).toEqual(typing);
+    expect(
+      readEditorMessage({ type: "format-typed", format: "italic" }),
+    ).toBeDefined();
+    expect(
+      readEditorMessage({ type: "link-typed", href: undefined }),
+    ).toBeDefined();
+    expect(
+      readEditorMessage({ type: "format-typed", format: "underline" }),
+    ).toBeUndefined();
+    expect(readEditorMessage({ type: "link-typed", href: 1 })).toBeUndefined();
   });
 
   it("drops anything that is not a message of the editor", () => {

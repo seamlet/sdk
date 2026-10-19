@@ -139,6 +139,15 @@ export function connectPage(
       case "start-typing":
         typing.start(message);
         break;
+      case "start-rich-typing":
+        typing.startRich(message);
+        break;
+      case "format-typed":
+        typing.format(message.format);
+        break;
+      case "link-typed":
+        typing.setLink(message.href);
+        break;
       case "stop-typing":
         typing.stop();
         break;
