@@ -8,6 +8,7 @@ import type {
   ReferenceField,
   ReferencesField,
 } from "./fields";
+import { FIELD_PATH_SEPARATOR, isRecordIndex } from "./field-paths";
 import { isJsonObject, type JsonObject } from "./json-values";
 import { collectionFieldAt, RECORD_ID_KEY } from "./record-ids";
 
@@ -56,9 +57,6 @@ const TITLE_KINDS: ReadonlySet<FieldKind> = new Set<FieldKind>([
   "text",
   "link",
 ]);
-/** A number is a place of a record in a path, never a name of a field. */
-const NUMBER_NAME = /^\d+$/u;
-const PATH_SEPARATOR = ".";
 
 /** The schema the input describes, or undefined when it is not one. */
 export function readFields(input: unknown): Fields | undefined {
@@ -303,7 +301,7 @@ function isFieldKind(value: unknown): value is FieldKind {
 
 function isFieldName(name: string): boolean {
   return (
-    name !== "" && !name.includes(PATH_SEPARATOR) && !NUMBER_NAME.test(name)
+    name !== "" && !name.includes(FIELD_PATH_SEPARATOR) && !isRecordIndex(name)
   );
 }
 

@@ -6,6 +6,7 @@ import {
   type FieldValue,
   type ImageFocus,
 } from "./content";
+import { FIELD_PATH_SEPARATOR } from "./field-paths";
 import { isJsonObject } from "./json-values";
 import { linkTargetOf } from "./link-addresses";
 import {
@@ -89,7 +90,7 @@ const TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d$/u;
 const GRAPHEMES = new Intl.Segmenter("ru-RU", { granularity: "grapheme" });
 
 export function formatFieldPath(path: FieldPath): string {
-  return path.join(".");
+  return path.join(FIELD_PATH_SEPARATOR);
 }
 
 /**

@@ -1,5 +1,6 @@
 import { defaultContent, type Content, type ContentOf } from "./content";
 import type { CollectionField, Field, Fields, RecordFields } from "./fields";
+import { FIELD_PATH_SEPARATOR } from "./field-paths";
 import { isContentObject } from "./json-values";
 
 // Every record of a collection has an id of its own: an index changes when records move, an id
@@ -37,8 +38,6 @@ export function withRecordIds<F extends Fields>(
   return withIdsInFields(schema, content, newId) as ContentOf<F>;
 }
 
-const COLLECTION_PATH_SEPARATOR = ".";
-
 export interface CollectionRecords {
   readonly collection: CollectionField;
   readonly records: readonly Content[];
@@ -53,7 +52,7 @@ export function collectionAt(
   content: Content,
   path: string,
 ): CollectionRecords | undefined {
-  return collectionIn(schema, content, path.split(COLLECTION_PATH_SEPARATOR));
+  return collectionIn(schema, content, path.split(FIELD_PATH_SEPARATOR));
 }
 
 function collectionIn(
@@ -101,7 +100,7 @@ export function collectionFieldAt(
   schema: Fields,
   path: string,
 ): CollectionField | undefined {
-  const [name, ...rest] = path.split(COLLECTION_PATH_SEPARATOR);
+  const [name, ...rest] = path.split(FIELD_PATH_SEPARATOR);
   const field =
     name !== undefined && Object.hasOwn(schema, name)
       ? schema[name]
@@ -115,7 +114,7 @@ export function collectionFieldAt(
     case "group":
       return isLast
         ? undefined
-        : collectionFieldAt(field.fields, rest.join(COLLECTION_PATH_SEPARATOR));
+        : collectionFieldAt(field.fields, rest.join(FIELD_PATH_SEPARATOR));
     case "text":
     case "richText":
     case "number":
