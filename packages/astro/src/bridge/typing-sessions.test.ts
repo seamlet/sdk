@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import type { InlineEditingOutcome } from "./messages";
-import { elementListener, startTypingSession } from "./typing-sessions";
+import { onElement } from "./event-listening";
+import { startTypingSession } from "./typing-sessions";
 
 function start(isEndingKey: (event: KeyboardEvent) => boolean = () => false) {
   document.body.innerHTML = `<h1 style="color: red">Зерно</h1>`;
@@ -13,7 +14,7 @@ function start(isEndingKey: (event: KeyboardEvent) => boolean = () => false) {
   const session = startTypingSession(element, {
     editableAs: "plaintext-only",
     isEndingKey,
-    listeners: [elementListener(element, "input", onInput)],
+    listeners: [onElement(element, "input", onInput)],
     onStop,
     onEnd,
   });

@@ -7,7 +7,13 @@ import {
 } from "./editable-elements";
 import { canEditTextInPlace } from "./element-text";
 import { placeCaretAt, startInlineTextEditing } from "./inline-text-editing";
-import type { EditorMessage, PageMessage, TextFormat } from "./messages";
+import type {
+  EditorMessage,
+  InlineEditingOutcome,
+  PageMessage,
+  Point,
+  TextFormat,
+} from "./messages";
 import { findMarkedElement } from "./page-markers";
 import {
   canEditRichTextInPlace,
@@ -61,119 +67,144 @@ export function createPageTyping(options: {
   /** Nothing is typed or made ready to be typed any more: the page may be rendered anew. */
   readonly onTypingOver: () => void;
 }): PageTyping {
-  let stopEditing: (() => void) | undefined;
-  let richEditing: RichTextEditing | undefined;
-  let prepared:
-    | {
-        readonly element: HTMLElement;
-        readonly timer: ReturnType<typeof setTimeout>;
-      }
-    | undefined;
+  const { send } = options;
+  let typing: CurrentTyping | undefined;
+  let prepared: PreparedText | undefined;
 
-  const isTyping = () => stopEditing !== undefined || prepared !== undefined;
+  const isTyping = () => typing !== undefined || prepared !== undefined;
   const reportIfOver = () => {
     if (!isTyping()) options.onTypingOver();
   };
 
-  /** The prepared text, now typed or refused: the typing takes it over, or it is left. */
-  const takePrepared = (isTyped: boolean) => {
+  /** The prepared text was not typed: it is left as it was, unless a typing holds it. */
+  const releasePrepared = () => {
     if (prepared === undefined) return;
     clearTimeout(prepared.timer);
-    if (!isTyped && stopEditing === undefined) {
+    if (typing === undefined) {
       prepared.element.blur();
       makeUneditable(prepared.element);
     }
     prepared = undefined;
   };
+  /** The prepared text is typed now: the typing takes it over. */
+  const handOverPrepared = () => {
+    if (prepared !== undefined) clearTimeout(prepared.timer);
+    prepared = undefined;
+  };
   const prepare = (element: HTMLElement, kind: TypedKind) => {
     const isTypedAlready = element.hasAttribute("contenteditable");
     if (isTypedAlready) return;
-    takePrepared(false);
+
+    releasePrepared();
     makeEditable(element, EDITABLE_VALUES[kind]);
     element.focus({ preventScroll: true });
     const timer = setTimeout(() => {
-      takePrepared(false);
+      releasePrepared();
       reportIfOver();
     }, PREPARED_TYPING_TIMEOUT_MS);
     prepared = { element, timer };
   };
 
   const stop = () => {
-    stopEditing?.();
+    typing?.stop();
   };
-  const ended = (path: string) => (outcome: "kept" | "reverted") => {
-    stopEditing = undefined;
-    richEditing = undefined;
-    options.send({ type: "typing-ended", path, outcome });
+  const endedAt = (path: string) => (outcome: InlineEditingOutcome) => {
+    typing = undefined;
+    send({ type: "typing-ended", path, outcome });
     reportIfOver();
   };
-
-  const start = (request: StartTyping) => {
+  /** Types the field in its element if it can be typed there; tells the editor either way. */
+  const begin = (start: TypingStart) => {
     stop();
-    const { path } = request;
+    const { path } = start;
     const element = findMarkedElement(options.document, path);
-    const canType =
-      element !== undefined && canEditTextInPlace(element, request.text);
-    if (!canType) {
-      takePrepared(false);
-      options.send({ type: "typing-refused", path });
+    if (element === undefined || !start.canTypeIn(element)) {
+      releasePrepared();
+      send({ type: "typing-refused", path });
       reportIfOver();
       return;
     }
 
-    takePrepared(true);
-    options.send({ type: "typing-started", path });
-    stopEditing = startInlineTextEditing(element, {
-      isSingleLine: request.isSingleLine,
-      onInput: (text) => {
-        options.send({ type: "typed", path, text });
-        options.onInput();
-      },
-      onEnd: ended(path),
-    });
-    placeCaretAt(element, request.point);
+    handOverPrepared();
+    send({ type: "typing-started", path });
+    typing = start.typeIn(element, endedAt(path));
+    placeCaretAt(element, start.point);
   };
 
-  const startRich = (request: StartRichTyping) => {
-    stop();
-    const { path } = request;
-    const layout = richTextLayoutOf(request.isInline);
-    const element = findMarkedElement(options.document, path);
-    const canType =
-      element !== undefined &&
-      canEditRichTextInPlace(element, request.text, layout);
-    if (!canType) {
-      takePrepared(false);
-      options.send({ type: "typing-refused", path });
-      reportIfOver();
-      return;
-    }
-
-    takePrepared(true);
-    options.send({ type: "typing-started", path });
-    const editing = startRichTextEditing(element, {
-      layout,
-      onInput: (text) => {
-        options.send({ type: "rich-typed", path, text });
-        options.onInput();
-      },
-      onSelect: (selection) => {
-        options.send({ type: "typed-selection", path, selection });
-      },
-      onEnd: ended(path),
+  const reportTyped = (message: PageMessage) => {
+    send(message);
+    options.onInput();
+  };
+  const typePlainText = (request: StartTyping) => {
+    const { path, text } = request;
+    begin({
+      path,
+      point: request.point,
+      canTypeIn: (element) => canEditTextInPlace(element, text),
+      typeIn: (element, onEnd) => ({
+        stop: startInlineTextEditing(element, {
+          isSingleLine: request.isSingleLine,
+          onInput: (typed) => {
+            reportTyped({ type: "typed", path, text: typed });
+          },
+          onEnd,
+        }),
+      }),
     });
-    richEditing = editing;
-    stopEditing = editing.stop;
-    placeCaretAt(element, request.point);
+  };
+  const typeRichText = (request: StartRichTyping) => {
+    const { path, text } = request;
+    const layout = richTextLayoutOf(request.isInline);
+    begin({
+      path,
+      point: request.point,
+      canTypeIn: (element) => canEditRichTextInPlace(element, text, layout),
+      typeIn: (element, onEnd) => {
+        const editing = startRichTextEditing(element, {
+          layout,
+          onInput: (typed) => {
+            reportTyped({ type: "rich-typed", path, text: typed });
+          },
+          onSelect: (selection) => {
+            send({ type: "typed-selection", path, selection });
+          },
+          onEnd,
+        });
+        return { stop: editing.stop, richText: editing };
+      },
+    });
   };
 
   return {
     prepare,
     isTyping,
-    start,
-    startRich,
-    format: (format) => richEditing?.format(format),
-    setLink: (href) => richEditing?.setLink(href),
+    start: typePlainText,
+    startRich: typeRichText,
+    format: (format) => typing?.richText?.format(format),
+    setLink: (href) => typing?.richText?.setLink(href),
     stop,
   };
+}
+
+/** A text a tap made editable, waiting for the editor to start typing it. */
+interface PreparedText {
+  readonly element: HTMLElement;
+  readonly timer: ReturnType<typeof setTimeout>;
+}
+
+/** The text typed now. */
+interface CurrentTyping {
+  readonly stop: () => void;
+  /** The formatting of a formatted text; a plain text has none. */
+  readonly richText?: RichTextEditing;
+}
+
+interface TypingStart {
+  readonly path: string;
+  readonly point: Point;
+  readonly canTypeIn: (element: HTMLElement) => boolean;
+  readonly typeIn: (
+    element: HTMLElement,
+    onEnd: (outcome: InlineEditingOutcome) => void,
+  ) => CurrentTyping;
 }

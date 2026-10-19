@@ -39,40 +39,32 @@ export function revealAround(element: Element): void {
 }
 
 /**
- * A click on the summary of a `<details>`: opens it when closed, and closes it when the click was
- * not on a field, which the person meant to choose.
+ * A click on a field inside the summary of a `<details>` or the label of a switch: a closed
+ * `<details>` opens and a radio button is checked, while nothing the person meant to choose the
+ * field in is closed or unchecked.
  */
-export function toggleDetailsAt(
-  target: EventTarget | null,
-  isOnField: boolean,
-): void {
+export function revealPartAt(target: EventTarget | null): void {
   const details = detailsOfSummaryAround(target);
-  if (details === undefined) return;
+  if (details !== undefined) details.open = true;
 
-  if (!details.open) {
-    details.open = true;
-    return;
-  }
-  if (!isOnField) details.open = false;
+  const control = switchAround(target);
+  const isUncheckedRadio = control?.type === "radio" && !control.checked;
+  if (control !== undefined && isUncheckedRadio) checkSwitch(control, true);
 }
 
 /**
- * A click on a switch of the page, or on its label: a radio button is checked, and a checkbox is
- * flipped unless the click was on a field, which the person meant to choose.
+ * A click on the summary of a `<details>` or on a switch (or its label), off the fields: the
+ * `<details>` opens or closes, a radio button is checked and a checkbox flipped.
  */
-export function flipSwitchAt(
-  target: EventTarget | null,
-  isOnField: boolean,
-): void {
+export function togglePartAt(target: EventTarget | null): void {
+  const details = detailsOfSummaryAround(target);
+  if (details !== undefined) details.open = !details.open;
+
   const control = switchAround(target);
   if (control === undefined) return;
-
   const isRadio = control.type === "radio";
-  const isFlipped = isRadio ? !control.checked : !isOnField;
-  if (!isFlipped) return;
-
-  control.checked = isRadio || !control.checked;
-  announceSwitch(control);
+  if (isRadio && control.checked) return;
+  checkSwitch(control, isRadio || !control.checked);
 }
 
 export function revealedPartsOf(document: Document): RevealedParts {
@@ -116,7 +108,11 @@ export function restoreRevealedParts(
 }
 
 function flipFromDefault(control: HTMLInputElement): void {
-  control.checked = !control.defaultChecked;
+  checkSwitch(control, !control.defaultChecked);
+}
+
+function checkSwitch(control: HTMLInputElement, isChecked: boolean): void {
+  control.checked = isChecked;
   announceSwitch(control);
 }
 

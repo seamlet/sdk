@@ -9,13 +9,17 @@ import {
   type EditorMessage,
   type PageMessage,
 } from "./messages";
-import { listenToPage } from "./page-events";
-import { createLayoutReports } from "./page-layout";
+import {
+  listenToPage,
+  type PageListeners,
+  type PagePointer,
+} from "./page-events";
+import { createLayoutReports, type LayoutReports } from "./page-layout";
 import { findClosestMarkedElement } from "./page-markers";
 import { revealAround } from "./page-reveals";
 import { followPresses } from "./page-presses";
-import { createPageRenderer } from "./page-rendering";
-import { createPageTyping } from "./page-typing";
+import { createPageRenderer, type PageRenderer } from "./page-rendering";
+import { createPageTyping, type PageTyping } from "./page-typing";
 
 // The bridge between a site's page and the CMS's editor. A site puts it on its preview: the editor
 // shows the preview in a frame and draws over it in its own document, while the bridge tells it
@@ -98,38 +102,58 @@ export function connectPage(
     },
   });
 
-  const pressKey = (event: KeyboardEvent) => {
-    const key = editorKeyOf(event);
-    // While a text is typed, Escape belongs to the typing: it brings the text back.
-    const isTypingEscape = key === "escape" && typing.isTyping();
-    if (key === undefined || isTypingEscape) return;
-
-    event.preventDefault();
-    typing.stop();
-    send({ type: "key", key });
+  const page: ConnectedPage = {
+    document,
+    schema,
+    send,
+    layout,
+    typing,
+    renderer,
   };
+  const stopListening = listenToPage(document, pageListenersOf(page));
+  layout.reportNow();
 
-  const stopListening = listenToPage(document, {
+  return {
+    receive: (message) => {
+      receiveEditorMessage(page, message);
+    },
+    stop: () => {
+      typing.stop();
+      renderer.stop();
+      presses.stop();
+      layout.stop();
+      stopListening();
+    },
+  };
+}
+
+/** What a connected page is made of. */
+interface ConnectedPage {
+  readonly document: Document;
+  readonly schema: Fields;
+  readonly send: (message: PageMessage) => void;
+  readonly layout: LayoutReports;
+  readonly typing: PageTyping;
+  readonly renderer: PageRenderer;
+}
+
+/** What the page tells the editor of what a person does on it. */
+function pageListenersOf(page: ConnectedPage): PageListeners {
+  const { schema, send, layout } = page;
+  return {
     onHover: (path) => {
       send({ type: "hover", path });
     },
     onClick: (pointer) => {
-      const kind =
-        pointer === undefined ? undefined : typedKindAt(schema, pointer.path);
-      if (pointer !== undefined && kind !== undefined) {
-        typing.prepare(pointer.element, kind);
-      }
-      const target =
-        pointer === undefined
-          ? undefined
-          : { path: pointer.path, point: pointer.point };
-      send({ type: "click", target });
+      clickOn(page, pointer);
     },
     onLinkHover: layout.hoverLink,
     onLinkClick: (link) => {
       send({ type: "link-click", href: link.href });
     },
-    onKeyDown: pressKey,
+    onKeyDown: (event) => {
+      pressKey(page, event);
+    },
     onFileDragOver: (path) => {
       const isTaken = imageFieldAt(schema, path) !== undefined;
       send({ type: "file-drag", path: isTaken ? path : undefined });
@@ -143,47 +167,65 @@ export function connectPage(
       if (isTaken) send({ type: "file-drop", path, file });
     },
     onLayoutChange: layout.schedule,
+  };
+}
+
+/** A click on a field makes its text ready to be typed, at once, while the tap gives the focus. */
+function clickOn(page: ConnectedPage, pointer: PagePointer | undefined): void {
+  if (pointer === undefined) {
+    page.send({ type: "click", target: undefined });
+    return;
+  }
+
+  const kind = typedKindAt(page.schema, pointer.path);
+  if (kind !== undefined) page.typing.prepare(pointer.element, kind);
+  page.send({
+    type: "click",
+    target: { path: pointer.path, point: pointer.point },
   });
-  layout.reportNow();
+}
 
-  const receive = (message: EditorMessage) => {
-    switch (message.type) {
-      case "connect":
-        break;
-      case "render":
-        renderer.render(message.content);
-        break;
-      case "start-typing":
-        typing.start(message);
-        break;
-      case "start-rich-typing":
-        typing.startRich(message);
-        break;
-      case "format-typed":
-        typing.format(message.format);
-        break;
-      case "link-typed":
-        typing.setLink(message.href);
-        break;
-      case "stop-typing":
-        typing.stop();
-        break;
-      case "scroll-to":
-        scrollToField(document, message.path);
-        break;
-    }
-  };
+function pressKey(page: ConnectedPage, event: KeyboardEvent): void {
+  const key = editorKeyOf(event);
+  // While a text is typed, Escape belongs to the typing: it brings the text back.
+  const isTypingEscape = key === "escape" && page.typing.isTyping();
+  if (key === undefined || isTypingEscape) return;
 
-  return {
-    receive,
-    stop: () => {
+  event.preventDefault();
+  page.typing.stop();
+  page.send({ type: "key", key });
+}
+
+function receiveEditorMessage(
+  page: ConnectedPage,
+  message: EditorMessage,
+): void {
+  const { typing } = page;
+  switch (message.type) {
+    case "connect":
+      break;
+    case "render":
+      page.renderer.render(message.content);
+      break;
+    case "start-typing":
+      typing.start(message);
+      break;
+    case "start-rich-typing":
+      typing.startRich(message);
+      break;
+    case "format-typed":
+      typing.format(message.format);
+      break;
+    case "link-typed":
+      typing.setLink(message.href);
+      break;
+    case "stop-typing":
       typing.stop();
-      renderer.stop();
-      presses.stop();
-      layout.stop();
-      stopListening();
-    },
-  };
+      break;
+    case "scroll-to":
+      scrollToField(page.document, message.path);
+      break;
+  }
 }
 
 /** Shows the field the editor chose: opens what hides it, then scrolls to it. */

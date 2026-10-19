@@ -3,14 +3,14 @@ import { boxOf, type Box } from "./boxes";
 import type { TypedSelection } from "./messages";
 import { rangeOf, readSelectionFrom, selectIn } from "./rich-text-dom";
 import { formatsAt, isCollapsed, type TextSelection } from "./rich-text-edits";
-import type { TypingListener } from "./typing-sessions";
+import { onDocument, onWindow, type EventListening } from "./event-listening";
 
 // Where the selection in a formatted text typed on the page is, reported to the editor once a
 // frame at most, for its toolbar. The selection outlives the focus: the editor's toolbar takes the
 // focus to set a link's address, and the link goes on the words selected before.
 
 export interface SelectionReports {
-  readonly listeners: readonly TypingListener[];
+  readonly listeners: readonly EventListening[];
   /** The selection in the text now, or the last one a person made there. */
   readonly current: () => TextSelection | undefined;
   /** The last selection a person made in the text. */
@@ -57,15 +57,12 @@ export function createSelectionReports(
     schedule();
   };
 
-  const viewListeners: readonly TypingListener[] =
-    view === null ? [] : [{ target: view, type: "resize", listener: schedule }];
-  const listeners: readonly TypingListener[] = [
-    { target: document, type: "selectionchange", listener: follow },
-    { target: document, type: "scroll", listener: schedule, isCapturing: true },
-    ...viewListeners,
-  ];
   return {
-    listeners,
+    listeners: [
+      onDocument(document, "selectionchange", follow),
+      onDocument(document, "scroll", schedule),
+      ...onWindow(view, "resize", schedule),
+    ],
     current: () => liveSelection() ?? lastSelection,
     last: () => lastSelection,
     follow,

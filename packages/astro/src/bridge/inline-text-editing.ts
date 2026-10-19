@@ -1,7 +1,8 @@
 import { EDITABLE_AS_PLAIN_TEXT } from "./editable-elements";
 import { readElementText } from "./element-text";
 import type { InlineEditingOutcome } from "./messages";
-import { elementListener, startTypingSession } from "./typing-sessions";
+import { onElement } from "./event-listening";
+import { startTypingSession } from "./typing-sessions";
 
 // Editing a text right in the element of the site's page that shows it. The element becomes
 // editable as plain text, so the site's markup inside it is never changed by formatting.
@@ -29,8 +30,8 @@ export function startInlineTextEditing(
     editableAs: EDITABLE_AS_PLAIN_TEXT,
     isEndingKey: (event) => event.key === "Enter" && options.isSingleLine,
     listeners: [
-      elementListener(element, "input", reportInput),
-      elementListener(element, "blur", endOnBlur),
+      onElement(element, "input", reportInput),
+      onElement(element, "blur", endOnBlur),
     ],
     onStop: () => undefined,
     onEnd: options.onEnd,

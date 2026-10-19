@@ -17,7 +17,8 @@ import {
 } from "./rich-text-edits";
 import type { RichTextLayout } from "./rich-text-layouts";
 import { createSelectionReports } from "./typed-selections";
-import { elementListener, startTypingSession } from "./typing-sessions";
+import { onElement } from "./event-listening";
+import { startTypingSession } from "./typing-sessions";
 
 // Typing formatted text right in the element of the site's page that shows it. The browser types
 // the words; bold, italic, lists and links are applied to the data and the element is rendered
@@ -112,16 +113,16 @@ export function startRichTextEditing(
     editableAs: EDITABLE_AS_RICH_TEXT,
     isEndingKey: layout.isEndingKey,
     listeners: [
-      elementListener(element, "input", reportInput),
-      elementListener(element, "keydown", (event) => {
+      onElement(element, "input", reportInput),
+      onElement(element, "keydown", (event) => {
         formatOnShortcut(event, format);
       }),
-      elementListener(element, "paste", (event) => {
+      onElement(element, "paste", (event) => {
         pastePlainText(event, element, layout);
         reportInput();
       }),
-      elementListener(element, "drop", refuseDrop),
-      elementListener(element, "blur", blurs.listener),
+      onElement(element, "drop", refuseDrop),
+      onElement(element, "blur", blurs.listener),
       ...selections.listeners,
     ],
     onStop: () => {
