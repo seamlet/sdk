@@ -10,7 +10,19 @@ Connects an [Astro](https://astro.build) site to the Seamlet CMS ([source](https
    npm install @seamlet/astro
    ```
 
-2. Describe the content with a schema, and mark the elements that show it:
+2. Name the site in `seamlet.json` at its root: its id in the CMS (lower-case letters, digits and single hyphens; its address there, `/sites/<id>`, the name of its content and the host of its preview), how the CMS names it, and the CMS it belongs to. The CMS reads the same file from the site's repository, so the id is written once.
+
+   ```json
+   {
+     "id": "zerno",
+     "title": "Кофейня «Зерно»",
+     "cms": "https://cms.seamlet.ru"
+   }
+   ```
+
+   The environment variable `CMS_ORIGIN` takes the place of `cms` when it is set: a build for a CMS in development, or the CMS's own builder. A build without the file, or with a field it cannot read, stops and says which field to fix.
+
+3. Describe the content with a schema, and mark the elements that show it:
 
    ```ts
    // src/schema.ts
@@ -46,7 +58,7 @@ Connects an [Astro](https://astro.build) site to the Seamlet CMS ([source](https
    <h1 {...edit("title")}>{content.title}</h1>
    ```
 
-3. Describe the site for the CMS: its address and name there, its schema, the content it starts with, and its pages, each with the name the editor gives it and the component that renders it (it takes the content as its `content` prop). The home page `/` comes first; `searchTexts` names where the content holds a page's title and description for search engines, a group of a `title` and a `description` text (`seoFields`).
+4. Describe the site for the CMS in `src/seamlet.ts`: its schema, the content it starts with, and its pages, each with the name the editor gives it and the component that renders it (it takes the content as its `content` prop). The home page `/` comes first; `searchTexts` names where the content holds a page's title and description for search engines, a group of a `title` and a `description` text (`seoFields`).
 
    ```ts
    // src/seamlet.ts
@@ -56,8 +68,6 @@ Connects an [Astro](https://astro.build) site to the Seamlet CMS ([source](https
    import { schema } from "./schema";
 
    export default defineSeamletSite({
-     id: "zerno",
-     title: "Кофейня «Зерно»",
      schema,
      initialContent,
      pages: {
@@ -68,20 +78,18 @@ Connects an [Astro](https://astro.build) site to the Seamlet CMS ([source](https
 
    The CMS takes all of it from the site itself, so connecting a site, or changing its schema, needs no change of the CMS.
 
-4. Add the integration:
+5. Add the integration; it reads `seamlet.json` and `src/seamlet.ts` itself:
 
    ```js
    // astro.config.mjs
    import seamlet from "@seamlet/astro";
 
    export default defineConfig({
-     integrations: [
-       seamlet({ cms: "https://cms.example.com", site: "./src/seamlet.ts" }),
-     ],
+     integrations: [seamlet()],
    });
    ```
 
-The site's pages take their published content with `site.loadPublishedContent()`: at build time for a static site, on request otherwise. A module that needs the content without importing every page takes it with `loadPublishedContent(id, schema)` of `@seamlet/astro/site`.
+The site's pages take their published content with `site.loadPublishedContent()`: at build time for a static site, on request otherwise. A module that needs the content without importing every page takes it with `loadPublishedContent(schema)` of `@seamlet/astro/site`.
 
 ## Fields
 
@@ -142,8 +150,6 @@ const MENU_FILES = import.meta.glob<{ default: ImageMetadata }>(
 );
 
 export default defineSeamletSite({
-  id: "zerno",
-  title: "Кофейня «Зерно»",
   schema,
   initialContent,
   pages: { "/": { title: "Главная", component: HomePage } },
@@ -228,7 +234,7 @@ What was opened stays open while the page is rendered anew after every edit.
 
 - `/preview` and `/preview/<page>`: the preview the CMS's editor frames. `GET` shows the published content; `POST` with the content as JSON shows that content without saving it, which is how the editor shows every edit at once. Only the CMS may frame it (`Content-Security-Policy: frame-ancestors`), and it is never indexed or cached.
 - The bridge on the preview: it tells the editor where the marked elements are and what a person does on the page, and types texts in place, formatted ones too.
-- `/seamlet/site.json`: what the site tells the CMS about itself (`SITE_DESCRIPTION_PATH`): its name, its schema, the content it starts with and its pages. The CMS reads it with `readSiteDescription` whenever the site is opened in its editor.
+- `/seamlet/site.json`: what the site tells the CMS about itself (`SITE_DESCRIPTION_PATH`): its id and name from `seamlet.json`, its schema, the content it starts with and its pages. The CMS reads it with `readSiteDescription` whenever the site is opened in its editor.
 - `/seamlet-photos/<address>`: the site's own photo at an address its content gives it, found by `photos` of `defineSeamletSite`, for the CMS's editor.
 - `/media/<site>/<file>`: the photos uploaded in the CMS, taken from it on request; a static build copies every uploaded photo its built pages refer to next to them, so a static host serves them too.
 

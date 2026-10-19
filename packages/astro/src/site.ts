@@ -1,6 +1,6 @@
 import type { ImageMetadata } from "astro";
 import type { AstroComponentFactory } from "astro/runtime/server/index.js";
-import { cmsOrigin } from "virtual:seamlet/config";
+import { cmsOrigin, siteId, siteTitle } from "virtual:seamlet/config";
 import {
   parseContent,
   type ContentOf,
@@ -21,11 +21,8 @@ export interface SeamletPage {
   readonly searchTexts?: string;
 }
 
+/** The site's content and pages; its id and title come from `seamlet.json`. */
 export interface SeamletSiteDefinition<F extends Fields> {
-  /** The site's address in the CMS: `/sites/<id>`. */
-  readonly id: string;
-  /** How the CMS names the site: «Кофейня «Зерно»». */
-  readonly title: string;
   readonly schema: F;
   /** The content the site shows, and the CMS edits, until the first publication. */
   readonly initialContent: ContentOf<F>;
@@ -60,31 +57,29 @@ export function defineSeamletSite<F extends Fields>(
   const pages = new Map(Object.entries(definition.pages));
 
   return {
-    id: definition.id,
+    id: siteId,
     schema: definition.schema,
     pageAt: (rest) =>
       pages.get(rest === undefined ? HOME_PAGE_PATH : `/${rest}`)?.component,
-    loadPublishedContent: () =>
-      loadPublishedContent(definition.id, definition.schema),
+    loadPublishedContent: () => loadPublishedContent(definition.schema),
     ownPhotoAt: (src) => definition.photos?.(src),
-    description: describeSite(definition),
+    description: describeSite({ id: siteId, title: siteTitle }, definition),
   };
 }
 
 /**
- * What the CMS published for the site with this id, in the shape of its schema: the site's initial
- * content until the first publication. For a module that needs the content without the pages.
+ * What the CMS published for the site, in the shape of its schema: the site's initial content until
+ * the first publication. For a module that needs the content without the pages.
  */
 export async function loadPublishedContent<F extends Fields>(
-  siteId: string,
   schema: F,
 ): Promise<ContentOf<F>> {
   const published = await fetchPublished(siteId);
   return parseContent(schema, published).content;
 }
 
-async function fetchPublished(siteId: string): Promise<unknown> {
-  const url = new URL(`/api/sites/${siteId}/published`, cmsOrigin);
+async function fetchPublished(id: string): Promise<unknown> {
+  const url = new URL(`/api/sites/${id}/published`, cmsOrigin);
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(

@@ -107,6 +107,14 @@ export {
 } from "./rich-text";
 export { readFields } from "./read-fields";
 export {
+  isSiteId,
+  readSiteConfig,
+  SITE_CONFIG_FILE,
+  type SiteConfig,
+  type SiteConfigField,
+  type SiteConfigReading,
+} from "./site-config";
+export {
   isSearchTextsGroup,
   readSiteDescription,
   SITE_DESCRIPTION_PATH,
