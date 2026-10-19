@@ -5,14 +5,13 @@ import {
   placeCaretAt,
   startInlineTextEditing,
 } from "./inline-text-editing";
-import type { EditorMessage, PageMessage } from "./messages";
+import type { EditorMessage, PageMessage, TextFormat } from "./messages";
 import { findMarkedElement } from "./page-markers";
 import {
   canEditRichTextInPlace,
   EDITABLE_AS_RICH_TEXT,
   startRichTextEditing,
   type RichTextEditing,
-  type TextFormat,
 } from "./rich-text-editing";
 import type { TypedKind } from "./typed-fields";
 

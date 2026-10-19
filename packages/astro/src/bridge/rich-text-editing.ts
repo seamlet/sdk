@@ -6,7 +6,11 @@ import {
 } from "../schema";
 import { boxOf, type Box } from "./boxes";
 import { makeEditable, makeUneditable } from "./editable-elements";
-import type { InlineEditingOutcome } from "./inline-text-editing";
+import type {
+  InlineEditingOutcome,
+  TextFormat,
+  TypedSelection,
+} from "./messages";
 import { hasMarkedDescendants } from "./page-markers";
 import {
   insertPlainText,
@@ -24,23 +28,12 @@ import {
   setLink,
   toggleList,
   toggleMark,
-  type TextFormats,
   type TextSelection,
 } from "./rich-text-edits";
 
 // Typing formatted text right in the element of the site's page that shows it. The browser types
 // the words; bold, italic, lists and links are applied to the data and the element is rendered
 // anew, so what the element holds is always what the site would render.
-
-/** A change of formatting the editor's toolbar asks for. */
-export type TextFormat = "bold" | "italic" | "list";
-
-/** The selection in the typed text: where it is on the page and what its words have. */
-export interface TypedSelection {
-  readonly box: Box;
-  readonly isCollapsed: boolean;
-  readonly formats: TextFormats;
-}
 
 export interface RichTextEditingOptions {
   /** The words alone, in an element of one line: Enter ends the typing, lists are not made. */

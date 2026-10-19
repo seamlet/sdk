@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { RichText } from "../schema";
+import type { TypedSelection } from "./messages";
 import {
   canEditRichTextInPlace,
   startRichTextEditing,
-  type TypedSelection,
 } from "./rich-text-editing";
 
 const about: RichText = [

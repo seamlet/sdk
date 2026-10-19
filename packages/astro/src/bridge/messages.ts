@@ -6,10 +6,6 @@ import {
   type RichText,
 } from "../schema";
 import type { Box, Viewport } from "./boxes";
-import type { Shortcut } from "./editor-shortcuts";
-import type { InlineEditingOutcome } from "./inline-text-editing";
-import type { TextFormat, TypedSelection } from "./rich-text-editing";
-import type { TextFormats } from "./rich-text-edits";
 
 // What the editor and the site's page say to each other. The page lives on the site's own origin,
 // in a frame of the editor, so the two talk only with postMessage. Each side reads what it gets
@@ -49,8 +45,38 @@ export interface PageLayout {
   readonly link: LinkBox | undefined;
 }
 
+const SHORTCUTS = ["save", "undo", "redo"] as const;
+const EDITOR_KEY_NAMES = [...SHORTCUTS, "escape"] as const;
+const TEXT_FORMAT_NAMES = ["bold", "italic", "list"] as const;
+const TYPING_OUTCOME_NAMES = ["kept", "reverted"] as const;
+
+/** A keyboard shortcut of the editor, pressed on the page. */
+export type Shortcut = (typeof SHORTCUTS)[number];
+
 /** A key the editor acts on: its shortcuts, and Escape that closes what is open. */
-export type EditorKey = Shortcut | "escape";
+export type EditorKey = (typeof EDITOR_KEY_NAMES)[number];
+
+/** A change of formatting the editor's toolbar asks for. */
+export type TextFormat = (typeof TEXT_FORMAT_NAMES)[number];
+
+/** How a typing in place ended: the typed text kept, or brought back as it was. */
+export type InlineEditingOutcome = (typeof TYPING_OUTCOME_NAMES)[number];
+
+/** The marks of the selected words of a formatted text. */
+export interface TextFormats {
+  readonly isBold: boolean;
+  readonly isItalic: boolean;
+  readonly isList: boolean;
+  /** The address of the link the selection is in, when all of it is in one link. */
+  readonly href: string | undefined;
+}
+
+/** The selection in the typed text: where it is on the page and what its words have. */
+export interface TypedSelection {
+  readonly box: Box;
+  readonly isCollapsed: boolean;
+  readonly formats: TextFormats;
+}
 
 /** What the page tells the editor. */
 export type PageMessage =
@@ -126,32 +152,20 @@ export type EditorMessage =
   /** Bring the field, or the closest marked element around it, into view. */
   | { readonly type: "scroll-to"; readonly path: FieldPath };
 
-const EDITOR_KEYS: ReadonlySet<string> = new Set<EditorKey>([
-  "save",
-  "undo",
-  "redo",
-  "escape",
-]);
-const TEXT_FORMATS: ReadonlySet<string> = new Set<TextFormat>([
-  "bold",
-  "italic",
-  "list",
-]);
-const TYPING_OUTCOMES: ReadonlySet<string> = new Set<InlineEditingOutcome>([
-  "kept",
-  "reverted",
-]);
+const EDITOR_KEYS: ReadonlySet<string> = new Set(EDITOR_KEY_NAMES);
+const TEXT_FORMATS: ReadonlySet<string> = new Set(TEXT_FORMAT_NAMES);
+const TYPING_OUTCOMES: ReadonlySet<string> = new Set(TYPING_OUTCOME_NAMES);
 
 /** The message the page sent, or undefined for anything that is not one. */
-export function readPageMessage(data: unknown): PageMessage | undefined {
-  if (!isRecord(data)) return undefined;
-  return isPageMessage(data) ? data : undefined;
+export function readPageMessage(posted: unknown): PageMessage | undefined {
+  if (!isRecord(posted)) return undefined;
+  return isPageMessage(posted) ? posted : undefined;
 }
 
 /** The message the editor sent, or undefined for anything that is not one. */
-export function readEditorMessage(data: unknown): EditorMessage | undefined {
-  if (!isRecord(data)) return undefined;
-  return isEditorMessage(data) ? data : undefined;
+export function readEditorMessage(posted: unknown): EditorMessage | undefined {
+  if (!isRecord(posted)) return undefined;
+  return isEditorMessage(posted) ? posted : undefined;
 }
 
 type MessageRecord = Readonly<Record<string, unknown>>;

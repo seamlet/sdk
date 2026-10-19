@@ -1,10 +1,9 @@
 import { makeEditable, makeUneditable } from "./editable-elements";
 import { readElementText } from "./element-text";
+import type { InlineEditingOutcome } from "./messages";
 
 // Editing a text right in the element of the site's page that shows it. The element becomes
 // editable as plain text, so the site's markup inside it is never changed by formatting.
-
-export type InlineEditingOutcome = "kept" | "reverted";
 
 export interface InlineTextEditingOptions {
   /** A single-line field ends its editing on Enter instead of taking a line break. */
