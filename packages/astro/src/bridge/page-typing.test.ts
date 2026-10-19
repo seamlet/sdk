@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PageMessage } from "./messages";
-import { createPageTyping, type PageTyping } from "./page-typing";
+import {
+  createPageTyping,
+  PREPARED_TYPING_TIMEOUT_MS,
+  type PageTyping,
+} from "./page-typing";
 
 const send = vi.fn<(message: PageMessage) => void>();
 let typing: PageTyping;
@@ -152,5 +156,34 @@ describe("createPageTyping", () => {
       path: "title",
     });
     expect(typing.isTyping()).toBe(false);
+  });
+
+  it("makes a tapped text editable and focused at once, so a phone shows its keyboard", () => {
+    const title = marked("title");
+    typing.prepare(title, "plain");
+
+    expect(title.getAttribute("contenteditable")).toBe("plaintext-only");
+    expect(document.activeElement).toBe(title);
+
+    startAt("title", "Зерно");
+    expect(typing.isTyping()).toBe(true);
+    expect(document.activeElement).toBe(title);
+  });
+
+  it("leaves a tapped text as it was when the page cannot type it or the editor never asks", () => {
+    vi.useFakeTimers();
+    const price = marked("menu.0.price");
+    typing.prepare(price, "plain");
+    startAt("menu.0.price", "Другая цена");
+
+    expect(price.hasAttribute("contenteditable")).toBe(false);
+
+    const title = marked("title");
+    typing.prepare(title, "plain");
+    vi.advanceTimersByTime(PREPARED_TYPING_TIMEOUT_MS);
+
+    expect(title.hasAttribute("contenteditable")).toBe(false);
+    expect(document.activeElement).not.toBe(title);
+    vi.useRealTimers();
   });
 });

@@ -1,18 +1,38 @@
 import { canEditTextInPlace } from "./element-text";
-import { placeCaretAt, startInlineTextEditing } from "./inline-text-editing";
+import {
+  EDITABLE_AS_PLAIN_TEXT,
+  placeCaretAt,
+  startInlineTextEditing,
+} from "./inline-text-editing";
 import type { EditorMessage, PageMessage } from "./messages";
 import { findMarkedElement } from "./page-markers";
 import {
   canEditRichTextInPlace,
+  EDITABLE_AS_RICH_TEXT,
   startRichTextEditing,
   type RichTextEditing,
   type TextFormat,
 } from "./rich-text-editing";
+import type { TypedKind } from "./typed-fields";
 
 type StartTyping = Extract<EditorMessage, { type: "start-typing" }>;
 type StartRichTyping = Extract<EditorMessage, { type: "start-rich-typing" }>;
 
+/** How long a text made ready by a tap waits for the editor to start typing it. */
+export const PREPARED_TYPING_TIMEOUT_MS = 3000;
+
+const EDITABLE_VALUES: Readonly<Record<TypedKind, string>> = {
+  plain: EDITABLE_AS_PLAIN_TEXT,
+  rich: EDITABLE_AS_RICH_TEXT,
+};
+
 export interface PageTyping {
+  /**
+   * Makes the text a person tapped editable and focused at once, while the tap still lets the
+   * page take the focus: a phone shows its keyboard only for a focus a tap gives. The editor
+   * then starts the typing, or the text is left as it was.
+   */
+  readonly prepare: (element: HTMLElement, kind: TypedKind) => void;
   /** Whether a text is being typed on the page now. */
   readonly isTyping: () => boolean;
   /** Starts typing into the field's element if it shows the text as it is; tells the editor either way. */
@@ -39,6 +59,34 @@ export function createPageTyping(options: {
 }): PageTyping {
   let stopEditing: (() => void) | undefined;
   let richEditing: RichTextEditing | undefined;
+  let prepared:
+    | {
+        readonly element: HTMLElement;
+        readonly timer: ReturnType<typeof setTimeout>;
+      }
+    | undefined;
+
+  /** The prepared text, now typed or refused: the typing takes it over, or it is left. */
+  const takePrepared = (isTyped: boolean) => {
+    if (prepared === undefined) return;
+    clearTimeout(prepared.timer);
+    if (!isTyped && stopEditing === undefined) {
+      prepared.element.blur();
+      prepared.element.removeAttribute("contenteditable");
+    }
+    prepared = undefined;
+  };
+  const prepare = (element: HTMLElement, kind: TypedKind) => {
+    const isTypedAlready = element.hasAttribute("contenteditable");
+    if (isTypedAlready) return;
+    takePrepared(false);
+    element.setAttribute("contenteditable", EDITABLE_VALUES[kind]);
+    element.focus({ preventScroll: true });
+    const timer = setTimeout(() => {
+      takePrepared(false);
+    }, PREPARED_TYPING_TIMEOUT_MS);
+    prepared = { element, timer };
+  };
 
   const stop = () => {
     stopEditing?.();
@@ -56,10 +104,12 @@ export function createPageTyping(options: {
     const canType =
       element !== undefined && canEditTextInPlace(element, request.text);
     if (!canType) {
+      takePrepared(false);
       options.send({ type: "typing-refused", path });
       return;
     }
 
+    takePrepared(true);
     options.send({ type: "typing-started", path });
     stopEditing = startInlineTextEditing(element, {
       isSingleLine: request.isSingleLine,
@@ -80,10 +130,12 @@ export function createPageTyping(options: {
       element !== undefined &&
       canEditRichTextInPlace(element, request.text, isInline);
     if (!canType) {
+      takePrepared(false);
       options.send({ type: "typing-refused", path });
       return;
     }
 
+    takePrepared(true);
     options.send({ type: "typing-started", path });
     const editing = startRichTextEditing(element, {
       isInline,
@@ -102,6 +154,7 @@ export function createPageTyping(options: {
   };
 
   return {
+    prepare,
     isTyping: () => stopEditing !== undefined,
     start,
     startRich,

@@ -1,6 +1,7 @@
 import type { FieldPath, Fields } from "../schema";
 import { shortcutOf } from "./editor-shortcuts";
 import { imageFieldAt } from "./image-fields";
+import { typedKindAt } from "./typed-fields";
 import {
   PROTOCOL_VERSION,
   readEditorMessage,
@@ -102,6 +103,11 @@ export function connectPage(
       send({ type: "hover", path });
     },
     onClick: (pointer) => {
+      const kind =
+        pointer === undefined ? undefined : typedKindAt(schema, pointer.path);
+      if (pointer !== undefined && kind !== undefined) {
+        typing.prepare(pointer.element, kind);
+      }
       const target =
         pointer === undefined
           ? undefined

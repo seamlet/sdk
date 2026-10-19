@@ -12,7 +12,7 @@ export interface InlineTextEditingOptions {
   readonly onEnd: (outcome: InlineEditingOutcome) => void;
 }
 
-const EDITABLE_AS_PLAIN_TEXT = "plaintext-only";
+export const EDITABLE_AS_PLAIN_TEXT = "plaintext-only";
 
 /** Makes the element editable until Enter (single line), Escape or a click elsewhere; returns a stop. */
 export function startInlineTextEditing(
