@@ -10,6 +10,7 @@ export default defineConfig({
     protocol: "src/protocol.ts",
     site: "src/site.ts",
     client: "src/client.ts",
+    cli: "src/cli.ts",
     "preview-requests": "src/preview-requests.ts",
     "routes/media": "src/routes/media.ts",
     "routes/own-photos": "src/routes/own-photos.ts",

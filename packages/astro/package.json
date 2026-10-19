@@ -1,9 +1,12 @@
 {
   "name": "@seamlet/astro",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Connects an Astro site to the Seamlet CMS: the schema of its content, the preview the editor frames, and its published content.",
   "license": "MIT",
   "type": "module",
+  "bin": {
+    "seamlet-astro": "./dist/cli.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/seamlet/sdk.git",

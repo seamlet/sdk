@@ -4,6 +4,15 @@ Connects an [Astro](https://astro.build) site to the Seamlet CMS ([source](https
 
 ## How a site connects
 
+The quick way, in an Astro project:
+
+```bash
+npx @seamlet/astro init --title "Кофейня «Зерно»"   # seamlet.json, src/schema.ts, src/seamlet.ts, a first page component
+npx astro add @seamlet/astro node                   # the integration, and an adapter for the preview
+```
+
+`init` takes the id from the name in `package.json` unless `--id` gives it, and the CMS `https://cms.seamlet.ru` unless `--cms` names another; it never overwrites a file the site has, and says what to render in a page. The steps below are what it starts, one by one.
+
 1. Install the package. The site needs an adapter, because the preview is rendered on request; its own pages may stay static.
 
    ```bash
