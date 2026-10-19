@@ -13,6 +13,7 @@ export {
   number,
   reference,
   references,
+  richText,
   text,
   time,
   toggle,
@@ -32,6 +33,7 @@ export {
   type RecordFields,
   type ReferenceField,
   type ReferencesField,
+  type RichTextField,
   type TextField,
   type TimeField,
   type ToggleField,
@@ -92,3 +94,14 @@ export {
   seoFields,
   WEEKDAYS,
 } from "./presets";
+export {
+  asOneParagraph,
+  normalizedLine,
+  plainTextOf,
+  readRichText,
+  richTextOf,
+  type RichBlock,
+  type RichLine,
+  type RichSpan,
+  type RichText,
+} from "./rich-text";

@@ -6,6 +6,7 @@ import {
   image,
   link,
   number,
+  richText,
   text,
   type ContentOf,
 } from "@seamlet/astro/schema";
@@ -38,7 +39,7 @@ export const coffeeShopSchema = defineSchema({
     label: "Страница «Меню»",
     fields: {
       title: text({ label: "Заголовок", maxLength: 60 }),
-      intro: text({ label: "Вступление", multiline: true, maxLength: 300 }),
+      intro: richText({ label: "Вступление", maxLength: 300 }),
     },
   }),
   event: group({

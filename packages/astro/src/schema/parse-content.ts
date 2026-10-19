@@ -7,6 +7,13 @@ import {
   type ImageFocus,
 } from "./content";
 import { linkTargetOf } from "./link-addresses";
+import {
+  asOneParagraph,
+  linkAddressesOf,
+  plainTextOf,
+  readRichText,
+  richTextOf,
+} from "./rich-text";
 import { isRecordId, RECORD_ID_KEY } from "./record-ids";
 import { missingRecordIssues } from "./reference-checks";
 import type {
@@ -21,6 +28,7 @@ import type {
   NumberField,
   ReferenceField,
   ReferencesField,
+  RichTextField,
   TextField,
   TimeField,
   ToggleField,
@@ -146,6 +154,8 @@ function parseField(
   switch (field.kind) {
     case "text":
       return parseText(field, input, path);
+    case "richText":
+      return parseRichText(field, input, path);
     case "number":
       return parseNumber(field, input, path);
     case "date":
@@ -193,6 +203,40 @@ function parseText(
     };
   }
   return valid(input);
+}
+
+function parseRichText(
+  field: RichTextField,
+  input: unknown,
+  path: FieldPath,
+): ParsedValue {
+  // A text field turned into formatted text keeps its words.
+  const read =
+    typeof input === "string" ? richTextOf(input) : readRichText(input);
+  if (read === undefined) {
+    return invalidType(defaultValue(field), path);
+  }
+
+  const text = field.inline === true ? asOneParagraph(read) : read;
+  const hasUnsupportedLink = linkAddressesOf(text).some(
+    (href) => linkTargetOf(href) === undefined,
+  );
+  const linkIssues: readonly ContentIssue[] = hasUnsupportedLink
+    ? [{ path, code: "unsupported-link-href" }]
+    : [];
+  const lengthIssues = tooLongIssues(field.maxLength, plainTextOf(text), path);
+  return { value: text, issues: [...linkIssues, ...lengthIssues] };
+}
+
+function tooLongIssues(
+  maxLength: number | undefined,
+  text: string,
+  path: FieldPath,
+): readonly ContentIssue[] {
+  if (maxLength === undefined) return [];
+
+  const isTooLong = countCharacters(text) > maxLength;
+  return isTooLong ? [{ path, code: "too-long", maxLength }] : [];
 }
 
 function parseNumber(

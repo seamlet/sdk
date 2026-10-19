@@ -1,3 +1,4 @@
+import type { RichText } from "./rich-text";
 import type {
   ChoiceField,
   ChoiceOption,
@@ -13,6 +14,7 @@ import type {
   RecordFields,
   ReferenceField,
   ReferencesField,
+  RichTextField,
   TextField,
   TimeField,
   ToggleField,
@@ -44,33 +46,35 @@ export interface LinkValue {
  */
 export type ValueOf<F extends Field> = F extends TextField
   ? string
-  : F extends NumberField
-    ? number | null
-    : F extends DateField
-      ? string | null
-      : F extends ImageField
-        ? ImageValue | null
-        : F extends LinkField
-          ? LinkValue | null
-          : F extends ToggleField
-            ? boolean
-            : F extends ChoiceField<infer Options>
-              ? OptionValue<Options> | null
-              : F extends ChoicesField<infer Options>
-                ? readonly OptionValue<Options>[]
-                : F extends UrlField
-                  ? string | null
-                  : F extends TimeField
+  : F extends RichTextField
+    ? RichText
+    : F extends NumberField
+      ? number | null
+      : F extends DateField
+        ? string | null
+        : F extends ImageField
+          ? ImageValue | null
+          : F extends LinkField
+            ? LinkValue | null
+            : F extends ToggleField
+              ? boolean
+              : F extends ChoiceField<infer Options>
+                ? OptionValue<Options> | null
+                : F extends ChoicesField<infer Options>
+                  ? readonly OptionValue<Options>[]
+                  : F extends UrlField
                     ? string | null
-                    : F extends ReferenceField
+                    : F extends TimeField
                       ? string | null
-                      : F extends ReferencesField
-                        ? readonly string[]
-                        : F extends GroupField<infer Group>
-                          ? ContentOf<Group>
-                          : F extends CollectionField<infer Item>
-                            ? readonly RecordOf<Item>[]
-                            : never;
+                      : F extends ReferenceField
+                        ? string | null
+                        : F extends ReferencesField
+                          ? readonly string[]
+                          : F extends GroupField<infer Group>
+                            ? ContentOf<Group>
+                            : F extends CollectionField<infer Item>
+                              ? readonly RecordOf<Item>[]
+                              : never;
 
 /**
  * A record of a collection: its fields and its id. The id is missing only in content no editor has
@@ -101,6 +105,7 @@ export type FieldValue =
   | readonly string[]
   | ImageValue
   | LinkValue
+  | RichText
   | Content
   | readonly Content[];
 
@@ -112,6 +117,7 @@ export function defaultValue(field: Field): FieldValue {
       return false;
     case "choices":
     case "references":
+    case "richText":
       return [];
     case "number":
     case "date":
