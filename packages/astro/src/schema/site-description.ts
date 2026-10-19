@@ -1,8 +1,9 @@
 import type { Content } from "./content";
 import { resolveFieldPath } from "./field-paths";
 import type { Fields } from "./fields";
-import { parseContent } from "./parse-content";
-import { readFields } from "./read-fields";
+import { isJsonObject, isText } from "./json-values";
+import { parseContent, type ContentIssue } from "./parse-content";
+import { checkFields, type SchemaProblem } from "./read-fields";
 import { isSiteId } from "./site-config";
 
 // What a site tells the CMS about itself: its id, its name, the schema of its content, the content
@@ -37,9 +38,46 @@ export interface SiteDescription {
   readonly pages: readonly [SitePageDescription, ...SitePageDescription[]];
 }
 
+/** Why a site's description cannot be read: what to fix in the site. */
+export type SiteDescriptionProblem =
+  | { readonly code: "not-a-description" }
+  | { readonly code: "invalid-id" }
+  | { readonly code: "invalid-title" }
+  | { readonly code: "invalid-schema"; readonly problem: SchemaProblem }
+  /** The initial content is not content the CMS could save. */
+  | {
+      readonly code: "invalid-initial-content";
+      readonly issues: readonly ContentIssue[];
+    }
+  | { readonly code: "no-pages" }
+  /** The page at this place of the list is not a page, or its path or title is not one. */
+  | {
+      readonly code: "invalid-page";
+      readonly index: number;
+      readonly reason: PageProblemReason;
+    }
+  | { readonly code: "home-page-not-first" }
+  | { readonly code: "repeated-page-path"; readonly path: string };
+
+export type PageProblemReason =
+  | "not-a-page"
+  /** Not `/`, or not lower-case segments without a trailing slash, such as `/menu`. */
+  | "invalid-path"
+  | "invalid-title"
+  /** Not where the content holds a group of a `title` and a `description` text. */
+  | "invalid-search-texts";
+
+export type SiteDescriptionReading =
+  | { readonly status: "read"; readonly description: SiteDescription }
+  | {
+      readonly status: "invalid";
+      readonly problems: readonly SiteDescriptionProblem[];
+    };
+
 /** `/menu`, `/about/team`: lower-case segments, no trailing slash. */
 const PAGE_PATH = /^(\/[a-z0-9][a-z0-9-]*)+$/u;
-const HOME_PAGE_PATH = "/";
+/** The first page of every site. */
+export const HOME_PAGE_PATH = "/";
 
 /**
  * The description the input gives, or undefined when it is not a whole and sound one: a known
@@ -48,16 +86,42 @@ const HOME_PAGE_PATH = "/";
 export function readSiteDescription(
   input: unknown,
 ): SiteDescription | undefined {
-  if (!isRecord(input)) return undefined;
-  const { id, title } = input;
-  const schema = readFields(input["schema"]);
-  const isNamed = isSiteId(id) && isText(title);
-  if (!isNamed || schema === undefined) return undefined;
+  const reading = checkSiteDescription(input);
+  return reading.status === "read" ? reading.description : undefined;
+}
 
-  const initial = parseContent(schema, input["initialContent"]);
-  const pages = readPages(schema, input["pages"]);
-  if (initial.issues.length > 0 || pages === undefined) return undefined;
-  return { id, title, schema, initialContent: initial.content, pages };
+/** The description the input gives, or every problem that keeps it from being whole and sound. */
+export function checkSiteDescription(input: unknown): SiteDescriptionReading {
+  if (!isJsonObject(input)) return invalid([{ code: "not-a-description" }]);
+
+  const { id, title } = input;
+  const nameProblems = namingProblems(id, title);
+  const schema = checkFields(input["schema"]);
+  if (schema.status === "invalid") {
+    const { problem } = schema;
+    return invalid([...nameProblems, { code: "invalid-schema", problem }]);
+  }
+
+  const initial = parseContent(schema.fields, input["initialContent"]);
+  const pages = checkPages(schema.fields, input["pages"]);
+  const problems = [
+    ...nameProblems,
+    ...initialContentProblems(initial.issues),
+    ...pages.problems,
+  ];
+  const isNamed = isSiteId(id) && isText(title);
+  if (!isNamed || pages.pages === undefined || problems.length > 0) {
+    return invalid(problems);
+  }
+
+  const description = {
+    id,
+    title,
+    schema: schema.fields,
+    initialContent: initial.content,
+    pages: pages.pages,
+  };
+  return { status: "read", description };
 }
 
 /** Whether the path names a group of a `title` and a `description` text. */
@@ -69,44 +133,88 @@ export function isSearchTextsGroup(schema: Fields, path: string): boolean {
   return title?.kind === "text" && description?.kind === "text";
 }
 
-function readPages(
-  schema: Fields,
-  input: unknown,
-): SiteDescription["pages"] | undefined {
-  if (!Array.isArray(input)) return undefined;
-  const entries: unknown[] = input;
-  const pages = entries.map((entry) => readPage(schema, entry));
-  const read = pages.flatMap((page) => (page === undefined ? [] : [page]));
-  const [first, ...rest] = read;
-  const paths = new Set(read.map((page) => page.path));
-  const isSound =
-    read.length === pages.length &&
-    first?.path === HOME_PAGE_PATH &&
-    paths.size === read.length;
-  return isSound ? [first, ...rest] : undefined;
+function namingProblems(
+  id: unknown,
+  title: unknown,
+): readonly SiteDescriptionProblem[] {
+  const idProblems = isSiteId(id) ? [] : [{ code: "invalid-id" } as const];
+  const titleProblems = isText(title)
+    ? []
+    : [{ code: "invalid-title" } as const];
+  return [...idProblems, ...titleProblems];
 }
 
+function initialContentProblems(
+  issues: readonly ContentIssue[],
+): readonly SiteDescriptionProblem[] {
+  return issues.length > 0 ? [{ code: "invalid-initial-content", issues }] : [];
+}
+
+interface PagesReading {
+  readonly pages: SiteDescription["pages"] | undefined;
+  readonly problems: readonly SiteDescriptionProblem[];
+}
+
+function checkPages(schema: Fields, input: unknown): PagesReading {
+  if (!Array.isArray(input) || input.length === 0) {
+    return { pages: undefined, problems: [{ code: "no-pages" }] };
+  }
+
+  const entries: readonly unknown[] = input;
+  const readings = entries.map((entry) => readPage(schema, entry));
+  const pageProblems = readings.flatMap((reading, index) =>
+    typeof reading === "string"
+      ? [{ code: "invalid-page", index, reason: reading } as const]
+      : [],
+  );
+  const pages = readings.filter((reading) => typeof reading !== "string");
+  const problems = [...pageProblems, ...orderProblems(pages)];
+  const [first, ...rest] = pages;
+  const isSound = problems.length === 0 && first !== undefined;
+  return { pages: isSound ? [first, ...rest] : undefined, problems };
+}
+
+/** The home page first, and every path once. */
+function orderProblems(
+  pages: readonly SitePageDescription[],
+): readonly SiteDescriptionProblem[] {
+  const paths = pages.map((page) => page.path);
+  const repeated = paths.filter((path, index) => paths.indexOf(path) !== index);
+  const isHomeMissing = paths.length > 0 && paths[0] !== HOME_PAGE_PATH;
+  const homeProblems = isHomeMissing
+    ? [{ code: "home-page-not-first" } as const]
+    : [];
+  const repeatProblems = [...new Set(repeated)].map(
+    (path) => ({ code: "repeated-page-path", path }) as const,
+  );
+  return [...homeProblems, ...repeatProblems];
+}
+
+/** The page the input describes, or why it is not one. */
 function readPage(
   schema: Fields,
   input: unknown,
-): SitePageDescription | undefined {
-  if (!isRecord(input)) return undefined;
+): SitePageDescription | PageProblemReason {
+  if (!isJsonObject(input)) return "not-a-page";
   const { path, title, searchTexts } = input;
-  const isPath =
-    typeof path === "string" &&
-    (path === HOME_PAGE_PATH || PAGE_PATH.test(path));
-  if (!isPath || !isText(title)) return undefined;
+  if (!isPagePath(path)) return "invalid-path";
+  if (!isText(title)) return "invalid-title";
   if (searchTexts === undefined) return { path, title };
 
   const isSearchTexts =
     typeof searchTexts === "string" && isSearchTextsGroup(schema, searchTexts);
-  return isSearchTexts ? { path, title, searchTexts } : undefined;
+  return isSearchTexts ? { path, title, searchTexts } : "invalid-search-texts";
 }
 
-function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+function isPagePath(path: unknown): path is string {
+  return (
+    typeof path === "string" &&
+    (path === HOME_PAGE_PATH || PAGE_PATH.test(path))
+  );
 }
 
-function isText(value: unknown): value is string {
-  return typeof value === "string" && value.trim() !== "";
+function invalid(
+  problems: readonly SiteDescriptionProblem[],
+): SiteDescriptionReading {
+  return { status: "invalid", problems };
 }

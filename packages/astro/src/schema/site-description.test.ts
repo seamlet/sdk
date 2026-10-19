@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defineSchema, group, text } from ".";
-import { readSiteDescription } from "./site-description";
+import { checkSiteDescription, readSiteDescription } from "./site-description";
 
 const schema = defineSchema({
   title: text({ label: "Заголовок" }),
@@ -69,5 +69,55 @@ describe("readSiteDescription", () => {
 
     for (const input of broken)
       expect(readSiteDescription(input)).toBeUndefined();
+  });
+
+  it("says every problem of a description", () => {
+    const reading = checkSiteDescription({
+      ...description,
+      id: "Coffee Shop",
+      initialContent: { title: 3 },
+      pages: [
+        { path: "/menu", title: "Меню" },
+        { path: "/menu", title: "Меню" },
+        { path: "/about/", title: "О нас" },
+        { path: "/team", title: " " },
+        { path: "/news", title: "Новости", searchTexts: "title" },
+        "/contacts",
+      ],
+    });
+
+    expect(reading).toEqual({
+      status: "invalid",
+      problems: [
+        { code: "invalid-id" },
+        {
+          code: "invalid-initial-content",
+          issues: [{ path: ["title"], code: "invalid-type" }],
+        },
+        { code: "invalid-page", index: 2, reason: "invalid-path" },
+        { code: "invalid-page", index: 3, reason: "invalid-title" },
+        { code: "invalid-page", index: 4, reason: "invalid-search-texts" },
+        { code: "invalid-page", index: 5, reason: "not-a-page" },
+        { code: "home-page-not-first" },
+        { code: "repeated-page-path", path: "/menu" },
+      ],
+    });
+  });
+
+  it("says why a schema is not one", () => {
+    expect(
+      checkSiteDescription({
+        ...description,
+        schema: { "a.b": { kind: "text", label: "Т" } },
+      }),
+    ).toEqual({
+      status: "invalid",
+      problems: [
+        {
+          code: "invalid-schema",
+          problem: { path: ["a.b"], reason: "invalid-name" },
+        },
+      ],
+    });
   });
 });

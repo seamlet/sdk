@@ -78,6 +78,25 @@ function collectionIn(
   return undefined;
 }
 
+/** The collection at a path of the schema through groups (`"studio.teachers"`), if it has one there. */
+export function collectionFieldAt(
+  schema: Fields,
+  path: string,
+): CollectionField | undefined {
+  const [name, ...rest] = path.split(COLLECTION_PATH_SEPARATOR);
+  const field =
+    name !== undefined && Object.hasOwn(schema, name)
+      ? schema[name]
+      : undefined;
+  if (field === undefined) return undefined;
+
+  const isCollection = rest.length === 0 && field.kind === "collection";
+  if (isCollection) return field;
+  return field.kind === "group"
+    ? collectionFieldAt(field.fields, rest.join(COLLECTION_PATH_SEPARATOR))
+    : undefined;
+}
+
 /** The record of the list with the id, if it is there. */
 export function findRecord<R extends { readonly id?: string }>(
   records: readonly R[],

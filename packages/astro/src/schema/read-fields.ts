@@ -5,176 +5,314 @@ import type {
   FieldKind,
   Fields,
   GroupField,
+  ReferenceField,
+  ReferencesField,
 } from "./fields";
+import { isJsonObject, type JsonObject } from "./json-values";
+import { collectionFieldAt, RECORD_ID_KEY } from "./record-ids";
 
 // A schema read back from JSON: the CMS takes a site's schema from the site itself, so it reads
-// every field by its kind and keeps only what the schema language knows. Anything else, a kind it
-// does not know, a label that is not a text, makes the whole schema unread.
+// every field by its kind and keeps only what the schema language knows. Anything that cannot
+// work, a kind it does not know, a label that is not a text, an option of the wrong kind, a
+// reference to a collection the schema does not have, makes the whole schema unread, with the
+// first problem found.
 
-type Read<T> = T | undefined;
-type JsonRecord = Readonly<Record<string, unknown>>;
+/** Why a schema cannot be read. */
+export type SchemaProblemReason =
+  /** Not an object of fields, or a field that is not an object. */
+  | "not-fields"
+  /** A name that is empty, holds the separator of paths (`.`) or is a number, which a path reads as a record. */
+  | "invalid-name"
+  | "invalid-label"
+  | "unknown-kind"
+  /** An option of the field (`maxLength`, `inline`…) is there but not of its kind. */
+  | "invalid-option"
+  | "invalid-choice-options"
+  /** A record has a field named `id`, which is the record's own. */
+  | "record-id-field"
+  /** `itemTitle` names no text or link field of the record. */
+  | "invalid-item-title"
+  /** A reference names a collection the schema does not have. */
+  | "unknown-collection";
+
+export interface SchemaProblem {
+  /** The names of the fields down to the field with the problem; empty for the schema itself. */
+  readonly path: readonly string[];
+  readonly reason: SchemaProblemReason;
+}
+
+export type FieldsReading =
+  | { readonly status: "read"; readonly fields: Fields }
+  | { readonly status: "invalid"; readonly problem: SchemaProblem };
+
+type Reading<T> =
+  | { readonly isRead: true; readonly value: T }
+  | { readonly isRead: false; readonly problem: SchemaProblem };
+
+type FieldPathNames = readonly string[];
+
+/** A record of a collection may be named by the words of one of these fields. */
+const TITLE_KINDS: ReadonlySet<FieldKind> = new Set<FieldKind>([
+  "text",
+  "link",
+]);
+/** A number is a place of a record in a path, never a name of a field. */
+const NUMBER_NAME = /^\d+$/u;
+const PATH_SEPARATOR = ".";
 
 /** The schema the input describes, or undefined when it is not one. */
 export function readFields(input: unknown): Fields | undefined {
-  if (!isRecord(input)) return undefined;
-
-  const entries = Object.entries(input).map(
-    ([name, value]) => [name, readField(value)] as const,
-  );
-  const readEntries = entries.flatMap(([name, field]) =>
-    field === undefined ? [] : [[name, field] as const],
-  );
-  const isEveryFieldRead = readEntries.length === entries.length;
-  return isEveryFieldRead ? Object.fromEntries(readEntries) : undefined;
+  const reading = checkFields(input);
+  return reading.status === "read" ? reading.fields : undefined;
 }
 
-function readField(input: unknown): Read<Field> {
-  if (!isRecord(input)) return undefined;
-  const label = input["label"];
-  if (typeof label !== "string") return undefined;
+/** The schema the input describes, or the first problem that keeps it from being one. */
+export function checkFields(input: unknown): FieldsReading {
+  const reading = readFieldsAt(input, []);
+  if (!reading.isRead) return { status: "invalid", problem: reading.problem };
 
-  const kind = input["kind"];
-  return isFieldKind(kind) ? readFieldOfKind(kind, label, input) : undefined;
+  const problem = firstUnknownCollection(reading.value, reading.value, []);
+  return problem === undefined
+    ? { status: "read", fields: reading.value }
+    : { status: "invalid", problem };
 }
 
-function readFieldOfKind(
-  kind: FieldKind,
-  label: string,
-  input: JsonRecord,
-): Read<Field> {
+function readFieldsAt(input: unknown, path: FieldPathNames): Reading<Fields> {
+  if (!isJsonObject(input)) return refused(path, "not-fields");
+
+  const fields: Record<string, Field> = {};
+  for (const [name, value] of Object.entries(input)) {
+    const fieldPath = [...path, name];
+    if (!isFieldName(name)) return refused(fieldPath, "invalid-name");
+
+    const field = readField(value, fieldPath);
+    if (!field.isRead) return field;
+    fields[name] = field.value;
+  }
+  return read(fields);
+}
+
+function readField(input: unknown, path: FieldPathNames): Reading<Field> {
+  if (!isJsonObject(input)) return refused(path, "not-fields");
+  const { kind, label } = input;
+  if (typeof label !== "string") return refused(path, "invalid-label");
+  if (!isFieldKind(kind)) return refused(path, "unknown-kind");
+
+  return readFieldOfKind({ kind, label, input, path });
+}
+
+interface FieldInput<K extends FieldKind = FieldKind> {
+  readonly kind: K;
+  readonly label: string;
+  readonly input: JsonObject;
+  readonly path: FieldPathNames;
+}
+
+function readFieldOfKind(field: FieldInput): Reading<Field> {
+  const { kind, label, input, path } = field;
   switch (kind) {
     case "text":
-      return {
-        kind,
-        label,
-        ...optional("multiline", input["multiline"], isBoolean),
-        ...optional("maxLength", input["maxLength"], isCount),
-      };
+      return withOptions({ kind, label }, path, [
+        optional("multiline", input, isBoolean),
+        optional("maxLength", input, isCount),
+      ]);
     case "richText":
-      return {
-        kind,
-        label,
-        ...optional("inline", input["inline"], isBoolean),
-        ...optional("maxLength", input["maxLength"], isCount),
-      };
+      return withOptions({ kind, label }, path, [
+        optional("inline", input, isBoolean),
+        optional("maxLength", input, isCount),
+      ]);
     case "number":
-      return {
-        kind,
-        label,
-        ...optional("min", input["min"], isNumber),
-        ...optional("max", input["max"], isNumber),
-      };
+      return withOptions({ kind, label }, path, [
+        optional("min", input, isNumber),
+        optional("max", input, isNumber),
+      ]);
     case "date":
     case "image":
     case "link":
     case "toggle":
     case "url":
     case "time":
-      return { kind, label };
+      return read({ kind, label });
     case "choice":
     case "choices":
-      return readChoiceField(kind, label, input["options"]);
+      return readChoiceField({ kind, label, input, path });
     case "reference":
     case "references":
-      return readReferenceField(kind, label, input["collection"]);
+      return readReferenceField({ kind, label, input, path });
     case "group":
-      return readGroupField(label, input["fields"]);
+      return readGroupField({ kind, label, input, path });
     case "collection":
-      return readCollectionField(label, input);
+      return readCollectionField({ kind, label, input, path });
   }
 }
 
 function readChoiceField(
-  kind: "choice" | "choices",
-  label: string,
-  input: unknown,
-): Read<Field> {
-  if (!Array.isArray(input)) return undefined;
-  const options: unknown[] = input;
-  if (!options.every(isChoiceOption)) return undefined;
+  field: FieldInput<"choice" | "choices">,
+): Reading<Field> {
+  const { kind, label, input, path } = field;
+  const options: unknown = input["options"];
+  const isOptionList = Array.isArray(options) && options.every(isChoiceOption);
+  if (!isOptionList) return refused(path, "invalid-choice-options");
 
-  const read = options.map(({ value, label: optionLabel }) => ({
+  const knownOptions = options.map(({ value, label: optionLabel }) => ({
     value,
     label: optionLabel,
   }));
-  return { kind, label, options: read };
+  return read({ kind, label, options: knownOptions });
 }
 
 function readReferenceField(
-  kind: "reference" | "references",
-  label: string,
-  collection: unknown,
-): Read<Field> {
-  return typeof collection === "string"
-    ? { kind, label, collection }
-    : undefined;
+  field: FieldInput<"reference" | "references">,
+): Reading<Field> {
+  const { kind, label, input, path } = field;
+  const collection = input["collection"];
+  if (typeof collection !== "string") {
+    return refused(path, "unknown-collection");
+  }
+  return read({ kind, label, collection });
 }
 
-function readGroupField(label: string, input: unknown): Read<GroupField> {
-  const fields = readFields(input);
-  return fields === undefined ? undefined : { kind: "group", label, fields };
+function readGroupField(field: FieldInput<"group">): Reading<GroupField> {
+  const { kind, label, input, path } = field;
+  const fields = readFieldsAt(input["fields"], path);
+  return fields.isRead ? read({ kind, label, fields: fields.value }) : fields;
 }
 
 function readCollectionField(
-  label: string,
-  input: JsonRecord,
-): Read<CollectionField> {
-  const item = readFields(input["item"]);
-  if (item === undefined || "id" in item) return undefined;
+  field: FieldInput<"collection">,
+): Reading<CollectionField> {
+  const { kind, label, input, path } = field;
+  const item = readFieldsAt(input["item"], path);
+  if (!item.isRead) return item;
+  if (RECORD_ID_KEY in item.value) {
+    return refused([...path, RECORD_ID_KEY], "record-id-field");
+  }
 
   const itemTitle = input["itemTitle"];
-  const isTitleKnown = typeof itemTitle === "string" && itemTitle in item;
-  if (itemTitle !== undefined && !isTitleKnown) return undefined;
-  return {
-    kind: "collection",
-    label,
-    item,
-    ...(isTitleKnown ? { itemTitle } : {}),
-  };
+  if (itemTitle === undefined) return read({ kind, label, item: item.value });
+
+  const titleField =
+    typeof itemTitle === "string" && Object.hasOwn(item.value, itemTitle)
+      ? item.value[itemTitle]
+      : undefined;
+  const canTitleRecord =
+    titleField !== undefined && TITLE_KINDS.has(titleField.kind);
+  if (typeof itemTitle !== "string" || !canTitleRecord) {
+    return refused(path, "invalid-item-title");
+  }
+  return read({ kind, label, item: item.value, itemTitle });
 }
 
-/** The key with the value when it is there and of its kind; nothing when it is left out. */
+/** The first reference, anywhere in the fields, to a collection the schema does not have. */
+function firstUnknownCollection(
+  schema: Fields,
+  fields: Fields,
+  path: FieldPathNames,
+): SchemaProblem | undefined {
+  for (const [name, field] of Object.entries(fields)) {
+    const problem = unknownCollectionIn(schema, field, [...path, name]);
+    if (problem !== undefined) return problem;
+  }
+  return undefined;
+}
+
+function unknownCollectionIn(
+  schema: Fields,
+  field: Field,
+  path: FieldPathNames,
+): SchemaProblem | undefined {
+  switch (field.kind) {
+    case "reference":
+    case "references":
+      return referencesCollection(schema, field)
+        ? undefined
+        : { path, reason: "unknown-collection" };
+    case "group":
+      return firstUnknownCollection(schema, field.fields, path);
+    case "collection":
+      return firstUnknownCollection(schema, field.item, path);
+    case "text":
+    case "richText":
+    case "number":
+    case "date":
+    case "image":
+    case "link":
+    case "toggle":
+    case "choice":
+    case "choices":
+    case "url":
+    case "time":
+      return undefined;
+  }
+}
+
+function referencesCollection(
+  schema: Fields,
+  field: ReferenceField | ReferencesField,
+): boolean {
+  return collectionFieldAt(schema, field.collection) !== undefined;
+}
+
+/** The field with its options, or a problem when one of them is there but not of its kind. */
+function withOptions<F extends Field>(
+  field: F,
+  path: FieldPathNames,
+  options: readonly (Partial<F> | undefined)[],
+): Reading<F> {
+  const isEveryOptionRead = options.every((option) => option !== undefined);
+  if (!isEveryOptionRead) return refused(path, "invalid-option");
+  return read(Object.assign({}, field, ...options));
+}
+
+/**
+ * The option with its value when it is there and of its kind; nothing when it is left out;
+ * undefined when it is there but not of its kind.
+ */
 function optional<K extends string, T>(
   key: K,
-  value: unknown,
+  input: JsonObject,
   isOfKind: (value: unknown) => value is T,
-): Partial<Record<K, T>> {
-  if (!isOfKind(value)) return {};
+): Partial<Record<K, T>> | undefined {
+  const value = input[key];
+  if (value === undefined) return {};
+  if (!isOfKind(value)) return undefined;
   return { [key]: value } as Partial<Record<K, T>>;
 }
 
-const FIELD_KINDS: ReadonlySet<string> = new Set<FieldKind>([
-  "text",
-  "richText",
-  "number",
-  "date",
-  "image",
-  "link",
-  "toggle",
-  "choice",
-  "choices",
-  "url",
-  "time",
-  "reference",
-  "references",
-  "group",
-  "collection",
-]);
+const FIELD_KINDS: Readonly<Record<FieldKind, true>> = {
+  text: true,
+  richText: true,
+  number: true,
+  date: true,
+  image: true,
+  link: true,
+  toggle: true,
+  choice: true,
+  choices: true,
+  url: true,
+  time: true,
+  reference: true,
+  references: true,
+  group: true,
+  collection: true,
+};
 
 function isFieldKind(value: unknown): value is FieldKind {
-  return typeof value === "string" && FIELD_KINDS.has(value);
+  return typeof value === "string" && Object.hasOwn(FIELD_KINDS, value);
+}
+
+function isFieldName(name: string): boolean {
+  return (
+    name !== "" && !name.includes(PATH_SEPARATOR) && !NUMBER_NAME.test(name)
+  );
 }
 
 function isChoiceOption(value: unknown): value is ChoiceOption {
   return (
-    isRecord(value) &&
+    isJsonObject(value) &&
     typeof value["value"] === "string" &&
     typeof value["label"] === "string"
   );
-}
-
-function isRecord(value: unknown): value is JsonRecord {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function isBoolean(value: unknown): value is boolean {
@@ -187,4 +325,15 @@ function isNumber(value: unknown): value is number {
 
 function isCount(value: unknown): value is number {
   return isNumber(value) && Number.isInteger(value) && value >= 0;
+}
+
+function read<T>(value: T): Reading<T> {
+  return { isRead: true, value };
+}
+
+function refused<T>(
+  path: FieldPathNames,
+  reason: SchemaProblemReason,
+): Reading<T> {
+  return { isRead: false, problem: { path, reason } };
 }

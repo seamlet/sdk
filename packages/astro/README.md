@@ -85,7 +85,7 @@ npx astro add @seamlet/astro node                   # the integration, and an ad
    });
    ```
 
-   The CMS takes all of it from the site itself, so connecting a site, or changing its schema, needs no change of the CMS.
+   The CMS takes all of it from the site itself, so connecting a site, or changing its schema, needs no change of the CMS. `defineSeamletSite` checks the description exactly as the CMS reads it (`checkSiteDescription`), so a site the CMS would refuse stops its own build and says what to fix: a page address that is not `/` or lower-case segments without a trailing slash (`/menu`, not `/Menu` or `/menu/`), a first page other than `/`, initial content the CMS could not save, `searchTexts` that name no group of a `title` and a `description`, or a schema that cannot work. A schema cannot work with a field name that is empty, holds a dot or is a number (a path of a field reads them as its separator and as a record), an option of the wrong kind (`maxLength: "10"`), a `reference` to a collection it does not have, or an `itemTitle` that names no `text` or `link` field of the record.
 
 5. Add the integration; it reads `seamlet.json` and `src/seamlet.ts` itself:
 

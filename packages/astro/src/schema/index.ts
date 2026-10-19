@@ -106,7 +106,13 @@ export {
   type RichSpan,
   type RichText,
 } from "./rich-text";
-export { readFields } from "./read-fields";
+export {
+  checkFields,
+  readFields,
+  type FieldsReading,
+  type SchemaProblem,
+  type SchemaProblemReason,
+} from "./read-fields";
 export {
   isSiteId,
   readSiteConfig,
@@ -116,9 +122,13 @@ export {
   type SiteConfigReading,
 } from "./site-config";
 export {
+  checkSiteDescription,
   isSearchTextsGroup,
   readSiteDescription,
   SITE_DESCRIPTION_PATH,
+  type PageProblemReason,
   type SiteDescription,
+  type SiteDescriptionProblem,
+  type SiteDescriptionReading,
   type SitePageDescription,
 } from "./site-description";

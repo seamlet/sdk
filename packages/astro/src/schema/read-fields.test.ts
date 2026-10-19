@@ -11,7 +11,7 @@ import {
   text,
   toggle,
 } from ".";
-import { readFields } from "./read-fields";
+import { checkFields, readFields } from "./read-fields";
 
 const schema = defineSchema({
   title: text({ label: "Заголовок", maxLength: 60 }),
@@ -84,5 +84,109 @@ describe("readFields", () => {
         pace: { kind: "choice", label: "Нагрузка", options: [{ value: 1 }] },
       }),
     ).toBeUndefined();
+  });
+
+  it("reads nothing from a schema that cannot work, and says where", () => {
+    const text = { kind: "text", label: "Текст" };
+    const cases: readonly [unknown, readonly string[], string][] = [
+      [{ "hero.title": text }, ["hero.title"], "invalid-name"],
+      [
+        { hero: { kind: "group", label: "Экран", fields: { "2": text } } },
+        ["hero", "2"],
+        "invalid-name",
+      ],
+      [{ "": text }, [""], "invalid-name"],
+      [{ title: { ...text, maxLength: "10" } }, ["title"], "invalid-option"],
+      [{ title: { ...text, multiline: "yes" } }, ["title"], "invalid-option"],
+      [
+        { price: { kind: "number", label: "Цена", min: Number.NaN } },
+        ["price"],
+        "invalid-option",
+      ],
+      [
+        {
+          teacher: {
+            kind: "reference",
+            label: "Ведёт",
+            collection: "teachers",
+          },
+        },
+        ["teacher"],
+        "unknown-collection",
+      ],
+      [
+        {
+          practices: {
+            kind: "collection",
+            label: "Практики",
+            item: {
+              teachers: {
+                kind: "references",
+                label: "Ведут",
+                collection: "studio.teachers",
+              },
+            },
+          },
+        },
+        ["practices", "teachers"],
+        "unknown-collection",
+      ],
+      [
+        {
+          menu: {
+            kind: "collection",
+            label: "Меню",
+            itemTitle: "price",
+            item: { price: { kind: "number", label: "Цена" } },
+          },
+        },
+        ["menu"],
+        "invalid-item-title",
+      ],
+      [
+        {
+          menu: {
+            kind: "collection",
+            label: "Меню",
+            itemTitle: "about",
+            item: { about: { kind: "richText", label: "О блюде" } },
+          },
+        },
+        ["menu"],
+        "invalid-item-title",
+      ],
+    ];
+
+    for (const [input, path, reason] of cases) {
+      expect(readFields(input)).toBeUndefined();
+      expect(checkFields(input)).toEqual({
+        status: "invalid",
+        problem: { path, reason },
+      });
+    }
+  });
+
+  it("reads a reference to a collection inside a group, and a link that titles a record", () => {
+    const input = {
+      studio: {
+        kind: "group",
+        label: "Студия",
+        fields: {
+          teachers: {
+            kind: "collection",
+            label: "Преподаватели",
+            itemTitle: "page",
+            item: { page: { kind: "link", label: "Страница" } },
+          },
+        },
+      },
+      lead: {
+        kind: "reference",
+        label: "Ведёт",
+        collection: "studio.teachers",
+      },
+    };
+
+    expect(checkFields(input)).toEqual({ status: "read", fields: input });
   });
 });
