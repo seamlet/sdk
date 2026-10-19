@@ -52,6 +52,20 @@ describe("loadSiteConfig", () => {
     expect(config.cms).toBe("http://localhost:4321");
   });
 
+  it("keeps the file's CMS when the environment's is empty", async () => {
+    await writeConfig(
+      JSON.stringify({
+        id: "coffee-shop",
+        title: "Зерно",
+        cms: "https://cms.seamlet.ru",
+      }),
+    );
+
+    const config = await loadSiteConfig(root, "");
+
+    expect(config.cms).toBe("https://cms.seamlet.ru");
+  });
+
   it("lets the environment give the CMS a file leaves out", async () => {
     await writeConfig(JSON.stringify({ id: "dzen-yoga", title: "Дзен" }));
 

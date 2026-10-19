@@ -29,7 +29,7 @@ npx astro add @seamlet/astro node                   # the integration, and an ad
    }
    ```
 
-   The environment variable `CMS_ORIGIN` takes the place of `cms` when it is set: a build for a CMS in development, or the CMS's own builder. A build without the file, or with a field it cannot read, stops and says which field to fix.
+   The environment variable `CMS_ORIGIN` takes the place of `cms` when it is set and not empty: a build for a CMS in development, or the CMS's own builder. A build without the file, or with a field it cannot read, stops and says which field to fix.
 
 3. Describe the content with a schema, and mark the elements that show it:
 
