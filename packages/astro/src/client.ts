@@ -1,8 +1,7 @@
 // Every page of the site loads this, so it stays tiny: the bridge itself is loaded only on the
 // preview, in the frame of the CMS's editor. Elsewhere nothing more is fetched.
 import { cmsOrigin } from "virtual:seamlet/config";
-
-const PREVIEW_PATH = "/preview";
+import { PREVIEW_PATH } from "./site-addresses";
 
 const isFramed = window.parent !== window;
 const { pathname } = window.location;

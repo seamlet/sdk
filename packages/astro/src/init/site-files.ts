@@ -1,4 +1,5 @@
 import { isSiteId, SITE_CONFIG_FILE, type SiteConfig } from "../schema";
+import { SITE_MODULE_FILE } from "../site-addresses";
 
 // The files `npx @seamlet/astro init` starts a site with: its seamlet.json and the smallest module
 // the CMS can edit (one text on one page). The site's own pages and config stay the author's.
@@ -9,8 +10,7 @@ export interface SiteFile {
   readonly text: string;
 }
 
-/** Where a site's module, schema and first page are, as the README names them. */
-export const SITE_MODULE_PATH = "src/seamlet.ts";
+/** Where a site's schema and first page are, as the README names them. */
 const SCHEMA_PATH = "src/schema.ts";
 const HOME_PAGE_FILE = "src/components/HomePage.astro";
 const JSON_INDENT = 2;
@@ -27,7 +27,7 @@ export function configFileOf(config: SiteConfig): SiteFile {
 export function moduleFilesOf(config: SiteConfig): readonly SiteFile[] {
   return [
     { path: SCHEMA_PATH, text: schemaModuleOf(config.title) },
-    { path: SITE_MODULE_PATH, text: SITE_MODULE },
+    { path: SITE_MODULE_FILE, text: SITE_MODULE },
     { path: HOME_PAGE_FILE, text: HOME_PAGE },
   ];
 }

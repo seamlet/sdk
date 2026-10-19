@@ -2,6 +2,7 @@ import type { ImageMetadata } from "astro";
 import type { AstroComponentFactory } from "astro/runtime/server/index.js";
 import { cmsOrigin, siteId, siteTitle } from "virtual:seamlet/config";
 import {
+  HOME_PAGE_PATH,
   parseContent,
   type ContentOf,
   type Fields,
@@ -9,9 +10,6 @@ import {
 } from "./schema";
 import { fetchPublishedAnswer } from "./published-answers";
 import { describeSite } from "./site-descriptions";
-
-/** The first page of every site. */
-const HOME_PAGE_PATH = "/";
 
 /** A page of the site: how the editor names it, and the component that renders it. */
 export interface SeamletPage {

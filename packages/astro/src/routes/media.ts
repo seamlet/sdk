@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { cmsOrigin } from "virtual:seamlet/config";
 import site from "virtual:seamlet/site";
 import { isUploadedPhoto } from "../preview-requests";
+import { uploadedPhotoPath } from "../site-addresses";
 
 // The photos uploaded in the CMS, at the addresses the content gives them (`/media/<site>/…`).
 // A static build of the site copies them; the preview and the pages rendered on request take them
@@ -20,7 +21,7 @@ export const GET: APIRoute = async ({ params }) => {
     return new Response(null, { status: NOT_FOUND });
   }
 
-  const url = new URL(`/media/${site.id}/${fileName}`, cmsOrigin);
+  const url = new URL(uploadedPhotoPath(site.id, fileName), cmsOrigin);
   const response = await photoFromCms(url);
   if (response === undefined) {
     return new Response(null, { status: BAD_GATEWAY });

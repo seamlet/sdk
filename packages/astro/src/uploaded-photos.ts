@@ -1,13 +1,17 @@
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { isUploadedPhoto } from "./preview-requests";
+import { UPLOADS_PATH } from "./site-addresses";
 
 // The photos uploaded in the CMS, copied into a static build. A built page refers to them at the
 // addresses its content gives (`/media/<site>/<file>.webp`), and a static host has no route to take
 // them from the CMS on request, so the build puts every photo its pages refer to next to them.
 
 /** `/media/<site>/<file>`; only the site's own photos are its uploads (see isUploadedPhoto). */
-const PHOTO_ADDRESS = /\/media\/([^/\s"'<>]+)\/([^/\s"'<>?#]+)/gu;
+const PHOTO_ADDRESS = new RegExp(
+  `${UPLOADS_PATH}/([^/\\s"'<>]+)/([^/\\s"'<>?#]+)`,
+  "gu",
+);
 const HTML_EXTENSION = ".html";
 /** Photos copied at the same time: enough to be quick, few enough not to flood the CMS. */
 const PHOTOS_COPIED_AT_ONCE = 6;

@@ -11,6 +11,7 @@ import {
   type SitePageDescription,
 } from "./schema";
 import type { SeamletSiteDefinition } from "./site";
+import { SITE_MODULE_FILE } from "./site-addresses";
 
 // What a site tells the CMS about itself, from its config and its definition: everything but how it
 // renders. It is checked here exactly as the CMS reads it, so a site the CMS would refuse stops its
@@ -55,7 +56,7 @@ function refusalMessage(
 ): string {
   const lines = problems.map((problem) => `  - ${problemText(problem)}`);
   return [
-    `@seamlet/astro: the CMS would refuse the site "${id}" (src/seamlet.ts):`,
+    `@seamlet/astro: the CMS would refuse the site "${id}" (${SITE_MODULE_FILE}):`,
     ...lines,
   ].join("\n");
 }

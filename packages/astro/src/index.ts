@@ -8,6 +8,7 @@ import {
   SITE_DESCRIPTION_PATH,
   type SiteConfig,
 } from "./schema";
+import { PREVIEW_PATH, SITE_MODULE_FILE, UPLOADS_PATH } from "./site-addresses";
 import { loadSiteConfig } from "./site-config-file";
 
 // Connects an Astro site to the CMS. The site names itself in `seamlet.json` at its root (its id and
@@ -19,8 +20,6 @@ const CONFIG_MODULE = "virtual:seamlet/config";
 const SITE_MODULE = "virtual:seamlet/site";
 /** Rollup's mark of a module that is not a file. */
 const RESOLVED_CONFIG_MODULE = `\0${CONFIG_MODULE}`;
-/** The site's module, relative to its root: `defineSeamletSite(…)` as its default export. */
-const SITE_MODULE_FILE = "src/seamlet.ts";
 /**
  * Takes the place of `cms` of `seamlet.json` when set: a build for another CMS, such as the one in
  * development, or the CMS's builder, which builds a site for itself.
@@ -73,12 +72,12 @@ export default function seamlet(): AstroIntegration {
         // be left out of a static site's on-demand pages.
         injectScript("page", `import "@seamlet/astro/client";`);
         injectRoute({
-          pattern: "/preview/[...page]",
+          pattern: `${PREVIEW_PATH}/[...page]`,
           entrypoint: "@seamlet/astro/routes/preview.astro",
           prerender: false,
         });
         injectRoute({
-          pattern: "/media/[site]/[file]",
+          pattern: `${UPLOADS_PATH}/[site]/[file]`,
           entrypoint: "@seamlet/astro/routes/media",
           prerender: false,
         });

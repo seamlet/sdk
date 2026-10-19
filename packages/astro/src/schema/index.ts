@@ -124,6 +124,7 @@ export {
 } from "./site-config";
 export {
   checkSiteDescription,
+  HOME_PAGE_PATH,
   isSearchTextsGroup,
   readSiteDescription,
   SITE_DESCRIPTION_PATH,
