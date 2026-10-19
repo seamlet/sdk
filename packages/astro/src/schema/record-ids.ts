@@ -68,14 +68,31 @@ function collectionIn(
   if (name === undefined || field === undefined) return undefined;
 
   const value = content[name];
-  if (rest.length === 0 && field.kind === "collection") {
-    const records = Array.isArray(value) ? value.filter(isContent) : [];
-    return { collection: field, records };
+  const isLast = rest.length === 0;
+  switch (field.kind) {
+    case "collection": {
+      const records = Array.isArray(value) ? value.filter(isContent) : [];
+      return isLast ? { collection: field, records } : undefined;
+    }
+    case "group":
+      return !isLast && isContent(value)
+        ? collectionIn(field.fields, value, rest)
+        : undefined;
+    case "text":
+    case "richText":
+    case "number":
+    case "date":
+    case "image":
+    case "link":
+    case "toggle":
+    case "choice":
+    case "choices":
+    case "url":
+    case "time":
+    case "reference":
+    case "references":
+      return undefined;
   }
-  if (rest.length > 0 && field.kind === "group" && isContent(value)) {
-    return collectionIn(field.fields, value, rest);
-  }
-  return undefined;
 }
 
 /** The collection at a path of the schema through groups (`"studio.teachers"`), if it has one there. */
@@ -90,11 +107,29 @@ export function collectionFieldAt(
       : undefined;
   if (field === undefined) return undefined;
 
-  const isCollection = rest.length === 0 && field.kind === "collection";
-  if (isCollection) return field;
-  return field.kind === "group"
-    ? collectionFieldAt(field.fields, rest.join(COLLECTION_PATH_SEPARATOR))
-    : undefined;
+  const isLast = rest.length === 0;
+  switch (field.kind) {
+    case "collection":
+      return isLast ? field : undefined;
+    case "group":
+      return isLast
+        ? undefined
+        : collectionFieldAt(field.fields, rest.join(COLLECTION_PATH_SEPARATOR));
+    case "text":
+    case "richText":
+    case "number":
+    case "date":
+    case "image":
+    case "link":
+    case "toggle":
+    case "choice":
+    case "choices":
+    case "url":
+    case "time":
+    case "reference":
+    case "references":
+      return undefined;
+  }
 }
 
 /** The record of the list with the id, if it is there. */
@@ -123,13 +158,30 @@ function withIdsIn(
   value: Content[string],
   newId: () => string,
 ): Content[string] {
-  if (field.kind === "group" && isContent(value)) {
-    return withIdsInFields(field.fields, value, newId);
+  switch (field.kind) {
+    case "group":
+      return isContent(value)
+        ? withIdsInFields(field.fields, value, newId)
+        : value;
+    case "collection":
+      return Array.isArray(value)
+        ? withIdsInRecords(field, value.filter(isContent), newId)
+        : value;
+    case "text":
+    case "richText":
+    case "number":
+    case "date":
+    case "image":
+    case "link":
+    case "toggle":
+    case "choice":
+    case "choices":
+    case "url":
+    case "time":
+    case "reference":
+    case "references":
+      return value;
   }
-  if (field.kind === "collection" && Array.isArray(value)) {
-    return withIdsInRecords(field, value.filter(isContent), newId);
-  }
-  return value;
 }
 
 function withIdsInRecords(

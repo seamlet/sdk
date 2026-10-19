@@ -51,13 +51,26 @@ function resolveInsideField(
   segments: readonly string[],
   path: FieldPath,
 ): FieldTarget | undefined {
-  if (field.kind === "group") {
-    return resolveInFields(field.fields, segments, path);
+  switch (field.kind) {
+    case "group":
+      return resolveInFields(field.fields, segments, path);
+    case "collection":
+      return resolveInCollection(field, segments, path);
+    case "text":
+    case "richText":
+    case "number":
+    case "date":
+    case "image":
+    case "link":
+    case "toggle":
+    case "choice":
+    case "choices":
+    case "url":
+    case "time":
+    case "reference":
+    case "references":
+      return undefined;
   }
-  if (field.kind === "collection") {
-    return resolveInCollection(field, segments, path);
-  }
-  return undefined;
 }
 
 function resolveInCollection(
