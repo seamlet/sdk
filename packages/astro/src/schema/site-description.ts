@@ -3,6 +3,7 @@ import { resolveFieldPath } from "./field-paths";
 import type { Fields } from "./fields";
 import { parseContent } from "./parse-content";
 import { readFields } from "./read-fields";
+import { isSiteId } from "./site-config";
 
 // What a site tells the CMS about itself: its id, its name, the schema of its content, the content
 // it starts with and its pages. The site hands it out (`SITE_DESCRIPTION_PATH`), the CMS takes it
@@ -36,8 +37,6 @@ export interface SiteDescription {
   readonly pages: readonly [SitePageDescription, ...SitePageDescription[]];
 }
 
-/** An id is a part of addresses and of file names: lower-case letters, digits and hyphens. */
-const SITE_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/u;
 /** `/menu`, `/about/team`: lower-case segments, no trailing slash. */
 const PAGE_PATH = /^(\/[a-z0-9][a-z0-9-]*)+$/u;
 const HOME_PAGE_PATH = "/";
@@ -52,7 +51,7 @@ export function readSiteDescription(
   if (!isRecord(input)) return undefined;
   const { id, title } = input;
   const schema = readFields(input["schema"]);
-  const isNamed = typeof id === "string" && SITE_ID.test(id) && isText(title);
+  const isNamed = isSiteId(id) && isText(title);
   if (!isNamed || schema === undefined) return undefined;
 
   const initial = parseContent(schema, input["initialContent"]);

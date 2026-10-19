@@ -8,16 +8,17 @@ const schema = defineSchema({ title: text({ label: "Заголовок" }) });
 
 describe("describeSite", () => {
   it("tells the CMS everything about the site but how it renders, in a form it reads", () => {
-    const description = describeSite({
-      id: "coffee-shop",
-      title: "Кофейня «Зерно»",
-      schema,
-      initialContent: { title: "Зерно" },
-      pages: {
-        "/": { title: "Главная", component },
-        "/menu": { title: "Меню", component },
+    const description = describeSite(
+      { id: "coffee-shop", title: "Кофейня «Зерно»" },
+      {
+        schema,
+        initialContent: { title: "Зерно" },
+        pages: {
+          "/": { title: "Главная", component },
+          "/menu": { title: "Меню", component },
+        },
       },
-    });
+    );
 
     expect(description.pages).toEqual([
       { path: "/", title: "Главная" },
