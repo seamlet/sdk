@@ -1,0 +1,35 @@
+import { describe, expect, it } from "vitest";
+import { readPublishedAnswer } from "./published-answers";
+
+const url = new URL("https://cms.seamlet.ru/api/sites/dzen-yoga/published");
+
+describe("readPublishedAnswer", () => {
+  it("reads what the CMS published", async () => {
+    const answer = await readPublishedAnswer(
+      Response.json({ title: "Дзен" }),
+      url,
+    );
+
+    expect(answer).toEqual({ status: "published", content: { title: "Дзен" } });
+  });
+
+  it("tells a site the CMS does not know yet", async () => {
+    const response = Response.json({ error: "unknown-site" }, { status: 404 });
+
+    await expect(readPublishedAnswer(response, url)).resolves.toEqual({
+      status: "unknown-site",
+    });
+  });
+
+  it("stops at any other refusal, naming the address", async () => {
+    const elsewhere = new Response("Not Found", { status: 404 });
+    const broken = new Response(null, { status: 500 });
+
+    await expect(readPublishedAnswer(elsewhere, url)).rejects.toThrow(
+      "https://cms.seamlet.ru/api/sites/dzen-yoga/published failed with status 404",
+    );
+    await expect(readPublishedAnswer(broken, url)).rejects.toThrow(
+      "failed with status 500",
+    );
+  });
+});
