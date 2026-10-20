@@ -1,11 +1,13 @@
+import { richTextOf } from "@seamlet/astro/schema";
 import type { CoffeeShopContent } from "./schema";
 
 // A made-up coffee shop: the content the demo starts with.
 export const coffeeShopInitialContent: CoffeeShopContent = {
   hero: {
     title: "Кофейня «Зерно»",
-    subtitle:
+    subtitle: richTextOf(
       "Обжариваем зерно сами и варим кофе без спешки: эспрессо, фильтр и сезонные напитки.",
+    ),
     photo: {
       src: "/cup.svg",
       alt: "Чашка капучино на блюдце, над ней поднимается пар",
@@ -14,22 +16,22 @@ export const coffeeShopInitialContent: CoffeeShopContent = {
   menu: [
     {
       name: "Эспрессо",
-      description: "Двойная порция, плотный и сладкий.",
+      description: richTextOf("Двойная порция, плотный и сладкий."),
       price: 150,
     },
     {
       name: "Капучино",
-      description: "Эспрессо и молоко, взбитое в бархатную пену.",
+      description: richTextOf("Эспрессо и молоко, взбитое в бархатную пену."),
       price: 220,
     },
     {
       name: "Фильтр-кофе",
-      description: "Зерно недели, заваренное в воронке.",
+      description: richTextOf("Зерно недели, заваренное в воронке."),
       price: 190,
     },
     {
       name: "Раф с кардамоном",
-      description: "Сливки, ваниль и щепотка кардамона.",
+      description: richTextOf("Сливки, ваниль и щепотка кардамона."),
       price: 260,
     },
   ],

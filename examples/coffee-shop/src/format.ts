@@ -1,3 +1,5 @@
+import { plainTextOf, type RichText } from "@seamlet/astro/schema";
+
 // How the coffee shop shows its values: the site's own logic, the CMS knows nothing about it.
 
 const PRICE_FORMAT = new Intl.NumberFormat("ru-RU");
@@ -7,6 +9,11 @@ const EVENT_DATE_FORMAT = new Intl.DateTimeFormat("ru-RU", {
   month: "long",
   timeZone: "UTC",
 });
+
+/** Whether a formatted text has any words to show: an emptied one shows nothing, not an empty line. */
+export function hasWords(text: RichText): boolean {
+  return plainTextOf(text).trim() !== "";
+}
 
 export function formatPrice(price: number): string {
   return `${PRICE_FORMAT.format(price)} ₽`;

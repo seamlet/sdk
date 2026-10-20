@@ -11,6 +11,8 @@ import {
   link,
   number,
   parseContent,
+  richText,
+  richTextOf,
   text,
   type ContentOf,
   type ImageValue,
@@ -73,6 +75,34 @@ describe("defaultContent", () => {
 });
 
 describe("parseContent", () => {
+  it("keeps the words of a formatted text in a field that became plain", () => {
+    const plain = defineSchema({ title: text({ label: "Заголовок" }) });
+    const saved = {
+      title: [
+        {
+          kind: "paragraph",
+          spans: [{ text: "Кофейня " }, { text: "у реки", italic: true }],
+        },
+      ],
+    };
+
+    expect(parseContent(plain, saved)).toEqual({
+      content: { title: "Кофейня у реки" },
+      issues: [],
+    });
+  });
+
+  it("keeps the words of a plain text in a field that became formatted", () => {
+    const formatted = defineSchema({
+      lead: richText({ label: "Подзаголовок", inline: true }),
+    });
+
+    expect(parseContent(formatted, { lead: "Варим без спешки" })).toEqual({
+      content: { lead: richTextOf("Варим без спешки") },
+      issues: [],
+    });
+  });
+
   it("accepts content that matches the schema", () => {
     const parsed = parseContent(schema, validContent);
 

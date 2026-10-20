@@ -2,7 +2,8 @@
 // The first page of the coffee shop: who they are, what is popular and what is coming up.
 import { editable, safeHref } from "@seamlet/astro/schema";
 import CoffeeShopLayout from "./CoffeeShopLayout.astro";
-import { formatEventDate } from "../format";
+import { formatEventDate, hasWords } from "../format";
+import RichText from "@seamlet/astro/components/RichText.astro";
 import MenuList from "./MenuList.astro";
 import type { CoffeeShopContent } from "../schema";
 
@@ -24,9 +25,9 @@ const edit = editable<CoffeeShopContent>();
   <header class="hero" {...edit("hero")}>
     <div class="hero-text">
       <h1 {...edit("hero", "title")}>{hero.title}</h1>
-      {hero.subtitle !== "" && (
+      {hasWords(hero.subtitle) && (
         <p class="subtitle" {...edit("hero", "subtitle")}>
-          {hero.subtitle}
+          <RichText value={hero.subtitle} inline />
         </p>
       )}
     </div>

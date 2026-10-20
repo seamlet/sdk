@@ -192,19 +192,31 @@ function parseText(
   input: unknown,
   path: FieldPath,
 ): ParsedValue {
-  if (typeof input !== "string") {
+  const typed = typedTextOf(input);
+  if (typed === undefined) {
     return invalidType(defaultValue(field), path);
   }
 
   const isTooLong =
-    field.maxLength !== undefined && countCharacters(input) > field.maxLength;
+    field.maxLength !== undefined && countCharacters(typed) > field.maxLength;
   if (isTooLong) {
     return {
-      value: input,
+      value: typed,
       issues: [{ path, code: "too-long", maxLength: field.maxLength }],
     };
   }
-  return valid(input);
+  return valid(typed);
+}
+
+/**
+ * The text as it was typed, or the words of a formatted one: a field that was formatted text and
+ * became plain keeps what the owner wrote, as a plain one that became formatted does.
+ */
+function typedTextOf(input: unknown): string | undefined {
+  if (typeof input === "string") return input;
+
+  const formatted = readRichText(input);
+  return formatted === undefined ? undefined : plainTextOf(formatted);
 }
 
 function parseRichText(

@@ -1,6 +1,6 @@
-import { parseContent } from "@seamlet/astro/schema";
+import { parseContent, richTextOf } from "@seamlet/astro/schema";
 import { describe, expect, it } from "vitest";
-import { formatEventDate, formatPrice, phoneHref } from "./format";
+import { formatEventDate, formatPrice, hasWords, phoneHref } from "./format";
 import { coffeeShopInitialContent } from "./initial-content";
 import { coffeeShopSchema } from "./schema";
 
@@ -9,6 +9,14 @@ describe("the coffee shop content", () => {
     expect(
       parseContent(coffeeShopSchema, coffeeShopInitialContent).issues,
     ).toEqual([]);
+  });
+});
+
+describe("hasWords", () => {
+  it("finds words in a formatted text and none in an emptied one", () => {
+    expect(hasWords(richTextOf("Двойная порция"))).toBe(true);
+    expect(hasWords(richTextOf("   "))).toBe(false);
+    expect(hasWords([])).toBe(false);
   });
 });
 
