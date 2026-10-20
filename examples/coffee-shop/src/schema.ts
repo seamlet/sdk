@@ -12,15 +12,17 @@ import {
 } from "@seamlet/astro/schema";
 
 // What the owner of the coffee shop can edit. The one description of the content: the CMS builds
-// its form from it, and the page below takes the types of its props from it.
+// its form from it, and the page below takes the types of its props from it. Prose is formatted
+// text (bold, italic, links); headings, names, buttons and contacts are plain text, so the owner
+// meets one rule: a paragraph can be formatted, everything else is typed as it is.
 export const coffeeShopSchema = defineSchema({
   hero: group({
     label: "Первый экран",
     fields: {
       title: text({ label: "Заголовок", maxLength: 60 }),
-      subtitle: text({
+      subtitle: richText({
         label: "Подзаголовок",
-        multiline: true,
+        inline: true,
         maxLength: 200,
       }),
       photo: image({ label: "Фото" }),
@@ -31,7 +33,11 @@ export const coffeeShopSchema = defineSchema({
     itemTitle: "name",
     item: {
       name: text({ label: "Название", maxLength: 40 }),
-      description: text({ label: "Описание", multiline: true, maxLength: 160 }),
+      description: richText({
+        label: "Описание",
+        inline: true,
+        maxLength: 160,
+      }),
       price: number({ label: "Цена, ₽", min: 0, max: 100_000 }),
     },
   }),

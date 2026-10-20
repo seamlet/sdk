@@ -1,7 +1,8 @@
 ---
 // The drinks of the menu, the same on every page that shows them, each marked for the CMS.
 import { editable } from "@seamlet/astro/schema";
-import { formatPrice } from "../format";
+import RichText from "@seamlet/astro/components/RichText.astro";
+import { formatPrice, hasWords } from "../format";
 import type { CoffeeShopContent } from "../schema";
 
 interface Props {
@@ -26,8 +27,10 @@ const edit = editable<CoffeeShopContent>();
           </span>
         )}
       </div>
-      {drink.description !== "" && (
-        <p {...edit("menu", index, "description")}>{drink.description}</p>
+      {hasWords(drink.description) && (
+        <p {...edit("menu", index, "description")}>
+          <RichText value={drink.description} inline />
+        </p>
       )}
     </li>
   ))}
