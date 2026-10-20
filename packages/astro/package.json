@@ -1,6 +1,6 @@
 {
   "name": "@seamlet/astro",
-  "version": "0.12.1",
+  "version": "1.0.0",
   "description": "Connects an Astro site to the Seamlet CMS: the schema of its content, the preview the editor frames, and its published content.",
   "license": "MIT",
   "type": "module",
@@ -59,7 +59,8 @@
   "files": [
     "dist",
     "routes",
-    "components"
+    "components",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup"
