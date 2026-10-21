@@ -99,6 +99,7 @@ export {
   type LinkTarget,
 } from "./link-addresses";
 export { imagePosition } from "./image-position";
+export { estimateOf, ratesField, type Rate } from "./rates";
 export {
   contactsFields,
   openingHoursField,

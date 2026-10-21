@@ -6,6 +6,7 @@ export default defineConfig({
   entry: {
     index: "src/index.ts",
     schema: "src/schema/index.ts",
+    feeds: "src/feeds/index.ts",
     bridge: "src/bridge/index.ts",
     protocol: "src/protocol.ts",
     site: "src/site.ts",

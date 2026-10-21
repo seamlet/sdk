@@ -62,6 +62,25 @@ export default tseslint.config(
     },
   },
   {
+    // The feeds are plain text made from content: they know only themselves and the schema language.
+    files: ["packages/astro/src/feeds/**"],
+    ignores: ["**/*.test.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex: "^(?!\\./|\\.\\./schema$)",
+              message:
+                "The feeds depend only on themselves and the schema language",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // An example is a site like any other: it knows the SDK only as an installed package.
     files: ["examples/**"],
     rules: {
