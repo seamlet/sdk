@@ -6,6 +6,7 @@ import {
   type Content,
   type ContentOf,
   type Fields,
+  type RequestForm,
   type SiteDescription,
 } from "./schema";
 import { fetchPublishedAnswer } from "./published-answers";
@@ -47,6 +48,11 @@ export interface SeamletSiteDefinition<F extends Fields> {
    * editor can show it in the photo's field. A site without own photos leaves it out.
    */
   readonly photos?: (src: string) => ImageMetadata | undefined;
+  /**
+   * The forms visitors send the business requests with (`requestForm(...)`), rendered with
+   * `RequestForm.astro`: the CMS keeps the requests and passes them on.
+   */
+  readonly forms?: readonly RequestForm[];
 }
 
 export interface SeamletSite<F extends Fields = Fields> {

@@ -1,0 +1,185 @@
+---
+// A form of the site's requests as plain elements, which the site styles from around it
+// (`.contacts :global(.seamlet-form-field)`). Without a script it is a form posted to the CMS, and
+// the CMS answers with a page of its own; the package's script sends it in place. The checkbox of
+// consent stands apart from the fields and is never checked beforehand, as the law asks: the
+// visitor consents to the texts of the business, which the CMS shows at their addresses.
+import { cmsOrigin, siteId } from "virtual:seamlet/config";
+import {
+  legalPagePathOf,
+  maxLengthOf,
+  REQUEST_CONSENT_KEY,
+  REQUEST_FORM_KEY,
+  REQUEST_PAGE_KEY,
+  REQUEST_TRAP_KEY,
+  requestsPathOf,
+  type RequestField,
+  type RequestForm,
+} from "@seamlet/astro/schema";
+
+interface Props {
+  readonly form: RequestForm;
+  /** The words of the button. */
+  readonly submitLabel?: string;
+  /** What the visitor reads once the business has the request. */
+  readonly sentText?: string;
+  /** What the visitor reads when the request could not be sent. */
+  readonly failedText?: string;
+  /** Where the text of consent is: the CMS's page of it unless the site has its own. */
+  readonly consentHref?: string;
+  /** Where the business's policy is: the CMS's page of it unless the site has its own. */
+  readonly policyHref?: string;
+  /** Tells two forms of the same id on one page apart, in the ids of their elements. */
+  readonly instance?: string;
+  readonly class?: string;
+}
+
+const {
+  form,
+  submitLabel = "Отправить",
+  sentText = "Спасибо! Заявка отправлена, мы скоро свяжемся с вами.",
+  failedText = "Не получилось отправить заявку. Попробуйте ещё раз чуть позже.",
+  consentHref = new URL(legalPagePathOf(siteId, "consent"), cmsOrigin).href,
+  policyHref = new URL(legalPagePathOf(siteId, "privacy"), cmsOrigin).href,
+  instance = form.id,
+  class: className,
+} = Astro.props;
+
+const action = new URL(requestsPathOf(siteId), cmsOrigin).href;
+const fields = Object.entries(form.fields);
+const idOf = (name: string) => `seamlet-${instance}-${name}`;
+const issueIdOf = (name: string) => `${idOf(name)}-issue`;
+/** The page the form stands on, so the business knows where the request came from. */
+const page = Astro.url.pathname;
+/** A field typed on one line of an `<input>`. */
+type LineField = Extract<RequestField, { kind: "text" | "phone" | "email" }>;
+const INPUT_TYPES: Readonly<Record<LineField["kind"], string>> = {
+  text: "text",
+  phone: "tel",
+  email: "email",
+};
+/** What a phone's keyboard and a browser's memory of addresses offer for a field. */
+const AUTOCOMPLETE: Partial<Record<LineField["kind"], string>> = {
+  phone: "tel",
+  email: "email",
+};
+const isLineField = (field: RequestField): field is LineField =>
+  field.kind === "text" || field.kind === "phone" || field.kind === "email";
+---
+
+<form
+  class:list={["seamlet-form", className]}
+  method="post"
+  action={action}
+  data-seamlet-form={form.id}
+  data-seamlet-request-form={JSON.stringify(form)}
+>
+  <input type="hidden" name={REQUEST_FORM_KEY} value={form.id} />
+  <input type="hidden" name={REQUEST_PAGE_KEY} value={page} />
+  {fields.map(([name, field]) => (
+    <div class="seamlet-form-field" data-field={name}>
+      <label for={idOf(name)}>
+        {field.label}
+        {field.required === true && <span aria-hidden="true"> *</span>}
+      </label>
+      {field.kind === "longText" && (
+        <textarea
+          id={idOf(name)}
+          name={name}
+          rows="4"
+          required={field.required === true}
+          maxlength={maxLengthOf(field)}
+          aria-describedby={issueIdOf(name)}
+        />
+      )}
+      {field.kind === "choice" && (
+        <select
+          id={idOf(name)}
+          name={name}
+          required={field.required === true}
+          aria-describedby={issueIdOf(name)}
+        >
+          <option value="">Выберите</option>
+          {field.options.map((option) => (
+            <option value={option}>{option}</option>
+          ))}
+        </select>
+      )}
+      {isLineField(field) && (
+        <input
+          id={idOf(name)}
+          name={name}
+          type={INPUT_TYPES[field.kind]}
+          required={field.required === true}
+          maxlength={field.kind === "text" ? maxLengthOf(field) : undefined}
+          autocomplete={AUTOCOMPLETE[field.kind]}
+          aria-describedby={issueIdOf(name)}
+        />
+      )}
+      <p
+        class="seamlet-form-issue"
+        id={issueIdOf(name)}
+        data-seamlet-issue={name}
+        hidden
+      />
+    </div>
+  ))}
+  <div class="seamlet-form-trap" aria-hidden="true">
+    <label>
+      Это поле заполнять не нужно
+      <input
+        type="text"
+        name={REQUEST_TRAP_KEY}
+        tabindex="-1"
+        autocomplete="off"
+      />
+    </label>
+  </div>
+  <div class="seamlet-form-consent">
+    <input
+      id={idOf(REQUEST_CONSENT_KEY)}
+      type="checkbox"
+      name={REQUEST_CONSENT_KEY}
+      value="on"
+      required
+      aria-describedby={issueIdOf(REQUEST_CONSENT_KEY)}
+    />
+    <label for={idOf(REQUEST_CONSENT_KEY)}>
+      Даю{" "}
+      <a href={consentHref} target="_blank" rel="noopener">
+        согласие на обработку персональных данных
+      </a>
+    </label>
+    <p
+      class="seamlet-form-issue"
+      id={issueIdOf(REQUEST_CONSENT_KEY)}
+      data-seamlet-issue={REQUEST_CONSENT_KEY}
+      hidden
+    />
+  </div>
+  <p class="seamlet-form-policy">
+    <a href={policyHref} target="_blank" rel="noopener">
+      Политика обработки персональных данных
+    </a>
+  </p>
+  <button class="seamlet-form-submit" type="submit">
+    {submitLabel}
+  </button>
+  <p class="seamlet-form-sent" role="status" data-seamlet-sent hidden>
+    {sentText}
+  </p>
+  <p class="seamlet-form-failed" role="alert" data-seamlet-failed hidden>
+    {failedText}
+  </p>
+</form>
+
+<style>
+  /* Out of sight and out of reach of the keyboard, yet a field a program fills. */
+  .seamlet-form-trap {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+</style>

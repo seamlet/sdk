@@ -5,6 +5,7 @@ import {
   type Fields,
   type PageProblemReason,
   type RecordPageProblemReason,
+  type RequestFormProblemReason,
   type SchemaProblemReason,
   type SiteConfig,
   type SiteDescription,
@@ -44,6 +45,7 @@ export function describeSite<F extends Fields>(
       ...(searchTexts === undefined ? {} : { searchTexts }),
     }),
   );
+  const forms = definition.forms ?? [];
   const description = {
     id: identity.id,
     title: identity.title,
@@ -51,6 +53,7 @@ export function describeSite<F extends Fields>(
     initialContent: definition.initialContent,
     pages,
     ...(recordPages.length === 0 ? {} : { recordPages }),
+    ...(forms.length === 0 ? {} : { forms }),
   };
 
   // The CMS gets the description as JSON: it is checked as the CMS will see it.
@@ -108,8 +111,26 @@ function problemText(problem: SiteDescriptionProblem): string {
       return `record ${String(problem.index + 1)} of "${problem.collection}" in the initial content has neither a slug nor an id for its page`;
     case "repeated-record-address":
       return `two records of "${problem.collection}" in the initial content have their pages at "${problem.address}": give them other ids or slugs`;
+    case "invalid-forms":
+      return "forms is not a list";
+    case "invalid-form":
+      return `form ${String(problem.index + 1)} of forms: ${FORM_PROBLEM_TEXTS[problem.reason]}`;
+    case "repeated-form-id":
+      return `two forms have the id "${problem.id}": a request names its form by it`;
   }
 }
+
+const FORM_PROBLEM_TEXTS: Readonly<Record<RequestFormProblemReason, string>> = {
+  "not-a-form": "not a form",
+  "invalid-id":
+    'its id is not lower-case Latin letters, digits and hyphens, such as "callback"',
+  "invalid-title": "its title is empty",
+  "no-fields": "it has no fields",
+  "invalid-field-name":
+    'a field\'s name is not a name such as "phone" or "preferredTime"',
+  "invalid-field":
+    "a field is not a request field, or its label, maxLength or options are not sound",
+};
 
 const SCHEMA_PROBLEM_TEXTS: Readonly<Record<SchemaProblemReason, string>> = {
   "not-fields": "not fields of the schema language",

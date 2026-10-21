@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0
+
+- Requests: `requestForm({ id, title, fields })` with `requestText`, `requestLongText`, `requestPhone`, `requestEmail` and `requestChoice` declares a form visitors send the business requests with; `defineSeamletSite` takes them as `forms`, and the site's description tells the CMS about them. `RequestForm.astro` renders one, with a checkbox of consent of its own; it is posted to the CMS without a script, and sent in place with it.
+- `readRequestValues(form, entries)` checks a request the same way in the browser and in the CMS, with issues by field (`required`, `too-long`, `invalid-phone`, `invalid-email`, `unknown-option`) and their texts (`REQUEST_ISSUE_TEXTS`).
+- The events `seamlet:request-send` (cancelable), `seamlet:request-sent` and `seamlet:request-failed` on the form let the site's code send a request its own way or follow it.
+
+A site with forms needs a CMS that reads descriptions of 1.3 (cms.seamlet.ru from its release that takes requests). Code with an exhaustive `switch` over `SiteDescriptionProblem` gets its new members to handle.
+
 ## 1.2.1
 
 - `site.staticPaths(content)` is what Astro's `GetStaticPaths` takes: a static site's `[...page]` route may write `satisfies GetStaticPaths` and read its props with `InferGetStaticPropsType`. `StaticPage` and `RenderedPage` became type aliases, and `staticPaths` returns a mutable array.

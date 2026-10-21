@@ -15,5 +15,6 @@ describe("the coffee shop as the CMS knows it", () => {
     expect(site.description.recordPages).toEqual([
       { path: "/menu/[record]", collection: "menu" },
     ]);
+    expect(site.description.forms?.map((form) => form.id)).toEqual(["table"]);
   });
 });

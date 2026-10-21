@@ -362,6 +362,71 @@ A field is edited where it is seen, so the editor opens what hides it when a per
 
 What was opened stays open while the page is rendered anew after every edit: a part is known again by its `id`, or else by the field marked on it, in it or around it.
 
+## Requests
+
+A visitor sends the business a request from the site: «Обратный звонок», «Рассчитать стоимость», «Бронь столика». The site declares its forms, gives them to `defineSeamletSite` and renders them; the CMS keeps every request a year, writes to the people who edit the site and passes it on where the site's developer says.
+
+```ts
+// src/forms.ts
+import {
+  requestChoice,
+  requestForm,
+  requestLongText,
+  requestPhone,
+  requestText,
+} from "@seamlet/astro/schema";
+
+export const estimateForm = requestForm({
+  id: "estimate",
+  title: "Рассчитать стоимость",
+  fields: {
+    name: requestText({ label: "Имя", required: true }),
+    phone: requestPhone({ label: "Телефон", required: true }),
+    size: requestChoice({ label: "Размер", options: ["6×4", "6×6"] }),
+    comment: requestLongText({ label: "Комментарий", maxLength: 1000 }),
+  },
+});
+```
+
+```ts
+// src/seamlet.ts
+export default defineSeamletSite({
+  schema,
+  initialContent,
+  pages,
+  forms: [estimateForm],
+});
+```
+
+```astro
+---
+import RequestForm from "@seamlet/astro/components/RequestForm.astro";
+import { estimateForm } from "../forms";
+---
+
+<RequestForm form={estimateForm} submitLabel="Рассчитать" />
+```
+
+The fields are `requestText` (a line), `requestLongText` (several lines), `requestPhone`, `requestEmail` and `requestChoice` (one of `options`); each may be `required`, and a text has a `maxLength` (200 for a line, 2000 for several by default). A field's name is a name such as `phone` or `preferredTime`. The form's `title` names its requests in the CMS and in the letters.
+
+`RequestForm.astro` renders plain elements with classes (`seamlet-form`, `seamlet-form-field`, `seamlet-form-issue`, `seamlet-form-consent`, `seamlet-form-policy`, `seamlet-form-submit`, `seamlet-form-sent`, `seamlet-form-failed`), which the site styles from around it: `.contacts :global(.seamlet-form-field)`. Its props are the `form`, the words of the button (`submitLabel`), what the visitor reads once the request is sent or could not be (`sentText`, `failedText`), the addresses of the texts of consent and of the policy (`consentHref`, `policyHref`, the CMS's pages of them by default) and `instance`, which tells apart two forms of the same id on one page.
+
+The visitor consents with a checkbox of its own, never checked beforehand, to the texts the business confirmed in the CMS: until then the CMS takes no requests of the site, and the form says it could not send. Without a script the form is posted to the CMS, which answers with a page of its own; with the package's script (on every page, loaded only where a form is) the visitor stays on the page. The script checks what was typed with the code the CMS checks it with (`readRequestValues`), says what to fix under each field and sends the request.
+
+The site's own code hears every step from events on the form element, which bubble:
+
+- `seamlet:request-send` (`REQUEST_SEND_EVENT`), before the request is sent, with `{ form, entries }`. Cancelable: after `event.preventDefault()` the package sends nothing, and the site sends the request its own way.
+- `seamlet:request-sent` (`REQUEST_SENT_EVENT`), once the CMS has kept it, with `{ form, entries, id }`: a goal of the site's analytics, its own message.
+- `seamlet:request-failed` (`REQUEST_FAILED_EVENT`), with `{ form, reason, issues }`; `reason` is `invalid`, `closed` (the business takes no requests yet), `too-many` or `unavailable`.
+
+```ts
+document.addEventListener(REQUEST_SENT_EVENT, (event) => {
+  ym(COUNTER, "reachGoal", event.detail.form);
+});
+```
+
+A site whose `Content-Security-Policy` sets `connect-src` or `form-action` lets the CMS's origin in both. A request the policy stops on its way is posted by the browser as a plain form.
+
 ## What the integration adds
 
 - `/preview` and `/preview/<page>`: the preview the CMS's editor frames, the pages of records too (at their address or at the record's id, a page the site does not show too). `GET` shows the published content; `POST` with the content as JSON shows that content without saving it, which is how the editor shows every edit at once. Only the CMS may frame it (`Content-Security-Policy: frame-ancestors`), and it is never indexed or cached; its refusals (an address of no page, a record a draft does not have, a draft that is not JSON or is over 1 MB) say the same.
