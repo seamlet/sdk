@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0
+
+- Pages of records: `recordPages(schema, { collection, path: "/menu/[record]" })` gives every record of a collection a page, rendered by one component with `content`, `record` and `index`; `defineSeamletSite` takes them as `recordPages`, the site's description tells the CMS about them, and the preview shows them, a record the editor has just added too.
+- `slug({ label })`: the address of a record's page, checked as an address (`invalid-slug`) and as one of a kind in its collection (`taken-slug`); `slugOf` spells it from Russian words. A record without a slug has its page at its id.
+- `site.pageOf(rest, content)` and `site.staticPaths(content)` render every page of a site from one `[...page]` route, the pages of records too. `site.pageAt` renders the site's own pages only, and is deprecated.
+- The preview answers an address of no page at once, without asking the CMS or reading the draft.
+
+A site with a `slug` or pages of records needs a CMS that reads descriptions of 1.1 (cms.seamlet.ru from its release 1.1.0): an older one refuses the kind `slug`. Code with an exhaustive `switch` over `Field`, `ContentIssue`, `SchemaProblemReason` or `SiteDescriptionProblem` gets their new members to handle.
+
 ## 1.0.0
 
 The first stable version. From here the package follows semver: what a site writes against it keeps building until the next major version.
