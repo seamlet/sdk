@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1
+
+- `site.staticPaths(content)` is what Astro's `GetStaticPaths` takes: a static site's `[...page]` route may write `satisfies GetStaticPaths` and read its props with `InferGetStaticPropsType`. `StaticPage` and `RenderedPage` became type aliases, and `staticPaths` returns a mutable array.
+
 ## 1.2.0
 
 - `productFields()`: the fields of a product of a catalog, for the record of a collection, with its address, photos, a short and a whole description, the price with a word about it, characteristics as pairs of a name and a value, the switch that hides it and what search engines show.
