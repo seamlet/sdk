@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { collection, defineSchema, group, slug, text } from ".";
+import { requestForm, requestPhone, requestText } from "./request-forms";
 import { checkSiteDescription, readSiteDescription } from "./site-description";
 
 const schema = defineSchema({
@@ -282,6 +283,56 @@ describe("readSiteDescription", () => {
         status: "invalid",
         problems: [{ code: "invalid-record-pages" }],
       });
+    });
+  });
+});
+
+describe("the forms of a site's description", () => {
+  const callback = requestForm({
+    id: "callback",
+    title: "Обратный звонок",
+    fields: {
+      name: requestText({ label: "Имя" }),
+      phone: requestPhone({ label: "Телефон", required: true }),
+    },
+  });
+
+  it("are read with the rest of the description", () => {
+    const json: unknown = JSON.parse(
+      JSON.stringify({ ...description, forms: [callback] }),
+    );
+
+    expect(readSiteDescription(json)).toEqual({
+      ...description,
+      forms: [callback],
+    });
+  });
+
+  it("are left out when the site has none", () => {
+    const reading = checkSiteDescription({ ...description, forms: [] });
+
+    expect(reading).toEqual({ status: "read", description });
+  });
+
+  it("say which form is not one and which id is named twice", () => {
+    const reading = checkSiteDescription({
+      ...description,
+      forms: [callback, { ...callback, title: "" }, callback],
+    });
+
+    expect(reading).toEqual({
+      status: "invalid",
+      problems: [
+        { code: "invalid-form", index: 1, reason: "invalid-title" },
+        { code: "repeated-form-id", id: "callback" },
+      ],
+    });
+  });
+
+  it("refuse forms that are not a list", () => {
+    expect(checkSiteDescription({ ...description, forms: {} })).toEqual({
+      status: "invalid",
+      problems: [{ code: "invalid-forms" }],
     });
   });
 });

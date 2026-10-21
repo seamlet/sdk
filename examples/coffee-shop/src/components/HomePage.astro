@@ -5,6 +5,8 @@ import CoffeeShopLayout from "./CoffeeShopLayout.astro";
 import { formatEventDate, hasWords } from "../format";
 import RichText from "@seamlet/astro/components/RichText.astro";
 import MenuList from "./MenuList.astro";
+import RequestForm from "@seamlet/astro/components/RequestForm.astro";
+import { tableForm } from "../forms";
 import type { CoffeeShopContent } from "../schema";
 
 interface Props {
@@ -76,10 +78,57 @@ const edit = editable<CoffeeShopContent>();
         )}
       </section>
     )}
+
+    <section class="booking" aria-labelledby="booking-heading">
+      <h2 id="booking-heading">Забронировать столик</h2>
+      <RequestForm form={tableForm} submitLabel="Забронировать" />
+    </section>
   </main>
 </CoffeeShopLayout>
 
 <style>
+  .booking {
+    max-width: 32rem;
+    padding-block: 2rem 3rem;
+  }
+
+  .booking :global(.seamlet-form-field),
+  .booking :global(.seamlet-form-consent) {
+    display: grid;
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .booking :global(.seamlet-form-consent) {
+    grid-template-columns: auto 1fr;
+    align-items: start;
+  }
+
+  .booking :global(input:not([type="checkbox"])),
+  .booking :global(textarea) {
+    font: inherit;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--roast-muted);
+    border-radius: 0.5rem;
+  }
+
+  .booking :global(.seamlet-form-issue) {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--roast);
+    font-weight: 600;
+  }
+
+  .booking :global(.seamlet-form-submit) {
+    font: inherit;
+    padding: 0.75rem 1.5rem;
+    border: 0;
+    border-radius: 999px;
+    background: var(--roast);
+    color: var(--paper);
+    cursor: pointer;
+  }
+
   .hero,
   main {
     max-width: 60rem;
@@ -136,7 +185,8 @@ const edit = editable<CoffeeShopContent>();
   .more {
     display: inline-block;
     margin-top: 1rem;
-    color: var(--terracotta);
+    color: var(--roast);
+    font-weight: 600;
   }
 
   .event {

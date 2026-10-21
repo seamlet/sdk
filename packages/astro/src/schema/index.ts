@@ -163,3 +163,62 @@ export {
 } from "./record-pages";
 export { isSlug, MAX_SLUG_LENGTH, slugOf } from "./slugs";
 export { slugFieldOf } from "./slug-checks";
+export {
+  DEFAULT_LONG_TEXT_LENGTH,
+  DEFAULT_TEXT_LENGTH,
+  isFormId,
+  MAX_REQUEST_FIELD_LENGTH,
+  maxLengthOf,
+  readRequestForm,
+  requestChoice,
+  requestEmail,
+  requestForm,
+  requestLongText,
+  requestPhone,
+  requestText,
+  type RequestChoiceField,
+  type RequestEmailField,
+  type RequestField,
+  type RequestFieldKind,
+  type RequestFields,
+  type RequestForm,
+  type RequestFormProblemReason,
+  type RequestFormReading,
+  type RequestLongTextField,
+  type RequestPhoneField,
+  type RequestTextField,
+} from "./request-forms";
+export {
+  CONSENT_REQUIRED_TEXT,
+  isConsentGiven,
+  isEmailAddress,
+  isPhoneNumber,
+  isTrapFilled,
+  readRequestEntries,
+  readRequestValues,
+  REQUEST_CONSENT_KEY,
+  REQUEST_FORM_KEY,
+  REQUEST_ISSUE_TEXTS,
+  REQUEST_PAGE_KEY,
+  REQUEST_TRAP_KEY,
+  requestPageOf,
+  type RequestEntries,
+  type RequestIssue,
+  type RequestIssueCode,
+  type RequestReading,
+  type RequestValue,
+} from "./request-values";
+export {
+  legalPagePathOf,
+  requestsPathOf,
+  type LegalDocument,
+} from "./request-addresses";
+export {
+  REQUEST_FAILED_EVENT,
+  REQUEST_SEND_EVENT,
+  REQUEST_SENT_EVENT,
+  type RequestFailedDetail,
+  type RequestFailure,
+  type RequestSendDetail,
+  type RequestSentDetail,
+} from "./request-events";

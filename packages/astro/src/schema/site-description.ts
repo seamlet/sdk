@@ -4,6 +4,11 @@ import type { Fields } from "./fields";
 import { isJsonObject, isText } from "./json-values";
 import { parseContent, type ContentIssue } from "./parse-content";
 import { checkFields, type SchemaProblem } from "./read-fields";
+import {
+  readRequestForm,
+  type RequestForm,
+  type RequestFormProblemReason,
+} from "./request-forms";
 import { collectionAt, collectionFieldAt } from "./record-ids";
 import {
   isRecordPagePath,
@@ -15,7 +20,7 @@ import { isSiteId } from "./site-config";
 import { PAGE_SEGMENT } from "./slugs";
 
 // What a site tells the CMS about itself: its id, its name, the schema of its content, the content
-// it starts with and its pages. The site hands it out (`SITE_DESCRIPTION_PATH`), the CMS takes it
+// it starts with, its pages and the forms its visitors send requests with. The site hands it out (`SITE_DESCRIPTION_PATH`), the CMS takes it
 // from there, so connecting a site or changing its schema needs no change of the CMS.
 
 /** Where a site hands out its description, on the origin of its preview. */
@@ -46,6 +51,8 @@ export interface SiteDescription {
   readonly pages: readonly [SitePageDescription, ...SitePageDescription[]];
   /** The pages of the records of collections; left out when the site has none. */
   readonly recordPages?: readonly SiteRecordPageDescription[];
+  /** The forms of the site's requests; left out when the site has none. */
+  readonly forms?: readonly RequestForm[];
 }
 
 /** Why a site's description cannot be read: what to fix in the site. */
@@ -94,7 +101,17 @@ export type SiteDescriptionProblem =
       readonly code: "repeated-record-address";
       readonly collection: string;
       readonly address: string;
-    };
+    }
+  /** The forms are not a list. */
+  | { readonly code: "invalid-forms" }
+  /** The form at this place of the list is not one. */
+  | {
+      readonly code: "invalid-form";
+      readonly index: number;
+      readonly reason: RequestFormProblemReason;
+    }
+  /** Two forms with one id: a request names its form by it. */
+  | { readonly code: "repeated-form-id"; readonly id: string };
 
 export type PageProblemReason =
   | "not-a-page"
@@ -151,6 +168,7 @@ export function checkSiteDescription(input: unknown): SiteDescriptionReading {
   const initial = parseContent(schema.fields, input["initialContent"]);
   const pages = checkPages(schema.fields, input["pages"]);
   const recordPages = checkRecordPages(schema.fields, input["recordPages"]);
+  const forms = checkForms(input["forms"]);
   const problems = [
     ...nameProblems,
     ...initialContentProblems(initial.issues),
@@ -158,9 +176,13 @@ export function checkSiteDescription(input: unknown): SiteDescriptionReading {
     ...recordPages.problems,
     ...placementProblems(pages.pages ?? [], recordPages.pages ?? []),
     ...addressProblems(schema.fields, initial.content, recordPages.pages ?? []),
+    ...forms.problems,
   ];
   const isNamed = isSiteId(id) && isText(title);
-  const isWhole = pages.pages !== undefined && recordPages.pages !== undefined;
+  const isWhole =
+    pages.pages !== undefined &&
+    recordPages.pages !== undefined &&
+    forms.forms !== undefined;
   if (!isNamed || !isWhole || problems.length > 0) {
     return invalid(problems);
   }
@@ -174,6 +196,7 @@ export function checkSiteDescription(input: unknown): SiteDescriptionReading {
     ...(recordPages.pages.length === 0
       ? {}
       : { recordPages: recordPages.pages }),
+    ...(forms.forms.length === 0 ? {} : { forms: forms.forms }),
   };
   return { status: "read", description };
 }
@@ -324,6 +347,37 @@ function readRecordPage(
   return isSearchTexts
     ? { path, collection, searchTexts }
     : "invalid-search-texts";
+}
+
+interface FormsReading {
+  readonly forms: readonly RequestForm[] | undefined;
+  readonly problems: readonly SiteDescriptionProblem[];
+}
+
+/** The forms the input lists, each id once; none when it lists none. */
+function checkForms(input: unknown): FormsReading {
+  if (input === undefined) return { forms: [], problems: [] };
+  if (!Array.isArray(input)) {
+    return { forms: undefined, problems: [{ code: "invalid-forms" }] };
+  }
+
+  const entries: readonly unknown[] = input;
+  const readings = entries.map((entry) => readRequestForm(entry));
+  const formProblems = readings.flatMap((reading, index) =>
+    reading.status === "invalid"
+      ? [{ code: "invalid-form", index, reason: reading.reason } as const]
+      : [],
+  );
+  const forms = readings.flatMap((reading) =>
+    reading.status === "read" ? [reading.form] : [],
+  );
+  const ids = forms.map((form) => form.id);
+  const repeated = ids.filter((id, index) => ids.indexOf(id) !== index);
+  const repeatProblems = [...new Set(repeated)].map(
+    (id) => ({ code: "repeated-form-id", id }) as const,
+  );
+  const problems = [...formProblems, ...repeatProblems];
+  return { forms: problems.length === 0 ? forms : undefined, problems };
 }
 
 /** The pages of the site where the pages of records are: a record could never have that address. */
