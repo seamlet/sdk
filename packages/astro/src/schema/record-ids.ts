@@ -83,6 +83,7 @@ function collectionIn(
     case "number":
     case "date":
     case "image":
+    case "file":
     case "link":
     case "toggle":
     case "choice":
@@ -121,6 +122,7 @@ export function collectionFieldAt(
     case "number":
     case "date":
     case "image":
+    case "file":
     case "link":
     case "toggle":
     case "choice":
@@ -174,6 +176,7 @@ function withIdsIn(
     case "number":
     case "date":
     case "image":
+    case "file":
     case "link":
     case "toggle":
     case "choice":

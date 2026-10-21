@@ -27,6 +27,7 @@ import type {
   DateField,
   Field,
   Fields,
+  FileField,
   ImageField,
   LinkField,
   NumberField,
@@ -63,6 +64,7 @@ export type ContentIssue =
       readonly max: number;
     }
   | { readonly path: FieldPath; readonly code: "missing-image-src" }
+  | { readonly path: FieldPath; readonly code: "missing-file-src" }
   | { readonly path: FieldPath; readonly code: "missing-link-href" }
   | { readonly path: FieldPath; readonly code: "unsupported-link-href" }
   | { readonly path: FieldPath; readonly code: "unsupported-url" }
@@ -173,6 +175,8 @@ function parseField(
       return parseDate(field, input, path);
     case "image":
       return parseImage(field, input, path);
+    case "file":
+      return parseFile(field, input, path);
     case "link":
       return parseLink(field, input, path);
     case "toggle":
@@ -332,6 +336,27 @@ function parseImage(
     return { value: image, issues: [{ path, code: "missing-image-src" }] };
   }
   return valid(image);
+}
+
+function parseFile(
+  field: FileField,
+  input: unknown,
+  path: FieldPath,
+): ParsedValue {
+  if (input === null) {
+    return valid(null);
+  }
+  const src = isJsonObject(input) ? input["src"] : undefined;
+  const name = isJsonObject(input) ? input["name"] : undefined;
+  if (typeof src !== "string" || typeof name !== "string") {
+    return invalidType(defaultValue(field), path);
+  }
+
+  const file = { src, name };
+  if (src.trim() === "") {
+    return { value: file, issues: [{ path, code: "missing-file-src" }] };
+  }
+  return valid(file);
 }
 
 function parseLink(

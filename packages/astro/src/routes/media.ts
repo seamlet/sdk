@@ -1,10 +1,10 @@
 import type { APIRoute } from "astro";
 import { cmsOrigin } from "virtual:seamlet/config";
 import site from "virtual:seamlet/site";
-import { isUploadedPhoto } from "../preview-requests";
+import { isUploadedFile } from "../preview-requests";
 import { uploadedPhotoPath } from "../site-addresses";
 
-// The photos uploaded in the CMS, at the addresses the content gives them (`/media/<site>/…`).
+// The photos and documents uploaded in the CMS, at the addresses the content gives them (`/media/<site>/…`).
 // A static build of the site copies them; the preview and the pages rendered on request take them
 // from the CMS here.
 
@@ -16,7 +16,7 @@ const PHOTO_TIMEOUT_MS = 10_000;
 
 export const GET: APIRoute = async ({ params }) => {
   const fileName = params["file"];
-  const isOurs = params["site"] === site.id && isUploadedPhoto(fileName);
+  const isOurs = params["site"] === site.id && isUploadedFile(fileName);
   if (!isOurs) {
     return new Response(null, { status: NOT_FOUND });
   }

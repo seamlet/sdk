@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0
+
+- Documents: `file({ label })` holds a PDF the owner uploads in the CMS, `{ src, name }` (`FileValue`): a price list, a menu, a contract. An empty name of a file asks for its file (`missing-file-src`). A static build copies the uploaded documents its pages link to, as it copies the photos, and the route of uploads serves them on request; `isUploadedFile` names both.
+
+A site with a file field needs a CMS that reads 1.4 (cms.seamlet.ru from its release that takes documents). Code with an exhaustive `switch` over `FieldKind` or over the issues of `parseContent` gets the new member to handle.
+
 ## 1.3.0
 
 - Requests: `requestForm({ id, title, fields })` with `requestText`, `requestLongText`, `requestPhone`, `requestEmail` and `requestChoice` declares a form visitors send the business requests with; `defineSeamletSite` takes them as `forms`, and the site's description tells the CMS about them. `RequestForm.astro` renders one, with a checkbox of consent of its own; it is posted to the CMS without a script, and sent in place with it.

@@ -1,13 +1,14 @@
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { isUploadedPhoto } from "./preview-requests";
+import { isUploadedFile } from "./preview-requests";
 import { UPLOADS_PATH } from "./site-addresses";
 
-// The photos uploaded in the CMS, copied into a static build. A built page refers to them at the
-// addresses its content gives (`/media/<site>/<file>.webp`), and a static host has no route to take
-// them from the CMS on request, so the build puts every photo its pages refer to next to them.
+// The photos and documents uploaded in the CMS, copied into a static build. A built page refers to
+// them at the addresses its content gives (`/media/<site>/<file>.webp`, `.pdf`), and a static host
+// has no route to take them from the CMS on request, so the build puts every upload its pages refer
+// to next to them.
 
-/** `/media/<site>/<file>`; only the site's own photos are its uploads (see isUploadedPhoto). */
+/** `/media/<site>/<file>`; only the site's own uploads (see isUploadedFile). */
 const PHOTO_ADDRESS = new RegExp(
   `${UPLOADS_PATH}/([^/\\s"'<>]+)/([^/\\s"'<>?#]+)`,
   "gu",
@@ -28,7 +29,7 @@ export function uploadedPhotoAddresses(
 ): readonly string[] {
   const addresses = [...html.matchAll(PHOTO_ADDRESS)].flatMap(
     ([address, site, fileName]) =>
-      site === siteId && isUploadedPhoto(fileName) ? [address] : [],
+      site === siteId && isUploadedFile(fileName) ? [address] : [],
   );
   return [...new Set(addresses)];
 }

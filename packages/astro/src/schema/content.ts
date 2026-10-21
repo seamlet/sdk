@@ -7,6 +7,7 @@ import type {
   DateField,
   Field,
   Fields,
+  FileField,
   GroupField,
   ImageField,
   LinkField,
@@ -35,6 +36,14 @@ export interface ImageValue {
   readonly focus?: ImageFocus;
 }
 
+/** A document uploaded in the CMS: where it is and the name the site shows for it. */
+export interface FileValue {
+  /** `/media/<site>/<file>.pdf`, or an address of the site's own files. */
+  readonly src: string;
+  /** «Прайс-лист», «Меню банкета»: the words of the link to it. */
+  readonly name: string;
+}
+
 export interface LinkValue {
   readonly text: string;
   /** A path of the site (`/menu`), a web address, `tel:` or `mailto:`; see linkTargetOf. */
@@ -55,29 +64,31 @@ export type ValueOf<F extends Field> = F extends TextField
         ? string | null
         : F extends ImageField
           ? ImageValue | null
-          : F extends LinkField
-            ? LinkValue | null
-            : F extends ToggleField
-              ? boolean
-              : F extends ChoiceField<infer Options>
-                ? OptionValue<Options> | null
-                : F extends ChoicesField<infer Options>
-                  ? readonly OptionValue<Options>[]
-                  : F extends UrlField
-                    ? string | null
-                    : F extends TimeField
+          : F extends FileField
+            ? FileValue | null
+            : F extends LinkField
+              ? LinkValue | null
+              : F extends ToggleField
+                ? boolean
+                : F extends ChoiceField<infer Options>
+                  ? OptionValue<Options> | null
+                  : F extends ChoicesField<infer Options>
+                    ? readonly OptionValue<Options>[]
+                    : F extends UrlField
                       ? string | null
-                      : F extends SlugField
-                        ? string
-                        : F extends ReferenceField
-                          ? string | null
-                          : F extends ReferencesField
-                            ? readonly string[]
-                            : F extends GroupField<infer Group>
-                              ? ContentOf<Group>
-                              : F extends CollectionField<infer Item>
-                                ? readonly RecordOf<Item>[]
-                                : never;
+                      : F extends TimeField
+                        ? string | null
+                        : F extends SlugField
+                          ? string
+                          : F extends ReferenceField
+                            ? string | null
+                            : F extends ReferencesField
+                              ? readonly string[]
+                              : F extends GroupField<infer Group>
+                                ? ContentOf<Group>
+                                : F extends CollectionField<infer Item>
+                                  ? readonly RecordOf<Item>[]
+                                  : never;
 
 /**
  * A record of a collection: its fields and its id. The id is missing only in content no editor has
@@ -107,6 +118,7 @@ export type FieldValue =
   | null
   | readonly string[]
   | ImageValue
+  | FileValue
   | LinkValue
   | RichText
   | Content
@@ -126,6 +138,7 @@ export function defaultValue(field: Field): FieldValue {
     case "number":
     case "date":
     case "image":
+    case "file":
     case "link":
     case "choice":
     case "url":
