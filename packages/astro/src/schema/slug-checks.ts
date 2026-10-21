@@ -49,6 +49,7 @@ function issuesInField(
     case "number":
     case "date":
     case "image":
+    case "file":
     case "link":
     case "toggle":
     case "choice":

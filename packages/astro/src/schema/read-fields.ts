@@ -130,6 +130,7 @@ function readFieldOfKind(field: FieldInput): Reading<Field> {
       ]);
     case "date":
     case "image":
+    case "file":
     case "link":
     case "toggle":
     case "url":
@@ -239,6 +240,7 @@ function unknownCollectionIn(
     case "number":
     case "date":
     case "image":
+    case "file":
     case "link":
     case "toggle":
     case "choice":
@@ -278,6 +280,7 @@ function misplacedSlugIn(
     case "number":
     case "date":
     case "image":
+    case "file":
     case "link":
     case "toggle":
     case "choice":
@@ -347,6 +350,7 @@ const FIELD_KINDS: Readonly<Record<FieldKind, true>> = {
   number: true,
   date: true,
   image: true,
+  file: true,
   link: true,
   toggle: true,
   choice: true,

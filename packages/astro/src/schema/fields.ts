@@ -44,6 +44,15 @@ export interface ImageField {
 }
 
 /**
+ * A document a visitor opens or downloads: a price list, a menu, a contract, uploaded in the CMS as
+ * a PDF. Its value is the file's address and the name the site shows for it.
+ */
+export interface FileField {
+  readonly kind: "file";
+  readonly label: string;
+}
+
+/**
  * A link: its text and where it leads (a page of the site, another site, a phone or an email).
  * The site decides how it looks; a button «Записаться» stays a button.
  */
@@ -148,6 +157,7 @@ export type Field =
   | NumberField
   | DateField
   | ImageField
+  | FileField
   | LinkField
   | ToggleField
   | ChoiceField
@@ -195,6 +205,10 @@ export function date(options: FieldOptions<DateField>): DateField {
 
 export function image(options: FieldOptions<ImageField>): ImageField {
   return { kind: "image", ...options };
+}
+
+export function file(options: FieldOptions<FileField>): FileField {
+  return { kind: "file", ...options };
 }
 
 export function link(options: FieldOptions<LinkField>): LinkField {

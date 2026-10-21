@@ -128,6 +128,7 @@ The site's pages take their published content with `site.loadPublishedContent()`
 | `time({ label })`                          | `HH:MM`, 00:00 to 23:59                                                 | `null`           |
 | `slug({ label })`                          | the address of a record's page, `latte` in `/menu/latte` (below)        | `""`             |
 | `image({ label })`                         | `{ src, alt }`                                                          | `null`           |
+| `file({ label })`                          | `{ src, name }`: a PDF uploaded in the CMS, a price list or a menu      | `null`           |
 | `link({ label })`                          | `{ text, href }`: a page of the site, another site, a phone or an email | `null`           |
 | `url({ label })`                           | a web address without a text: a booking widget, a map                   | `null`           |
 | `toggle({ label })`                        | `true` or `false`                                                       | `false`          |
@@ -137,6 +138,16 @@ The site's pages take their published content with `site.loadPublishedContent()`
 | `references({ label, collection })`        | the `id`s of any number of such records                                 | `[]`             |
 | `group({ label, fields })`                 | named fields shown together                                             | each field empty |
 | `collection({ label, item, itemTitle? })`  | a list of records of the same fields                                    | `[]`             |
+
+A file is a document the owner uploads in the CMS as a PDF. The site links to it, and a static build copies it next to its pages as it copies the uploaded photos:
+
+```astro
+{content.priceList && (
+  <a href={safeHref(content.priceList.src)} download>
+    {content.priceList.name}
+  </a>
+)}
+```
 
 Options are `{ value, label }`: the site reads `value`, the editor shows `label`, so a label can change without touching the site. The content has their exact type:
 

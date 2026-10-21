@@ -16,6 +16,14 @@ describe("uploadedPhotoAddresses", () => {
     ]);
   });
 
+  it("finds the uploaded documents a page links to", () => {
+    const html = `<a href="/media/dzen-yoga/0123456789abcdef.pdf" download>Прайс</a>`;
+
+    expect(uploadedPhotoAddresses(html, "dzen-yoga")).toEqual([
+      "/media/dzen-yoga/0123456789abcdef.pdf",
+    ]);
+  });
+
   it("leaves out what no upload can be", () => {
     const html = `<img src="/media/dzen-yoga/photo.jpg"><img src="/media/../secret.webp"><img src="/_astro/hall.webp">`;
 

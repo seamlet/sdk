@@ -20,6 +20,8 @@ const BAD_REQUEST = 400;
 const PAYLOAD_TOO_LARGE = 413;
 const UNSUPPORTED_MEDIA_TYPE = 415;
 const UPLOADED_PHOTO = /^[A-Za-z0-9_-]+\.webp$/u;
+/** An upload of the CMS: a photo as WebP or a document as PDF, named by the hash of its bytes. */
+const UPLOADED_FILE = /^[A-Za-z0-9_-]+\.(?:webp|pdf)$/u;
 
 /**
  * What every answer of the preview says, a refusal too: only the CMS's editor frames it, and
@@ -103,6 +105,13 @@ export function isUploadedPhoto(
   fileName: string | undefined,
 ): fileName is string {
   return fileName !== undefined && UPLOADED_PHOTO.test(fileName);
+}
+
+/** Whether a name can be a file uploaded to the CMS: a photo or a document. */
+export function isUploadedFile(
+  fileName: string | undefined,
+): fileName is string {
+  return fileName !== undefined && UPLOADED_FILE.test(fileName);
 }
 
 /** The body as text, or undefined once it grows past the limit; it is read no further then. */
