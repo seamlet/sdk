@@ -1,0 +1,75 @@
+---
+// The page of one drink of the menu: the same drink the menu lists, with room for its story.
+import RichText from "@seamlet/astro/components/RichText.astro";
+import { editable } from "@seamlet/astro/schema";
+import CoffeeShopLayout from "./CoffeeShopLayout.astro";
+import { formatPrice, hasWords } from "../format";
+import type { CoffeeShopContent, Drink } from "../schema";
+
+interface Props {
+  content: CoffeeShopContent;
+  record: Drink;
+  /** The drink's place in the menu: the markers name its fields by it. */
+  index: number;
+}
+
+const { content, record: drink, index } = Astro.props;
+const edit = editable<CoffeeShopContent>();
+---
+
+<CoffeeShopLayout
+  content={content}
+  title={`${drink.name} — ${content.hero.title}`}
+  path="/menu"
+>
+  <main>
+    <a class="back" href="/menu">
+      ← {content.menuPage.title}
+    </a>
+    <article {...edit("menu", index)}>
+      <h1 {...edit("menu", index, "name")}>{drink.name}</h1>
+      {drink.price !== null && (
+        <p class="price" {...edit("menu", index, "price")}>
+          {formatPrice(drink.price)}
+        </p>
+      )}
+      {hasWords(drink.description) && (
+        <p class="description" {...edit("menu", index, "description")}>
+          <RichText value={drink.description} inline />
+        </p>
+      )}
+    </article>
+  </main>
+</CoffeeShopLayout>
+
+<style>
+  main {
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 2rem 1rem 3rem;
+  }
+
+  .back {
+    color: var(--roast-muted);
+  }
+
+  h1 {
+    margin: 1.5rem 0 0.5rem;
+    font-size: clamp(2.25rem, 1.5rem + 3vw, 3.5rem);
+    line-height: 1.05;
+  }
+
+  .price {
+    margin: 0;
+    font-family: ui-monospace, monospace;
+    font-size: 1.25rem;
+    color: var(--terracotta);
+  }
+
+  .description {
+    margin: 1rem 0 0;
+    font-size: 1.2rem;
+    line-height: 1.5;
+    color: var(--roast-muted);
+  }
+</style>

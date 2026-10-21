@@ -19,6 +19,7 @@ export function typedKindAt(
     case "number":
     case "date":
     case "time":
+    case "slug":
     case "image":
     case "link":
     case "url":

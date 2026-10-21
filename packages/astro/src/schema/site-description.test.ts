@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defineSchema, group, text } from ".";
+import { collection, defineSchema, group, slug, text } from ".";
 import { checkSiteDescription, readSiteDescription } from "./site-description";
 
 const schema = defineSchema({
@@ -118,6 +118,170 @@ describe("readSiteDescription", () => {
           problem: { path: ["a.b"], reason: "invalid-name" },
         },
       ],
+    });
+  });
+
+  describe("the pages of records", () => {
+    const shop = defineSchema({
+      title: text({ label: "Заголовок" }),
+      products: collection({
+        label: "Товары",
+        item: {
+          name: text({ label: "Название" }),
+          address: slug({ label: "Адрес страницы" }),
+          seo: group({
+            label: "Поиск",
+            fields: {
+              title: text({ label: "Заголовок" }),
+              description: text({ label: "Описание" }),
+            },
+          }),
+        },
+      }),
+    });
+    const shopDescription = {
+      id: "shop",
+      title: "Магазин",
+      schema: shop,
+      initialContent: {
+        title: "Магазин",
+        products: [
+          {
+            name: "Баня",
+            address: "banya",
+            seo: { title: "", description: "" },
+          },
+          {
+            id: "dom",
+            name: "Дом",
+            address: "",
+            seo: { title: "", description: "" },
+          },
+        ],
+      },
+      pages: [
+        { path: "/", title: "Главная" },
+        { path: "/catalog", title: "Каталог" },
+      ],
+      recordPages: [
+        {
+          path: "/catalog/[record]",
+          collection: "products",
+          searchTexts: "seo",
+        },
+      ],
+    };
+
+    it("reads them through JSON, and leaves them out of a site without them", () => {
+      const json: unknown = JSON.parse(JSON.stringify(shopDescription));
+
+      expect(readSiteDescription(json)).toEqual(shopDescription);
+      expect(readSiteDescription(description)).not.toHaveProperty(
+        "recordPages",
+      );
+    });
+
+    it("says every problem of them", () => {
+      const reading = checkSiteDescription({
+        ...shopDescription,
+        pages: [
+          ...shopDescription.pages,
+          { path: "/catalog/sale", title: "Скидки" },
+        ],
+        recordPages: [
+          { path: "/catalog/[record]", collection: "products" },
+          { path: "/shop/[record]", collection: "products" },
+          { path: "/[record]", collection: "products" },
+          { path: "/news/[record]", collection: "news" },
+          {
+            path: "/goods/[record]",
+            collection: "products",
+            searchTexts: "name",
+          },
+          "/catalog/[record]",
+        ],
+      });
+
+      expect(reading).toEqual({
+        status: "invalid",
+        problems: [
+          { code: "invalid-record-page", index: 2, reason: "invalid-path" },
+          {
+            code: "invalid-record-page",
+            index: 3,
+            reason: "unknown-collection",
+          },
+          {
+            code: "invalid-record-page",
+            index: 4,
+            reason: "invalid-search-texts",
+          },
+          { code: "invalid-record-page", index: 5, reason: "not-a-page" },
+          { code: "repeated-record-pages", collection: "products" },
+        ],
+      });
+    });
+
+    it("refuses a page of the site among them, and a record without an address", () => {
+      const reading = checkSiteDescription({
+        ...shopDescription,
+        pages: [
+          ...shopDescription.pages,
+          { path: "/catalog/sale", title: "Скидки" },
+        ],
+        initialContent: {
+          ...shopDescription.initialContent,
+          products: [
+            { name: "Баня", address: "", seo: { title: "", description: "" } },
+          ],
+        },
+      });
+
+      expect(reading).toEqual({
+        status: "invalid",
+        problems: [
+          { code: "page-among-record-pages", path: "/catalog/sale" },
+          { code: "record-without-address", collection: "products", index: 0 },
+        ],
+      });
+    });
+
+    it("refuses two records of the initial content at one address", () => {
+      const record = {
+        name: "Баня",
+        address: "",
+        seo: { title: "", description: "" },
+      };
+      const reading = checkSiteDescription({
+        ...shopDescription,
+        initialContent: {
+          ...shopDescription.initialContent,
+          products: [
+            { ...record, id: "banya" },
+            { ...record, id: "banya" },
+          ],
+        },
+      });
+
+      expect(reading).toEqual({
+        status: "invalid",
+        problems: [
+          {
+            code: "repeated-record-address",
+            collection: "products",
+            address: "banya",
+          },
+        ],
+      });
+    });
+
+    it("refuses pages of records that are not a list", () => {
+      expect(
+        checkSiteDescription({ ...shopDescription, recordPages: {} }),
+      ).toEqual({
+        status: "invalid",
+        problems: [{ code: "invalid-record-pages" }],
+      });
     });
   });
 });

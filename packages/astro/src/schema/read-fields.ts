@@ -34,7 +34,9 @@ export type SchemaProblemReason =
   /** `itemTitle` names no text or link field of the record. */
   | "invalid-item-title"
   /** A reference names a collection the schema does not have. */
-  | "unknown-collection";
+  | "unknown-collection"
+  /** A slug that is not the one slug of a record of a collection: only a record's page has one. */
+  | "misplaced-slug";
 
 export interface SchemaProblem {
   /** The names of the fields down to the field with the problem; empty for the schema itself. */
@@ -69,7 +71,9 @@ export function checkFields(input: unknown): FieldsReading {
   const reading = readFieldsAt(input, []);
   if (!reading.isRead) return { status: "invalid", problem: reading.problem };
 
-  const problem = firstUnknownCollection(reading.value, reading.value, []);
+  const problem =
+    firstUnknownCollection(reading.value, reading.value, []) ??
+    firstMisplacedSlug(reading.value, []);
   return problem === undefined
     ? { status: "read", fields: reading.value }
     : { status: "invalid", problem };
@@ -130,6 +134,7 @@ function readFieldOfKind(field: FieldInput): Reading<Field> {
     case "toggle":
     case "url":
     case "time":
+    case "slug":
       return read({ kind, label });
     case "choice":
     case "choices":
@@ -240,8 +245,67 @@ function unknownCollectionIn(
     case "choices":
     case "url":
     case "time":
+    case "slug":
       return undefined;
   }
+}
+
+/** The first slug outside a record of a collection, or a second slug of a record. */
+function firstMisplacedSlug(
+  fields: Fields,
+  path: FieldPathNames,
+): SchemaProblem | undefined {
+  for (const [name, field] of Object.entries(fields)) {
+    const problem = misplacedSlugIn(field, [...path, name]);
+    if (problem !== undefined) return problem;
+  }
+  return undefined;
+}
+
+function misplacedSlugIn(
+  field: Field,
+  path: FieldPathNames,
+): SchemaProblem | undefined {
+  switch (field.kind) {
+    case "slug":
+      return { path, reason: "misplaced-slug" };
+    case "group":
+      return firstMisplacedSlug(field.fields, path);
+    case "collection":
+      return misplacedSlugInRecord(field.item, path);
+    case "text":
+    case "richText":
+    case "number":
+    case "date":
+    case "image":
+    case "link":
+    case "toggle":
+    case "choice":
+    case "choices":
+    case "url":
+    case "time":
+    case "reference":
+    case "references":
+      return undefined;
+  }
+}
+
+/** A record has one slug of its own; the groups and collections inside it have none. */
+function misplacedSlugInRecord(
+  item: Fields,
+  path: FieldPathNames,
+): SchemaProblem | undefined {
+  const fields = Object.entries(item);
+  const slugNames = fields
+    .filter(([, field]) => field.kind === "slug")
+    .map(([name]) => name);
+  const [, secondSlug] = slugNames;
+  if (secondSlug !== undefined) {
+    return { path: [...path, secondSlug], reason: "misplaced-slug" };
+  }
+
+  const otherFields = fields.filter(([, field]) => field.kind !== "slug");
+  return firstMisplacedSlug(Object.fromEntries(otherFields), path);
 }
 
 function referencesCollection(
@@ -289,6 +353,7 @@ const FIELD_KINDS: Readonly<Record<FieldKind, true>> = {
   choices: true,
   url: true,
   time: true,
+  slug: true,
   reference: true,
   references: true,
   group: true,

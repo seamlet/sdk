@@ -67,7 +67,7 @@ npx astro add @seamlet/astro node                   # the integration, and an ad
    <h1 {...edit("title")}>{content.title}</h1>
    ```
 
-4. Describe the site for the CMS in `src/seamlet.ts`: its schema, the content it starts with, and its pages, each with the name the editor gives it and the component that renders it (it takes the content as its `content` prop). The home page `/` comes first; `searchTexts` names where the content holds a page's title and description for search engines, a group of a `title` and a `description` text (`seoFields`).
+4. Describe the site for the CMS in `src/seamlet.ts`: its schema, the content it starts with, and its pages, each with the name the editor gives it and the component that renders it (it takes the content as its `content` prop), and the pages of records if it has them (see «Pages of records»). The home page `/` comes first; `searchTexts` names where the content holds a page's title and description for search engines, a group of a `title` and a `description` text (`seoFields`).
 
    ```ts
    // src/seamlet.ts
@@ -98,6 +98,23 @@ npx astro add @seamlet/astro node                   # the integration, and an ad
    });
    ```
 
+A site renders all its pages, the pages of records too (below), from one route `src/pages/[...page].astro`: `site.staticPaths(content)` lists every page for a static build, and `site.pageOf(rest, content)` finds the one asked for on request; each gives the component and the props to render it with.
+
+```astro
+---
+// src/pages/[...page].astro, built as static pages
+import site from "../seamlet";
+
+export async function getStaticPaths() {
+  return site.staticPaths(await site.loadPublishedContent());
+}
+
+const { component: Page, props } = Astro.props;
+---
+
+<Page {...props} />
+```
+
 The site's pages take their published content with `site.loadPublishedContent()`: at build time for a static site, on request otherwise. Until the first publication, and while the CMS does not know the site yet (a site connected from its repository is built before that), it is the site's initial content; any other refusal of the CMS stops the build. A module that needs the content without importing every page takes it with `loadPublishedContent(schema)` of `@seamlet/astro/site`.
 
 ## Fields
@@ -109,6 +126,7 @@ The site's pages take their published content with `site.loadPublishedContent()`
 | `number({ label, min?, max? })`            | a number                                                                | `null`           |
 | `date({ label })`                          | `YYYY-MM-DD`                                                            | `null`           |
 | `time({ label })`                          | `HH:MM`, 00:00 to 23:59                                                 | `null`           |
+| `slug({ label })`                          | the address of a record's page, `latte` in `/menu/latte` (below)        | `""`             |
 | `image({ label })`                         | `{ src, alt }`                                                          | `null`           |
 | `link({ label })`                          | `{ text, href }`: a page of the site, another site, a phone or an email | `null`           |
 | `url({ label })`                           | a web address without a text: a booking widget, a map                   | `null`           |
@@ -239,6 +257,70 @@ const schema = defineSchema({
 
 A reference to a record removed since is kept, with the issue `missing-record`: the content is not saved until the person picks another one or clears it.
 
+## Pages of records
+
+A collection can have a page for each of its records: a product, a dish, an article. The site writes one component, and the owner who adds a record in the CMS gets its page, which the CMS's editor opens and edits like any other page (a CMS that reads descriptions of version 1.1, as cms.seamlet.ru does from its release 1.1.0). `recordPages` names the collection and the address of its pages, `[record]` standing for the record:
+
+```ts
+// src/schema.ts
+import { recordPages, slug } from "@seamlet/astro/schema";
+
+export const schema = defineSchema({
+  menu: collection({
+    label: "Меню",
+    itemTitle: "name",
+    item: {
+      name: text({ label: "Название" }),
+      price: number({ label: "Цена, ₽", min: 0 }),
+      slug: slug({ label: "Адрес страницы" }),
+    },
+  }),
+});
+
+export const drinkPages = recordPages(schema, {
+  collection: "menu",
+  path: "/menu/[record]",
+});
+```
+
+```ts
+// src/seamlet.ts
+export default defineSeamletSite({
+  schema,
+  initialContent,
+  pages: {
+    "/": { title: "Главная", component: HomePage },
+    "/menu": { title: "Меню", component: MenuPage },
+  },
+  recordPages: [{ pages: drinkPages, component: DrinkPage }],
+});
+```
+
+The component takes the content, the record and its place in its collection as `content`, `record` and `index`, so its markers point at the record's fields:
+
+```astro
+---
+// src/components/DrinkPage.astro
+import { editable } from "@seamlet/astro/schema";
+import type { Content } from "../schema";
+
+interface Props {
+  content: Content;
+  record: Content["menu"][number];
+  index: number;
+}
+
+const { record, index } = Astro.props;
+const edit = editable<Content>();
+---
+
+<h1 {...edit("menu", index, "name")}>{record.name}</h1>
+```
+
+`drinkPages.pathOf(drink)` gives the address of a record's page for a link to it: `/menu/latte`. The address is the record's `slug` when it has one, a field the owner fills in (lower-case Latin letters, digits and hyphens; the CMS spells it from the record's name), and its id otherwise, so a record has its page from the moment it is added, and keeps it when it is renamed or moved. A slug another record of the collection has, as its slug or as its id, is the issue `taken-slug`; a slug with other characters, `invalid-slug`. A collection is `catalog.products` through groups, its pages have one segment more than a page of the site (`/catalog/[record]`, never `/[record]`), a record has one page, and no page of the site may stand among the pages of records (`/menu/specials` beside `/menu/[record]`). `searchTexts` names a group of the record with a `title` and a `description` text for its page.
+
+Every record of the initial content needs an address of its own, a slug or an id, since its page is built before the CMS saves anything. The preview shows a page of a record the owner has just added, so the editor opens it before it is saved or published: under the pages of records, an address that could be an id and names no record shows a blank record, which the editor's draft replaces at once.
+
 ## What the page hides
 
 A field is edited where it is seen, so the editor opens what hides it when a person chooses it in the list of fields. A native `<details>` needs nothing: a click on its summary opens it in the editor too. Neither do tabs, filters and toggles made of radio buttons and checkboxes and shown with CSS: a click on one or its label flips it in the editor, and the page keeps it flipped after every edit. A part the site hides and shows by itself (its own accordion, a step of a quiz, a dialog, a tab) gets the attribute `data-cms-reveal` (`REVEAL_ATTRIBUTE`). When a field inside it is chosen, the bridge sets `data-cms-revealed` on it and sends it the event `cms:reveal`, which bubbles; the site shows the part with CSS or with its own script:
@@ -253,7 +335,7 @@ What was opened stays open while the page is rendered anew after every edit: a p
 
 ## What the integration adds
 
-- `/preview` and `/preview/<page>`: the preview the CMS's editor frames. `GET` shows the published content; `POST` with the content as JSON shows that content without saving it, which is how the editor shows every edit at once. Only the CMS may frame it (`Content-Security-Policy: frame-ancestors`), and it is never indexed or cached; its refusals (a page the site does not have, a draft that is not JSON or is over 1 MB) say the same.
+- `/preview` and `/preview/<page>`: the preview the CMS's editor frames, the pages of records too (at their address or at the record's id). `GET` shows the published content; `POST` with the content as JSON shows that content without saving it, which is how the editor shows every edit at once. Only the CMS may frame it (`Content-Security-Policy: frame-ancestors`), and it is never indexed or cached; its refusals (an address of no page, a record a draft does not have, a draft that is not JSON or is over 1 MB) say the same.
 - The bridge on the preview: it tells the editor where the marked elements are and what a person does on the page, and types texts in place, formatted ones too.
 - `/seamlet/site.json`: what the site tells the CMS about itself (`SITE_DESCRIPTION_PATH`): its id and name from `seamlet.json`, its schema, the content it starts with and its pages. The CMS reads it with `readSiteDescription` whenever the site is opened in its editor.
 - `/seamlet-photos/<address>`: the site's own photo at an address its content gives it, found by `photos` of `defineSeamletSite`, for the CMS's editor.

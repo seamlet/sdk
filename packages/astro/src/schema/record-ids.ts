@@ -89,6 +89,7 @@ function collectionIn(
     case "choices":
     case "url":
     case "time":
+    case "slug":
     case "reference":
     case "references":
       return undefined;
@@ -126,6 +127,7 @@ export function collectionFieldAt(
     case "choices":
     case "url":
     case "time":
+    case "slug":
     case "reference":
     case "references":
       return undefined;
@@ -178,6 +180,7 @@ function withIdsIn(
     case "choices":
     case "url":
     case "time":
+    case "slug":
     case "reference":
     case "references":
       return value;

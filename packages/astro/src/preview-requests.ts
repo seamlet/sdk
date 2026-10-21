@@ -1,5 +1,18 @@
-// What the preview takes from a request: a draft of the editor, and the name of a photo it fetches
-// from the CMS.
+import {
+  collectionAt,
+  isContentObject,
+  isRecordId,
+  newRecord,
+  recordAt,
+  recordPageAt,
+  FIELD_PATH_SEPARATOR,
+  type Content,
+  type SiteDescription,
+} from "./schema";
+import { pagePathOf } from "./site-pages";
+
+// What the preview takes from a request: a draft of the editor, the page of a record the editor has
+// added, and the name of a photo it fetches from the CMS.
 
 /** Far more than the content of a site ever takes; a bigger body is not a draft. */
 export const MAX_DRAFT_BYTES = 1024 * 1024;
@@ -45,6 +58,46 @@ export async function readDraft(request: Request): Promise<DraftReading> {
   }
 }
 
+/**
+ * Whether the address may be a page of the site: one of its pages, or under its pages of records.
+ * The preview answers anything else at once, without asking the CMS or reading a draft.
+ */
+export function isPageAddress(
+  description: SiteDescription,
+  rest: string | undefined,
+): boolean {
+  const path = pagePathOf(rest);
+  const isOwnPage = description.pages.some((page) => page.path === path);
+  const recordPage = recordPageAt(description.recordPages ?? [], path);
+  return isOwnPage || recordPage !== undefined;
+}
+
+/**
+ * The published content, with a blank record when the address is the page of a record it does not
+ * have: one the editor added since the publication, at its id. The editor renders its draft on the
+ * page at once, so the blank record only brings the page with its bridge to the editor.
+ */
+export function previewContentAt(
+  description: SiteDescription,
+  content: Content,
+  rest: string | undefined,
+): Content {
+  const recordPages = description.recordPages ?? [];
+  const found = recordPageAt(recordPages, pagePathOf(rest));
+  if (found === undefined || !isRecordId(found.address)) return content;
+
+  const { collection: path } = found.page;
+  const records = collectionAt(description.schema, content, path);
+  if (records === undefined) return content;
+  const isPublished =
+    recordAt(records.collection, records.records, found.address) !== undefined;
+  if (isPublished) return content;
+
+  const blank = newRecord(records.collection, found.address);
+  const names = path.split(FIELD_PATH_SEPARATOR);
+  return withRecordsAt(content, names, [...records.records, blank]);
+}
+
 /** Whether a name can be a photo uploaded to the CMS: the hash of its bytes, as WebP. */
 export function isUploadedPhoto(
   fileName: string | undefined,
@@ -79,6 +132,22 @@ function concatenated(chunks: readonly Uint8Array[], size: number): Uint8Array {
     offset += chunk.byteLength;
   }
   return bytes;
+}
+
+/** The content with the records of the collection at the names through groups replaced. */
+function withRecordsAt(
+  content: Content,
+  names: readonly string[],
+  records: readonly Content[],
+): Content {
+  const [name, ...rest] = names;
+  if (name === undefined) return content;
+  if (rest.length === 0) return { ...content, [name]: records };
+
+  const group = content[name];
+  return isContentObject(group)
+    ? { ...content, [name]: withRecordsAt(group, rest, records) }
+    : content;
 }
 
 function refused(status: number): DraftReading {

@@ -4,7 +4,15 @@ import type { Fields } from "./fields";
 import { isJsonObject, isText } from "./json-values";
 import { parseContent, type ContentIssue } from "./parse-content";
 import { checkFields, type SchemaProblem } from "./read-fields";
+import { collectionAt, collectionFieldAt } from "./record-ids";
+import {
+  isRecordPagePath,
+  recordAddressOf,
+  recordPageAt,
+  type SiteRecordPageDescription,
+} from "./record-pages";
 import { isSiteId } from "./site-config";
+import { PAGE_SEGMENT } from "./slugs";
 
 // What a site tells the CMS about itself: its id, its name, the schema of its content, the content
 // it starts with and its pages. The site hands it out (`SITE_DESCRIPTION_PATH`), the CMS takes it
@@ -36,6 +44,8 @@ export interface SiteDescription {
   readonly initialContent: Content;
   /** The pages of the site; the first is the home page at `/`. */
   readonly pages: readonly [SitePageDescription, ...SitePageDescription[]];
+  /** The pages of the records of collections; left out when the site has none. */
+  readonly recordPages?: readonly SiteRecordPageDescription[];
 }
 
 /** Why a site's description cannot be read: what to fix in the site. */
@@ -57,7 +67,34 @@ export type SiteDescriptionProblem =
       readonly reason: PageProblemReason;
     }
   | { readonly code: "home-page-not-first" }
-  | { readonly code: "repeated-page-path"; readonly path: string };
+  | { readonly code: "repeated-page-path"; readonly path: string }
+  /** The pages of records are not a list. */
+  | { readonly code: "invalid-record-pages" }
+  /** The pages of records at this place of their list are not such pages, or not of this site. */
+  | {
+      readonly code: "invalid-record-page";
+      readonly index: number;
+      readonly reason: RecordPageProblemReason;
+    }
+  /** Two kinds of pages for the records of one collection: a record has one page. */
+  | { readonly code: "repeated-record-pages"; readonly collection: string }
+  /** A page of the site where the pages of records are: `/menu/specials` beside `/menu/[record]`. */
+  | {
+      readonly code: "page-among-record-pages";
+      readonly path: string;
+    }
+  /** A record of the initial content whose page has no address: neither a slug nor an id. */
+  | {
+      readonly code: "record-without-address";
+      readonly collection: string;
+      readonly index: number;
+    }
+  /** Two records of the initial content whose pages have one address: the same id, or slug. */
+  | {
+      readonly code: "repeated-record-address";
+      readonly collection: string;
+      readonly address: string;
+    };
 
 export type PageProblemReason =
   | "not-a-page"
@@ -65,6 +102,15 @@ export type PageProblemReason =
   | "invalid-path"
   | "invalid-title"
   /** Not where the content holds a group of a `title` and a `description` text. */
+  | "invalid-search-texts";
+
+export type RecordPageProblemReason =
+  | "not-a-page"
+  /** Not the address of a page, then `/[record]`, such as `/menu/[record]`. */
+  | "invalid-path"
+  /** Not a collection of the schema. */
+  | "unknown-collection"
+  /** Not where a record holds a group of a `title` and a `description` text. */
   | "invalid-search-texts";
 
 export type SiteDescriptionReading =
@@ -75,7 +121,7 @@ export type SiteDescriptionReading =
     };
 
 /** `/menu`, `/about/team`: lower-case segments, no trailing slash. */
-const PAGE_PATH = /^(\/[a-z0-9][a-z0-9-]*)+$/u;
+const PAGE_PATH = new RegExp(`^(/${PAGE_SEGMENT})+$`, "u");
 /** The first page of every site. */
 export const HOME_PAGE_PATH = "/";
 
@@ -104,13 +150,18 @@ export function checkSiteDescription(input: unknown): SiteDescriptionReading {
 
   const initial = parseContent(schema.fields, input["initialContent"]);
   const pages = checkPages(schema.fields, input["pages"]);
+  const recordPages = checkRecordPages(schema.fields, input["recordPages"]);
   const problems = [
     ...nameProblems,
     ...initialContentProblems(initial.issues),
     ...pages.problems,
+    ...recordPages.problems,
+    ...placementProblems(pages.pages ?? [], recordPages.pages ?? []),
+    ...addressProblems(schema.fields, initial.content, recordPages.pages ?? []),
   ];
   const isNamed = isSiteId(id) && isText(title);
-  if (!isNamed || pages.pages === undefined || problems.length > 0) {
+  const isWhole = pages.pages !== undefined && recordPages.pages !== undefined;
+  if (!isNamed || !isWhole || problems.length > 0) {
     return invalid(problems);
   }
 
@@ -120,6 +171,9 @@ export function checkSiteDescription(input: unknown): SiteDescriptionReading {
     schema: schema.fields,
     initialContent: initial.content,
     pages: pages.pages,
+    ...(recordPages.pages.length === 0
+      ? {}
+      : { recordPages: recordPages.pages }),
   };
   return { status: "read", description };
 }
@@ -204,6 +258,123 @@ function readPage(
   const isSearchTexts =
     typeof searchTexts === "string" && isSearchTextsGroup(schema, searchTexts);
   return isSearchTexts ? { path, title, searchTexts } : "invalid-search-texts";
+}
+
+interface RecordPagesReading {
+  readonly pages: readonly SiteRecordPageDescription[] | undefined;
+  readonly problems: readonly SiteDescriptionProblem[];
+}
+
+/** The pages of records the input lists; none when it lists none. */
+function checkRecordPages(schema: Fields, input: unknown): RecordPagesReading {
+  if (input === undefined) return { pages: [], problems: [] };
+  if (!Array.isArray(input)) {
+    return { pages: undefined, problems: [{ code: "invalid-record-pages" }] };
+  }
+
+  const entries: readonly unknown[] = input;
+  const readings = entries.map((entry) => readRecordPage(schema, entry));
+  const pageProblems = readings.flatMap((reading, index) =>
+    typeof reading === "string"
+      ? [{ code: "invalid-record-page", index, reason: reading } as const]
+      : [],
+  );
+  const pages = readings.filter((reading) => typeof reading !== "string");
+  const problems = [...pageProblems, ...recordPageRepeats(pages)];
+  return { pages: problems.length === 0 ? pages : undefined, problems };
+}
+
+/** Every address once, and one kind of page for the records of a collection. */
+function recordPageRepeats(
+  pages: readonly SiteRecordPageDescription[],
+): readonly SiteDescriptionProblem[] {
+  const paths = pages.map((page) => page.path);
+  const collections = pages.map((page) => page.collection);
+  const repeatedPaths = paths.filter(
+    (path, index) => paths.indexOf(path) !== index,
+  );
+  const repeatedCollections = collections.filter(
+    (collection, index) => collections.indexOf(collection) !== index,
+  );
+  const pathProblems = [...new Set(repeatedPaths)].map(
+    (path) => ({ code: "repeated-page-path", path }) as const,
+  );
+  const collectionProblems = [...new Set(repeatedCollections)].map(
+    (collection) => ({ code: "repeated-record-pages", collection }) as const,
+  );
+  return [...pathProblems, ...collectionProblems];
+}
+
+/** The page of records the input describes, or why it is not one. */
+function readRecordPage(
+  schema: Fields,
+  input: unknown,
+): SiteRecordPageDescription | RecordPageProblemReason {
+  if (!isJsonObject(input)) return "not-a-page";
+  const { path, collection, searchTexts } = input;
+  if (!isRecordPagePath(path)) return "invalid-path";
+  if (typeof collection !== "string") return "unknown-collection";
+  const field = collectionFieldAt(schema, collection);
+  if (field === undefined) return "unknown-collection";
+  if (searchTexts === undefined) return { path, collection };
+
+  const isSearchTexts =
+    typeof searchTexts === "string" &&
+    isSearchTextsGroup(field.item, searchTexts);
+  return isSearchTexts
+    ? { path, collection, searchTexts }
+    : "invalid-search-texts";
+}
+
+/** The pages of the site where the pages of records are: a record could never have that address. */
+function placementProblems(
+  pages: readonly SitePageDescription[],
+  recordPages: readonly SiteRecordPageDescription[],
+): readonly SiteDescriptionProblem[] {
+  const misplaced = pages.filter(
+    (page) => recordPageAt(recordPages, page.path) !== undefined,
+  );
+  return misplaced.map(
+    (page) => ({ code: "page-among-record-pages", path: page.path }) as const,
+  );
+}
+
+/**
+ * The records of the initial content whose pages have no address, or the address of another: a
+ * record the CMS saves has an id of its own, the initial content is the site's own.
+ */
+function addressProblems(
+  schema: Fields,
+  initialContent: Content,
+  recordPages: readonly SiteRecordPageDescription[],
+): readonly SiteDescriptionProblem[] {
+  return recordPages.flatMap((page) => {
+    const found = collectionAt(schema, initialContent, page.collection);
+    if (found === undefined) return [];
+
+    const addresses = found.records.map((record) =>
+      recordAddressOf(found.collection, record),
+    );
+    return addresses.flatMap((_, index) =>
+      recordAddressProblems(page.collection, addresses, index),
+    );
+  });
+}
+
+function recordAddressProblems(
+  collection: string,
+  addresses: readonly (string | undefined)[],
+  index: number,
+): readonly SiteDescriptionProblem[] {
+  const address = addresses[index];
+  if (address === undefined) {
+    return [{ code: "record-without-address", collection, index }];
+  }
+
+  const isRepeated = addresses.indexOf(address) < index;
+  return isRepeated
+    ? [{ code: "repeated-record-address", collection, address }]
+    : [];
 }
 
 function isPagePath(path: unknown): path is string {

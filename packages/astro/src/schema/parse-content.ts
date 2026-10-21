@@ -18,6 +18,8 @@ import {
 } from "./rich-text";
 import { isRecordId, RECORD_ID_KEY } from "./record-ids";
 import { missingRecordIssues } from "./reference-checks";
+import { takenSlugIssues } from "./slug-checks";
+import { isSlug, MAX_SLUG_LENGTH } from "./slugs";
 import type {
   ChoiceField,
   ChoicesField,
@@ -31,6 +33,7 @@ import type {
   ReferenceField,
   ReferencesField,
   RichTextField,
+  SlugField,
   TextField,
   TimeField,
   ToggleField,
@@ -72,7 +75,11 @@ export type ContentIssue =
       readonly path: FieldPath;
       readonly code: "missing-record";
       readonly id: string;
-    };
+    }
+  /** A slug with a character an address does not have. */
+  | { readonly path: FieldPath; readonly code: "invalid-slug" }
+  /** A slug another record of the collection has as its slug or its id. */
+  | { readonly path: FieldPath; readonly code: "taken-slug" };
 
 export interface ParsedContent<C> {
   readonly content: C;
@@ -108,7 +115,8 @@ export function countCharacters(text: string): number {
  * - a value of the right type that breaks a rule of its field (too long, below the minimum) is
  *   kept, with an issue: nothing a person typed is lost;
  * - keys the schema does not know are dropped; a record keeps its id (see withRecordIds);
- * - a reference to a record its collection does not have (removed since) is kept, with an issue.
+ * - a reference to a record its collection does not have (removed since) is kept, with an issue;
+ * - a slug another record of the collection has is kept, with an issue.
  * Content with issues is valid to show and edit, but not to save.
  */
 export function parseContent<F extends Fields>(
@@ -117,10 +125,11 @@ export function parseContent<F extends Fields>(
 ): ParsedContent<ContentOf<F>> {
   const parsed = parseFields(schema, input, []);
   const missingRecords = missingRecordIssues(schema, parsed.value);
+  const takenSlugs = takenSlugIssues(schema, parsed.value);
   // Every value is built from its field, so the content has exactly the shape the schema describes.
   return {
     content: parsed.value as ContentOf<F>,
-    issues: [...parsed.issues, ...missingRecords],
+    issues: [...parsed.issues, ...missingRecords, ...takenSlugs],
   };
 }
 
@@ -176,6 +185,8 @@ function parseField(
       return parseUrl(field, input, path);
     case "time":
       return parseTime(field, input, path);
+    case "slug":
+      return parseSlug(field, input, path);
     case "reference":
       return parseReference(field, input, path);
     case "references":
@@ -443,6 +454,26 @@ function parseTime(
     };
   }
   return valid(input);
+}
+
+/** A slug that is no address is kept with an issue, like every value a person typed. */
+function parseSlug(
+  field: SlugField,
+  input: unknown,
+  path: FieldPath,
+): ParsedValue {
+  if (typeof input !== "string") {
+    return invalidType(defaultValue(field), path);
+  }
+  if (input === "") {
+    return valid(input);
+  }
+
+  const formatIssues: readonly ContentIssue[] = isSlug(input)
+    ? []
+    : [{ path, code: "invalid-slug" }];
+  const lengthIssues = tooLongIssues(MAX_SLUG_LENGTH, input, path);
+  return { value: input, issues: [...formatIssues, ...lengthIssues] };
 }
 
 function parseCollection(

@@ -78,6 +78,7 @@ function resolveInsideField(
     case "choices":
     case "url":
     case "time":
+    case "slug":
     case "reference":
     case "references":
       return undefined;

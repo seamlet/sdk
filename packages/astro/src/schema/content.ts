@@ -15,6 +15,7 @@ import type {
   ReferenceField,
   ReferencesField,
   RichTextField,
+  SlugField,
   TextField,
   TimeField,
   ToggleField,
@@ -66,15 +67,17 @@ export type ValueOf<F extends Field> = F extends TextField
                     ? string | null
                     : F extends TimeField
                       ? string | null
-                      : F extends ReferenceField
-                        ? string | null
-                        : F extends ReferencesField
-                          ? readonly string[]
-                          : F extends GroupField<infer Group>
-                            ? ContentOf<Group>
-                            : F extends CollectionField<infer Item>
-                              ? readonly RecordOf<Item>[]
-                              : never;
+                      : F extends SlugField
+                        ? string
+                        : F extends ReferenceField
+                          ? string | null
+                          : F extends ReferencesField
+                            ? readonly string[]
+                            : F extends GroupField<infer Group>
+                              ? ContentOf<Group>
+                              : F extends CollectionField<infer Item>
+                                ? readonly RecordOf<Item>[]
+                                : never;
 
 /**
  * A record of a collection: its fields and its id. The id is missing only in content no editor has
@@ -112,6 +115,7 @@ export type FieldValue =
 export function defaultValue(field: Field): FieldValue {
   switch (field.kind) {
     case "text":
+    case "slug":
       return "";
     case "toggle":
       return false;

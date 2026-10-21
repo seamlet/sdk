@@ -3,7 +3,7 @@
 import { editable } from "@seamlet/astro/schema";
 import RichText from "@seamlet/astro/components/RichText.astro";
 import { formatPrice, hasWords } from "../format";
-import type { CoffeeShopContent } from "../schema";
+import { drinkPages, type CoffeeShopContent } from "../schema";
 
 interface Props {
   menu: CoffeeShopContent["menu"];
@@ -32,6 +32,9 @@ const edit = editable<CoffeeShopContent>();
           <RichText value={drink.description} inline />
         </p>
       )}
+      <a class="more" href={drinkPages.pathOf(drink)}>
+        Подробнее
+      </a>
     </li>
   ))}
 </ul>
@@ -64,6 +67,12 @@ const edit = editable<CoffeeShopContent>();
     font-family: ui-monospace, monospace;
     color: var(--terracotta);
     white-space: nowrap;
+  }
+
+  .more {
+    display: inline-block;
+    margin-top: 0.35rem;
+    color: var(--terracotta);
   }
 
   p {

@@ -1,16 +1,17 @@
 ---
-// A page of the coffee shop with its published content.
+// A page of the coffee shop with its published content: one of its pages, or the page of a drink.
 import site from "../seamlet";
 
 const NOT_FOUND = 404;
 
-const Page = site.pageAt(Astro.params.page);
-if (Page === undefined) {
+const content = await site.loadPublishedContent();
+const page = site.pageOf(Astro.params.page, content);
+if (page === undefined) {
   return new Response("Нет такой страницы", { status: NOT_FOUND });
 }
 // The published site is framed by nobody; only its preview is, by the CMS.
 Astro.response.headers.set("Content-Security-Policy", "frame-ancestors 'none'");
-const content = await site.loadPublishedContent();
+const { component: Page, props } = page;
 ---
 
-<Page content={content} />
+<Page {...props} />
