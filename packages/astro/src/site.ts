@@ -12,6 +12,7 @@ import { fetchPublishedAnswer } from "./published-answers";
 import { describeSite } from "./site-descriptions";
 import {
   pagePathOf,
+  previewedPageAt,
   renderedPageAt,
   staticPagesOf,
   type RenderedPage,
@@ -66,6 +67,14 @@ export interface SeamletSite<F extends Fields = Fields> {
     rest: string | undefined,
     content: ContentOf<F>,
   ) => RenderedPage | undefined;
+  /**
+   * What the preview renders at the rest of an address with the content: as `pageOf`, and the page
+   * of a record the site does not show, so the owner prepares it in the editor.
+   */
+  readonly previewPageOf: (
+    rest: string | undefined,
+    content: ContentOf<F>,
+  ) => RenderedPage | undefined;
   /** Every page of the site with the content, for `getStaticPaths` of a `[...page]` route. */
   readonly staticPaths: (content: ContentOf<F>) => readonly StaticPage[];
   /** What the CMS published: the site's initial content until the first publication. */
@@ -100,6 +109,8 @@ export function defineSeamletSite<F extends Fields>(
     },
     pageOf: (rest, content) =>
       renderedPageAt(sitePages, pagePathOf(rest), contentOf(content)),
+    previewPageOf: (rest, content) =>
+      previewedPageAt(sitePages, pagePathOf(rest), contentOf(content)),
     staticPaths: (content) => staticPagesOf(sitePages, contentOf(content)),
     loadPublishedContent: () => loadPublishedContent(definition.schema),
     ownPhotoAt: (src) => definition.photos?.(src),

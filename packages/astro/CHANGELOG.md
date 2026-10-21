@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0
+
+- `productFields()`: the fields of a product of a catalog, for the record of a collection, with its address, photos, a short and a whole description, the price with a word about it, characteristics as pairs of a name and a value, the switch that hides it and what search engines show.
+- `recordPages(…, { shows })` leaves the pages of some records off the site: `site.pageOf` and `site.staticPaths` leave them out, `pathOf` gives them no address, and the preview shows them (`site.previewPageOf`), so the owner prepares a hidden record in the editor.
+
 ## 1.1.0
 
 - Pages of records: `recordPages(schema, { collection, path: "/menu/[record]" })` gives every record of a collection a page, rendered by one component with `content`, `record` and `index`; `defineSeamletSite` takes them as `recordPages`, the site's description tells the CMS about them, and the preview shows them, a record the editor has just added too.

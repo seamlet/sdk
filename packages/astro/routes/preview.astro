@@ -38,7 +38,7 @@ const content =
       )
     : parseContent(site.schema, reading.draft).content;
 
-const page = site.pageOf(rest, content);
+const page = site.previewPageOf(rest, content);
 if (page === undefined) {
   return new Response(null, { status: NOT_FOUND, headers });
 }

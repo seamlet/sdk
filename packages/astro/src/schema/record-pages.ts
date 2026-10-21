@@ -36,9 +36,21 @@ export interface PlacedRecord {
   readonly index: number;
 }
 
+/** The pages of the records of a collection as the site renders them. */
+export interface SiteRecordPages extends SiteRecordPageDescription {
+  /**
+   * Whether the site shows the record's page; every record's when left out. The preview shows the
+   * page of every record, a hidden one too, so the owner prepares it before showing it.
+   */
+  readonly isShown?: (record: Content) => boolean;
+}
+
 /** The pages of the records of a collection, with the address of each record's page. */
-export interface RecordPages<R> extends SiteRecordPageDescription {
-  /** The address of the record's page: `/menu/latte`; none for a record with neither slug nor id. */
+export interface RecordPages<R> extends SiteRecordPages {
+  /**
+   * The address of the record's page: `/menu/latte`; none for a record whose page the site does
+   * not show, or with neither slug nor id.
+   */
   readonly pathOf: (record: R) => string | undefined;
 }
 
@@ -80,7 +92,8 @@ const NOT_FOUND = -1;
  * A page of every record of a collection of the schema at the address with `[record]`:
  * `recordPages(schema, { collection: "menu", path: "/menu/[record]" })`. A site gives it to
  * `defineSeamletSite` with the component that renders a record, and links to a record's page with
- * its `pathOf`.
+ * its `pathOf`. `shows` leaves the pages of some records off the site, such as hidden ones:
+ * `shows: (product) => !product.isHidden`.
  */
 export function recordPages<
   F extends Fields,
@@ -91,22 +104,30 @@ export function recordPages<
     readonly collection: P;
     readonly path: RecordPagePath;
     readonly searchTexts?: string;
+    readonly shows?: (record: RecordOf<RecordFieldsAt<F, P>>) => boolean;
   },
 ): RecordPages<RecordOf<RecordFieldsAt<F, P>>> {
-  const collection = collectionFieldAt(schema, options.collection);
+  const { shows, ...described } = options;
+  const collection = collectionFieldAt(schema, described.collection);
   if (collection === undefined) {
     throw new Error(
-      `@seamlet/astro: the schema has no collection "${options.collection}" for the pages at "${options.path}"`,
+      `@seamlet/astro: the schema has no collection "${described.collection}" for the pages at "${described.path}"`,
     );
   }
 
+  // A record of the collection is content of the collection's fields, which `shows` is typed by.
+  const isShown = (record: Content) =>
+    shows === undefined ||
+    shows(record as unknown as RecordOf<RecordFieldsAt<F, P>>);
   const pathOf = (record: Content) => {
-    const address = recordAddressOf(collection, record);
+    const address = isShown(record)
+      ? recordAddressOf(collection, record)
+      : undefined;
     return address === undefined
       ? undefined
-      : recordPagePath(options.path, address);
+      : recordPagePath(described.path, address);
   };
-  return { ...options, pathOf };
+  return { ...described, isShown, pathOf };
 }
 
 /** Whether the path can be the address of the pages of records: `/menu/[record]`. */

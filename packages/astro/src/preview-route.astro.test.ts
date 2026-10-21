@@ -10,7 +10,7 @@ vi.mock("virtual:seamlet/config", () => ({
 }));
 // A mock is hoisted above the imports: it takes what it needs itself.
 vi.mock("virtual:seamlet/site", async () => {
-  const { collection, defineSchema, recordPages, slug, text } =
+  const { collection, defineSchema, recordPages, slug, text, toggle } =
     await import("./schema");
   const { defineSeamletSite } = await import("./site");
   const { default: TitlePage } = await import("./test-pages/TitlePage.astro");
@@ -22,10 +22,11 @@ vi.mock("virtual:seamlet/site", async () => {
       item: {
         name: text({ label: "Название" }),
         slug: slug({ label: "Адрес" }),
+        isHidden: toggle({ label: "Скрыть с сайта" }),
       },
     }),
   });
-  const latte = { id: "d1", name: "Латте", slug: "latte" };
+  const latte = { id: "d1", name: "Латте", slug: "latte", isHidden: false };
   const site = defineSeamletSite({
     schema,
     initialContent: { title: "Зерно", menu: [latte] },
@@ -38,6 +39,7 @@ vi.mock("virtual:seamlet/site", async () => {
         pages: recordPages(schema, {
           collection: "menu",
           path: "/menu/[record]",
+          shows: (drink) => !drink.isHidden,
         }),
         component: RecordPage,
       },
@@ -45,7 +47,7 @@ vi.mock("virtual:seamlet/site", async () => {
   });
   const published = {
     title: "Опубликовано",
-    menu: [{ id: "d0", name: "Раф", slug: "" }, latte],
+    menu: [{ id: "d0", name: "Раф", slug: "", isHidden: true }, latte],
   };
   return {
     default: {
@@ -124,6 +126,13 @@ describe("the preview route", () => {
 
     expect(await atSlug.text()).toContain("<h1>Латте</h1>");
     expect(await atId.text()).toContain("<p>Опубликовано, 1</p>");
+  });
+
+  it("shows the page of a record the site hides, for the owner to prepare it", async () => {
+    const hidden = await requestPreview("menu/d0");
+
+    expect(hidden.status).toBe(200);
+    expect(await hidden.text()).toContain("<h1>Раф</h1>");
   });
 
   it("shows the page of a record the editor added blank, until its draft renders", async () => {
