@@ -1,3 +1,4 @@
+import type { GetStaticPaths } from "astro";
 import type { AstroComponentFactory } from "astro/runtime/server/index.js";
 import { describe, expect, it } from "vitest";
 import {
@@ -114,6 +115,13 @@ describe("staticPagesOf", () => {
     });
 
     expect(pages).toHaveLength(2);
+  });
+
+  it("is what getStaticPaths of an Astro route may return", () => {
+    const getStaticPaths = (() =>
+      staticPagesOf(site, content)) satisfies GetStaticPaths;
+
+    expect(getStaticPaths()).toEqual(staticPagesOf(site, content));
   });
 });
 
