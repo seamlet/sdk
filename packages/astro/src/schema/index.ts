@@ -194,6 +194,7 @@ export {
   isEmailAddress,
   isPhoneNumber,
   isTrapFilled,
+  readRequestEntries,
   readRequestValues,
   REQUEST_CONSENT_KEY,
   REQUEST_FORM_KEY,

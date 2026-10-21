@@ -97,6 +97,20 @@ function submit(): void {
   );
 }
 
+/** The fields a visitor must fill in, filled in, and the consent given. */
+function fillRequest(): void {
+  fill("phone", "89123456789");
+  control("seamlet-consent").checked = true;
+}
+
+function listenToFailures() {
+  const failed = vi.fn<(detail: RequestFailedDetail) => void>();
+  window.document.addEventListener(REQUEST_FAILED_EVENT, (event) => {
+    failed((event as CustomEvent<RequestFailedDetail>).detail);
+  });
+  return failed;
+}
+
 function answer(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -177,10 +191,13 @@ describe("the form of requests", () => {
       phone: "+7 912 345-67-89",
       size: "",
       comment: "",
-      "seamlet-website": "",
+      "seamlet-check": "",
       "seamlet-consent": "on",
     });
-    expect(element("[data-seamlet-sent]").hidden).toBe(false);
+    expect(element("[data-seamlet-sent]").textContent).toBe(
+      "Спасибо! Заявка отправлена, мы скоро свяжемся с вами.",
+    );
+    expect(window.document.activeElement).toBe(element("[data-seamlet-sent]"));
     expect(control("name").value).toBe("");
     expect(sent).toHaveBeenCalledWith(
       expect.objectContaining({ form: "estimate", id: "r1" }),
@@ -217,7 +234,8 @@ describe("the form of requests", () => {
     await settled();
 
     expect(issue("size").textContent).toBe("Выберите один из вариантов");
-    expect(element("[data-seamlet-failed]").hidden).toBe(false);
+    expect(element("[data-seamlet-failed]").textContent).not.toBe("");
+    expect(window.document.activeElement).toBe(control("size"));
     expect(control("phone").value).toBe("89123456789");
     expect(failed).toHaveBeenCalledWith({
       form: "estimate",
@@ -243,17 +261,90 @@ describe("the form of requests", () => {
     );
   });
 
-  it("posts the form itself when the request is stopped on its way", async () => {
+  it("posts the form itself when the page's policy stops the request", async () => {
     const posted = vi.spyOn(window.HTMLFormElement.prototype, "submit");
     posted.mockImplementation(() => undefined);
-    fetchRequest.mockRejectedValue(new TypeError("Blocked by the policy"));
-    fill("phone", "89123456789");
-    control("seamlet-consent").checked = true;
+    fetchRequest.mockImplementation(() => {
+      const violation = new window.Event("securitypolicyviolation");
+      Object.assign(violation, {
+        blockedURI: "https://cms.example/api/sites/lesnaya/requests",
+      });
+      window.document.dispatchEvent(violation);
+      return Promise.reject(new TypeError("Refused to connect"));
+    });
+    fillRequest();
 
     submit();
     await vi.waitFor(() => {
       expect(posted).toHaveBeenCalled();
     });
+  });
+
+  it("says a CMS that cannot be reached is unavailable, and posts nothing again", async () => {
+    const posted = vi.spyOn(window.HTMLFormElement.prototype, "submit");
+    const failed = listenToFailures();
+    fetchRequest.mockRejectedValue(new TypeError("Failed to fetch"));
+    fillRequest();
+
+    submit();
+    await settled();
+
+    expect(posted).not.toHaveBeenCalled();
+    expect(failed).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: "unavailable" }),
+    );
+  });
+
+  it.each([
+    [429, "too-many"],
+    [500, "unavailable"],
+  ])("tells a refusal %d as %s", async (status, reason) => {
+    const failed = listenToFailures();
+    fetchRequest.mockResolvedValue(answer(status, {}));
+    fillRequest();
+
+    submit();
+    await settled();
+
+    expect(failed).toHaveBeenCalledWith(expect.objectContaining({ reason }));
+  });
+
+  it("sends a request once while it is being sent", async () => {
+    fetchRequest.mockReturnValue(new Promise<Response>(() => undefined));
+    fillRequest();
+
+    submit();
+    submit();
+    await Promise.resolve();
+
+    expect(fetchRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends to the CMS even when a field is named as the form's own property", async () => {
+    const odd = requestForm({
+      id: "odd",
+      title: "Заявка",
+      fields: { action: requestText({ label: "Что сделать", required: true }) },
+    });
+    const container = await AstroContainer.create();
+    const oddMarkup = await container.renderToString(RequestForm, {
+      props: { form: odd },
+    });
+    window.document.body.innerHTML = oddMarkup;
+    connectRequestForms(window.document, { isPreview: false });
+    fetchRequest.mockResolvedValue(
+      answer(201, { status: "received", id: "r2" }),
+    );
+    fill("action", "Перезвонить");
+    control("seamlet-consent").checked = true;
+
+    submit();
+    await settled();
+
+    expect(fetchRequest.mock.calls[0]?.[0]).toBe(
+      "https://cms.example/api/sites/lesnaya/requests",
+    );
+    expect(control("action").value).toBe("");
   });
 
   it("keeps a form of the editor's preview from sending", () => {

@@ -2,10 +2,8 @@
 // preview, in the frame of the CMS's editor, and the sending of requests only on a page with a form
 // of them. Elsewhere nothing more is fetched.
 import { cmsOrigin } from "virtual:seamlet/config";
+import { REQUEST_FORM_SELECTOR } from "./request-form-markers";
 import { PREVIEW_PATH } from "./site-addresses";
-
-/** The forms of requests `RequestForm.astro` renders; request-sending.ts names the same. */
-const REQUEST_FORM_SELECTOR = "form[data-seamlet-form]";
 
 const isFramed = window.parent !== window;
 const { pathname } = window.location;

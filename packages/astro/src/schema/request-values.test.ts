@@ -9,7 +9,10 @@ import {
 } from "./request-forms";
 import {
   isConsentGiven,
+  isEmailAddress,
+  isPhoneNumber,
   isTrapFilled,
+  readRequestEntries,
   readRequestValues,
   REQUEST_CONSENT_KEY,
   REQUEST_PAGE_KEY,
@@ -121,5 +124,54 @@ describe("the request's own keys", () => {
       requestPageOf({ [REQUEST_PAGE_KEY]: "https://other.example/" }),
     ).toBe("/");
     expect(requestPageOf({})).toBe("/");
+  });
+});
+
+describe("the rules of a request's words", () => {
+  it.each([
+    ["1234", false],
+    ["12345", true],
+    ["+7 (912) 345-67-89", true],
+    ["123456789012345", true],
+    ["1234567890123456", false],
+    ["89+123456", false],
+  ])("take %s as a phone number: %s", (typed, isNumber) => {
+    expect(isPhoneNumber(typed)).toBe(isNumber);
+  });
+
+  it("take an email address up to the length mail carries", () => {
+    const domain = "@example.ru";
+    const longest = `${"a".repeat(254 - domain.length)}${domain}`;
+
+    expect(isEmailAddress(longest)).toBe(true);
+    expect(isEmailAddress(`a${longest}`)).toBe(false);
+  });
+
+  it.each(["//other.example/x", "/\\other.example/x", "/a b"])(
+    "never take %s for a page of the site",
+    (page) => {
+      expect(requestPageOf({ [REQUEST_PAGE_KEY]: page })).toBe("/");
+    },
+  );
+});
+
+describe("readRequestEntries", () => {
+  it("keeps the body's own words and drops any other value", () => {
+    const body: unknown = JSON.parse(
+      '{"name":"Анна","phone":5,"comment":null,"tags":["a"]}',
+    );
+
+    expect(readRequestEntries(body)).toEqual({ name: "Анна" });
+    expect(readRequestEntries("name=Анна")).toEqual({});
+  });
+
+  it("never reads a name of an object's prototype as sent", () => {
+    const form = requestForm({
+      id: "odd",
+      title: "Заявка",
+      fields: { constructor: requestText({ label: "Имя" }) },
+    });
+
+    expect(readRequestValues(form, {})).toEqual({ status: "read", values: [] });
   });
 });

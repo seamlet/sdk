@@ -165,12 +165,19 @@ const isLineField = (field: RequestField): field is LineField =>
   <button class="seamlet-form-submit" type="submit">
     {submitLabel}
   </button>
-  <p class="seamlet-form-sent" role="status" data-seamlet-sent hidden>
-    {sentText}
-  </p>
-  <p class="seamlet-form-failed" role="alert" data-seamlet-failed hidden>
-    {failedText}
-  </p>
+  <p
+    class="seamlet-form-sent"
+    role="status"
+    tabindex="-1"
+    data-seamlet-sent
+    data-seamlet-text={sentText}
+  />
+  <p
+    class="seamlet-form-failed"
+    role="alert"
+    data-seamlet-failed
+    data-seamlet-text={failedText}
+  />
 </form>
 
 <style>

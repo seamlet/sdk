@@ -84,6 +84,8 @@ const FORM_ID = /^[a-z][a-z0-9-]*$/u;
  */
 const FIELD_NAME = /^[a-z][a-zA-Z0-9]*$/u;
 
+const LINE_BREAK = /[\r\n]/u;
+
 const REQUEST_FIELD_KINDS: readonly RequestFieldKind[] = [
   "text",
   "longText",
@@ -228,7 +230,7 @@ function withOptions(
   if (!Array.isArray(options)) return undefined;
 
   const values: readonly unknown[] = options;
-  const texts = values.filter(isText);
+  const texts = values.filter(isOptionText);
   const isSoundList =
     texts.length === values.length &&
     texts.length > 0 &&
@@ -245,4 +247,9 @@ function isRequestFieldKind(value: unknown): value is RequestFieldKind {
 
 function invalidForm(reason: RequestFormProblemReason): RequestFormReading {
   return { status: "invalid", reason };
+}
+
+/** An option as a visitor picks it and the request keeps it: words on one line, nothing around. */
+function isOptionText(value: unknown): value is string {
+  return isText(value) && value === value.trim() && !LINE_BREAK.test(value);
 }

@@ -2,6 +2,9 @@
 // form posted to the CMS, which answers with a page of its own; with this script the visitor stays
 // on the page: the form checks what was typed with the code the CMS checks it with, sends it, and
 // says how it went in the form's own words. The site's code hears every step (request-events.ts).
+//
+// The CMS answers the route with CORS on every answer and on the preflight, so an answer it gives
+// is always read here.
 
 import {
   CONSENT_REQUIRED_TEXT,
@@ -23,15 +26,15 @@ import {
   type RequestSendDetail,
   type RequestSentDetail,
 } from "./schema";
-
-/** The forms the script sends: `RequestForm.astro` marks them with the form's id. */
-export const REQUEST_FORM_SELECTOR = "form[data-seamlet-form]";
+import { REQUEST_FORM_SELECTOR } from "./request-form-markers";
 
 /** How the CMS answers: kept, every field it cannot take, or a refusal. */
 const STATUS_CREATED = 201;
 const STATUS_UNPROCESSABLE = 422;
 const STATUS_CONFLICT = 409;
 const STATUS_TOO_MANY = 429;
+/** A CMS that has not answered by then will not: the visitor is told so and may try again. */
+const ANSWER_TIMEOUT_MS = 15_000;
 
 const ISSUE_CODES: readonly RequestIssueCode[] = [
   "required",
@@ -48,8 +51,8 @@ type Outcome =
       readonly reason: RequestFailure;
       readonly issues: readonly RequestIssue[];
     }
-  /** No answer at all: a network that is down, or a policy of the site that stops the request. */
-  | { readonly kind: "unreachable" };
+  /** The site's own policy stopped the request before it left: the browser may post the form. */
+  | { readonly kind: "blocked" };
 
 export interface RequestFormsOptions {
   /** In the editor's preview a form sends nothing: the owner is editing, not asking. */
@@ -65,14 +68,15 @@ export function connectRequestForms(
     REQUEST_FORM_SELECTOR,
   );
   for (const element of elements) {
-    if (options.isPreview) {
-      element.addEventListener("submit", (event) => {
-        event.preventDefault();
-      });
-      continue;
-    }
-    connectRequestForm(element);
+    if (options.isPreview) keepFromSending(element);
+    else connectRequestForm(element);
   }
+}
+
+function keepFromSending(element: HTMLFormElement): void {
+  element.addEventListener("submit", (event) => {
+    event.preventDefault();
+  });
 }
 
 function connectRequestForm(element: HTMLFormElement): void {
@@ -84,7 +88,8 @@ function connectRequestForm(element: HTMLFormElement): void {
   element.noValidate = true;
   element.addEventListener("submit", (event) => {
     event.preventDefault();
-    void sendRequest(element, form);
+    const isSending = element.dataset["seamletState"] === "sending";
+    if (!isSending) void sendRequest(element, form);
   });
 }
 
@@ -104,6 +109,7 @@ async function sendRequest(
   element: HTMLFormElement,
   form: RequestForm,
 ): Promise<void> {
+  showState(element, "editing");
   const entries = entriesOf(element);
   const issues = issuesOf(form, entries);
   showIssues(element, issues);
@@ -112,67 +118,73 @@ async function sendRequest(
     return;
   }
 
-  const sendDetail: RequestSendDetail = { form: form.id, entries };
   const isSentBySite = !element.dispatchEvent(
-    new CustomEvent(REQUEST_SEND_EVENT, {
+    new CustomEvent<RequestSendDetail>(REQUEST_SEND_EVENT, {
       bubbles: true,
       cancelable: true,
-      detail: sendDetail,
+      detail: { form: form.id, entries },
     }),
   );
   if (isSentBySite) return;
 
   showState(element, "sending");
-  const outcome = await post(element.action, entries);
-  settle(element, form, entries, outcome);
+  // A control named `action` takes the place of the form's property: the attribute is read.
+  const outcome = await post(element.getAttribute("action") ?? "", entries);
+  settle(element, { form, entries, outcome });
 }
 
-function settle(
-  element: HTMLFormElement,
-  form: RequestForm,
-  entries: RequestEntries,
-  outcome: Outcome,
-): void {
+interface Sending {
+  readonly form: RequestForm;
+  readonly entries: RequestEntries;
+  readonly outcome: Outcome;
+}
+
+function settle(element: HTMLFormElement, sending: Sending): void {
+  const { form, entries, outcome } = sending;
   switch (outcome.kind) {
-    case "received": {
+    case "received":
       showState(element, "sent");
-      element.reset();
-      const detail: RequestSentDetail = {
-        form: form.id,
-        entries,
-        id: outcome.id,
-      };
-      element.dispatchEvent(
-        new CustomEvent(REQUEST_SENT_EVENT, { bubbles: true, detail }),
-      );
+      // A control named `reset` takes the place of the form's own method: the prototype's is called.
+      HTMLFormElement.prototype.reset.call(element);
+      announceSent(element, { form: form.id, entries, id: outcome.id });
       return;
-    }
     case "refused":
       showState(element, "failed");
       showIssues(element, outcome.issues);
-      failed(element, form, outcome.reason, outcome.issues);
+      focusFirstIssue(element, outcome.issues);
+      announceFailure(element, {
+        form: form.id,
+        reason: outcome.reason,
+        issues: outcome.issues,
+      });
       return;
-    case "unreachable":
-      // Online, the request was stopped on its way, as a policy of the site does: the browser
-      // posts the form itself, and the CMS answers with its own page.
-      if (navigator.onLine) {
-        element.submit();
-        return;
-      }
-      showState(element, "failed");
-      failed(element, form, "unavailable", []);
+    case "blocked":
+      // The browser posts the form itself, and the CMS answers with its own page.
+      HTMLFormElement.prototype.submit.call(element);
   }
 }
 
-function failed(
+function announceSent(
   element: HTMLFormElement,
-  form: RequestForm,
-  reason: RequestFailure,
-  issues: readonly RequestIssue[],
+  detail: RequestSentDetail,
 ): void {
-  const detail: RequestFailedDetail = { form: form.id, reason, issues };
   element.dispatchEvent(
-    new CustomEvent(REQUEST_FAILED_EVENT, { bubbles: true, detail }),
+    new CustomEvent<RequestSentDetail>(REQUEST_SENT_EVENT, {
+      bubbles: true,
+      detail,
+    }),
+  );
+}
+
+function announceFailure(
+  element: HTMLFormElement,
+  detail: RequestFailedDetail,
+): void {
+  element.dispatchEvent(
+    new CustomEvent<RequestFailedDetail>(REQUEST_FAILED_EVENT, {
+      bubbles: true,
+      detail,
+    }),
   );
 }
 
@@ -197,35 +209,72 @@ function issuesOf(
   return [...fieldIssues, ...consentIssues];
 }
 
+/**
+ * Sends the request and reads the answer. Only a request the page's own policy stopped is posted
+ * again by the browser: one that failed on its way may have reached the CMS, which would then keep
+ * it twice.
+ */
 async function post(action: string, entries: RequestEntries): Promise<Outcome> {
-  let answer: Response;
+  const blocked = watchBlocking(action);
   try {
-    answer = await fetch(action, {
+    const answer = await fetch(action, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
       body: JSON.stringify(entries),
+      signal: AbortSignal.timeout(ANSWER_TIMEOUT_MS),
     });
+    return await outcomeOf(answer);
   } catch {
-    return { kind: "unreachable" };
+    return blocked.isBlocked()
+      ? { kind: "blocked" }
+      : { kind: "refused", reason: "unavailable", issues: [] };
+  } finally {
+    blocked.stop();
   }
-  return outcomeOf(answer);
+}
+
+interface BlockingWatch {
+  readonly isBlocked: () => boolean;
+  readonly stop: () => void;
+}
+
+/** Whether the page's Content-Security-Policy stops a request to the action's origin meanwhile. */
+function watchBlocking(action: string): BlockingWatch {
+  const target = new URL(action, document.baseURI).origin;
+  let isBlocked = false;
+  const hear = (event: SecurityPolicyViolationEvent) => {
+    if (originOf(event.blockedURI) === target) isBlocked = true;
+  };
+  document.addEventListener("securitypolicyviolation", hear);
+  return {
+    isBlocked: () => isBlocked,
+    stop: () => {
+      document.removeEventListener("securitypolicyviolation", hear);
+    },
+  };
+}
+
+function originOf(address: string): string | undefined {
+  try {
+    return new URL(address).origin;
+  } catch {
+    return undefined;
+  }
 }
 
 async function outcomeOf(answer: Response): Promise<Outcome> {
   const body: unknown = await answer.json().catch(() => undefined);
   const record = isJsonObject(body) ? body : {};
-  if (answer.status === STATUS_CREATED && typeof record["id"] === "string") {
-    return { kind: "received", id: record["id"] };
+  const id = record["id"];
+  if (answer.status === STATUS_CREATED && typeof id === "string") {
+    return { kind: "received", id };
   }
   if (answer.status === STATUS_UNPROCESSABLE) {
-    return {
-      kind: "refused",
-      reason: "invalid",
-      issues: readIssues(record["issues"]),
-    };
+    const issues = readIssues(record["issues"]);
+    return { kind: "refused", reason: "invalid", issues };
   }
   return { kind: "refused", reason: failureOf(answer.status), issues: [] };
 }
@@ -275,16 +324,23 @@ function issueText(issue: RequestIssue): string {
     : REQUEST_ISSUE_TEXTS[issue.code];
 }
 
+function controlOf(
+  element: HTMLFormElement,
+  field: string,
+): HTMLElement | undefined {
+  // A field's name is a name of a property or one of the request's own keys: nothing to quote.
+  const control = element.querySelector(`[name="${field}"]`);
+  return control instanceof HTMLElement ? control : undefined;
+}
+
 function markControl(
   element: HTMLFormElement,
   field: string,
   isInvalid: boolean,
 ): void {
-  const control = element.elements.namedItem(field);
-  if (!(control instanceof HTMLElement)) return;
-
-  if (isInvalid) control.setAttribute("aria-invalid", "true");
-  else control.removeAttribute("aria-invalid");
+  const control = controlOf(element, field);
+  if (isInvalid) control?.setAttribute("aria-invalid", "true");
+  else control?.removeAttribute("aria-invalid");
 }
 
 function focusFirstIssue(
@@ -292,15 +348,16 @@ function focusFirstIssue(
   issues: readonly RequestIssue[],
 ): void {
   const [first] = issues;
-  if (first === undefined) return;
-
-  const control = element.elements.namedItem(first.field);
-  if (control instanceof HTMLElement) control.focus();
+  if (first !== undefined) controlOf(element, first.field)?.focus();
 }
 
-type FormState = "sending" | "sent" | "failed";
+type FormState = "editing" | "sending" | "sent" | "failed";
 
-/** The form says where it is: its button waits while sending, and one message shows the outcome. */
+/**
+ * The form says where it is: its button waits while sending, and one message tells the outcome. The
+ * messages stay in the page, live and empty, and get their words when they are to be heard, so a
+ * screen reader says them every time.
+ */
 function showState(element: HTMLFormElement, state: FormState): void {
   element.dataset["seamletState"] = state;
   const submit = element.querySelector<HTMLButtonElement>("[type=submit]");
@@ -308,6 +365,14 @@ function showState(element: HTMLFormElement, state: FormState): void {
 
   const sent = element.querySelector<HTMLElement>("[data-seamlet-sent]");
   const failure = element.querySelector<HTMLElement>("[data-seamlet-failed]");
-  if (sent !== null) sent.hidden = state !== "sent";
-  if (failure !== null) failure.hidden = state !== "failed";
+  say(sent, state === "sent");
+  say(failure, state === "failed");
+  // The button that had the focus waits while sending; the message of the outcome takes it.
+  if (state === "sent") sent?.focus();
+}
+
+function say(message: HTMLElement | null, isSaid: boolean): void {
+  if (message === null) return;
+
+  message.textContent = isSaid ? (message.dataset["seamletText"] ?? "") : "";
 }

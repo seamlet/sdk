@@ -1,3 +1,4 @@
+import { isJsonObject } from "./json-values";
 import { countCharacters } from "./parse-content";
 import {
   maxLengthOf,
@@ -19,13 +20,16 @@ export const REQUEST_CONSENT_KEY = "seamlet-consent";
  * A field a person never sees and a program filling every field fills: a request that has words in
  * it is not a person's.
  */
-export const REQUEST_TRAP_KEY = "seamlet-website";
+export const REQUEST_TRAP_KEY = "seamlet-check";
 
 /** What a checkbox sends when it is checked, posted by a form or by the site's script. */
 const CHECKED_VALUES: ReadonlySet<string> = new Set(["on", "true"]);
 const MAX_PAGE_LENGTH = 300;
-/** A page's address on the site: a path, without the origin. */
-const PAGE_PATH = /^\/[^\s]*$/u;
+/**
+ * A page's address on the site: a path, without the origin. `//other.example` and `/\other.example`
+ * are not paths: a browser reads them as another site.
+ */
+const PAGE_PATH = /^\/(?![/\\])[^\s\\]*$/u;
 /** What people type between the digits of a phone number. */
 const PHONE_SEPARATORS = /[\s().-]/gu;
 /** A phone number: digits, a plus before them; from a city's short number to an international one. */
@@ -88,7 +92,7 @@ export function readRequestValues(
   entries: RequestEntries,
 ): RequestReading {
   const readings = Object.entries(form.fields).map(([name, field]) =>
-    readValue(name, field, entries[name] ?? ""),
+    readValue(name, field, entryOf(entries, name)),
   );
   const issues = readings.filter(isIssue);
   if (issues.length > 0) return { status: "invalid", issues };
@@ -97,19 +101,32 @@ export function readRequestValues(
   return { status: "read", values };
 }
 
+/**
+ * The entries a request's body gives: its own string values only, so a value of another type, or a
+ * name of an object's prototype, never reaches a reader.
+ */
+export function readRequestEntries(input: unknown): RequestEntries {
+  if (!isJsonObject(input)) return {};
+
+  const pairs = Object.entries(input).filter(
+    (pair): pair is [string, string] => typeof pair[1] === "string",
+  );
+  return Object.fromEntries(pairs);
+}
+
 /** Whether the visitor checked the consent's checkbox. */
 export function isConsentGiven(entries: RequestEntries): boolean {
-  return CHECKED_VALUES.has(entries[REQUEST_CONSENT_KEY] ?? "");
+  return CHECKED_VALUES.has(entryOf(entries, REQUEST_CONSENT_KEY));
 }
 
 /** Whether the field a person never sees was filled in: a program sent the request. */
 export function isTrapFilled(entries: RequestEntries): boolean {
-  return (entries[REQUEST_TRAP_KEY] ?? "").trim() !== "";
+  return entryOf(entries, REQUEST_TRAP_KEY).trim() !== "";
 }
 
 /** The page the request was sent from, or the home page when the request names no page. */
 export function requestPageOf(entries: RequestEntries): string {
-  const page = entries[REQUEST_PAGE_KEY] ?? "";
+  const page = entryOf(entries, REQUEST_PAGE_KEY);
   const isPage = page.length <= MAX_PAGE_LENGTH && PAGE_PATH.test(page);
   return isPage ? page : "/";
 }
@@ -121,6 +138,12 @@ export function isPhoneNumber(typed: string): boolean {
 
 export function isEmailAddress(typed: string): boolean {
   return typed.length <= MAX_EMAIL_LENGTH && EMAIL_ADDRESS.test(typed);
+}
+
+/** The words sent under the name; none for a name the request does not have of its own. */
+function entryOf(entries: RequestEntries, name: string): string {
+  const entry: unknown = Object.hasOwn(entries, name) ? entries[name] : "";
+  return typeof entry === "string" ? entry : "";
 }
 
 function readValue(

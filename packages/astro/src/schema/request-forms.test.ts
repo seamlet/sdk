@@ -70,6 +70,15 @@ describe("readRequestForm", () => {
       },
       "invalid-field",
     ],
+    [
+      {
+        ...callback,
+        fields: {
+          time: { kind: "choice", label: "Когда", options: [" Утром"] },
+        },
+      },
+      "invalid-field",
+    ],
   ])("refuses %j as %s", (input, reason) => {
     expect(readRequestForm(input)).toEqual({ status: "invalid", reason });
   });
