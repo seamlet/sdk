@@ -8,6 +8,7 @@ import {
   number,
   reference,
   richText,
+  slug,
   text,
   toggle,
 } from ".";
@@ -188,5 +189,45 @@ describe("readFields", () => {
     };
 
     expect(checkFields(input)).toEqual({ status: "read", fields: input });
+  });
+
+  it("takes one slug of a record, and no slug elsewhere", () => {
+    const record = (item: object) => ({
+      products: { kind: "collection", label: "Товары", item },
+    });
+    const slugField = slug({ label: "Адрес" });
+    const name = text({ label: "Название" });
+
+    expect(checkFields(record({ name, address: slugField }))).toEqual({
+      status: "read",
+      fields: record({ name, address: slugField }),
+    });
+    expect(checkFields({ address: slugField })).toEqual({
+      status: "invalid",
+      problem: { path: ["address"], reason: "misplaced-slug" },
+    });
+    expect(
+      checkFields(record({ first: slugField, second: slugField })),
+    ).toEqual({
+      status: "invalid",
+      problem: { path: ["products", "second"], reason: "misplaced-slug" },
+    });
+    expect(
+      checkFields(
+        record({
+          seo: {
+            kind: "group",
+            label: "Поиск",
+            fields: { address: slugField },
+          },
+        }),
+      ),
+    ).toEqual({
+      status: "invalid",
+      problem: {
+        path: ["products", "seo", "address"],
+        reason: "misplaced-slug",
+      },
+    });
   });
 });

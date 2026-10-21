@@ -97,6 +97,16 @@ export interface TimeField {
 }
 
 /**
+ * Where a record's page is on the site: `latte` puts it at `/menu/latte` (see recordPages). Lower-case
+ * Latin letters, digits and hyphens, one of a kind in its collection; left empty, the page is at the
+ * record's id. A field of a record of a collection, one per record.
+ */
+export interface SlugField {
+  readonly kind: "slug";
+  readonly label: string;
+}
+
+/**
  * A record of a collection of the schema, by its id: the teacher of a practice. `collection` is
  * where that collection is, its name or a path through groups: "teachers", "studio.teachers".
  */
@@ -144,6 +154,7 @@ export type Field =
   | ChoicesField
   | UrlField
   | TimeField
+  | SlugField
   | ReferenceField
   | ReferencesField
   | GroupField
@@ -213,6 +224,10 @@ export function url(options: FieldOptions<UrlField>): UrlField {
 
 export function time(options: FieldOptions<TimeField>): TimeField {
   return { kind: "time", ...options };
+}
+
+export function slug(options: FieldOptions<SlugField>): SlugField {
+  return { kind: "slug", ...options };
 }
 
 export function reference(

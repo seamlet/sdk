@@ -1,6 +1,13 @@
 import type { AstroComponentFactory } from "astro/runtime/server/index.js";
 import { describe, expect, it } from "vitest";
-import { defineSchema, readSiteDescription, text } from "./schema";
+import {
+  collection,
+  defineSchema,
+  readSiteDescription,
+  recordPages,
+  slug,
+  text,
+} from "./schema";
 import { describeSite } from "./site-descriptions";
 
 const component = (() => "") as unknown as AstroComponentFactory;
@@ -73,5 +80,44 @@ describe("describeSite", () => {
         },
       ),
     ).toThrow(/searchTexts names no group/u);
+  });
+
+  it("tells the CMS where the pages of records are", () => {
+    const shop = defineSchema({
+      title: text({ label: "Заголовок" }),
+      products: collection({
+        label: "Товары",
+        item: {
+          name: text({ label: "Название" }),
+          address: slug({ label: "Адрес" }),
+        },
+      }),
+    });
+    const productPages = recordPages(shop, {
+      collection: "products",
+      path: "/catalog/[record]",
+    });
+    const describeShop = (initialContent: {
+      products: { name: string; address: string }[];
+    }) =>
+      describeSite(
+        { id: "shop", title: "Магазин" },
+        {
+          schema: shop,
+          initialContent: { title: "Магазин", ...initialContent },
+          pages: { "/": { title: "Главная", component } },
+          recordPages: [{ pages: productPages, component }],
+        },
+      );
+
+    expect(
+      describeShop({ products: [{ name: "Баня", address: "banya" }] })
+        .recordPages,
+    ).toEqual([{ path: "/catalog/[record]", collection: "products" }]);
+    expect(() =>
+      describeShop({ products: [{ name: "Баня", address: "" }] }),
+    ).toThrow(
+      /record 1 of "products" in the initial content has neither a slug nor an id/u,
+    );
   });
 });

@@ -10,14 +10,47 @@ vi.mock("virtual:seamlet/config", () => ({
 }));
 // A mock is hoisted above the imports: it takes what it needs itself.
 vi.mock("virtual:seamlet/site", async () => {
-  const { defineSchema, text } = await import("./schema");
+  const { collection, defineSchema, recordPages, slug, text } =
+    await import("./schema");
+  const { defineSeamletSite } = await import("./site");
   const { default: TitlePage } = await import("./test-pages/TitlePage.astro");
+  const { default: RecordPage } = await import("./test-pages/RecordPage.astro");
+  const schema = defineSchema({
+    title: text({ label: "Заголовок" }),
+    menu: collection({
+      label: "Меню",
+      item: {
+        name: text({ label: "Название" }),
+        slug: slug({ label: "Адрес" }),
+      },
+    }),
+  });
+  const latte = { id: "d1", name: "Латте", slug: "latte" };
+  const site = defineSeamletSite({
+    schema,
+    initialContent: { title: "Зерно", menu: [latte] },
+    pages: {
+      "/": { title: "Главная", component: TitlePage },
+      "/menu": { title: "Меню", component: TitlePage },
+    },
+    recordPages: [
+      {
+        pages: recordPages(schema, {
+          collection: "menu",
+          path: "/menu/[record]",
+        }),
+        component: RecordPage,
+      },
+    ],
+  });
+  const published = {
+    title: "Опубликовано",
+    menu: [{ id: "d0", name: "Раф", slug: "" }, latte],
+  };
   return {
     default: {
-      schema: defineSchema({ title: text({ label: "Заголовок" }) }),
-      pageAt: (rest: string | undefined) =>
-        rest === undefined || rest === "menu" ? TitlePage : undefined,
-      loadPublishedContent: () => Promise.resolve({ title: "Опубликовано" }),
+      ...site,
+      loadPublishedContent: () => Promise.resolve(published),
     },
   };
 });
@@ -85,11 +118,51 @@ describe("the preview route", () => {
     expect(await response.text()).toContain("<h1></h1>");
   });
 
-  it("finds no page the site does not have", async () => {
-    const response = await requestPreview("about");
+  it("shows the page of a record at its slug, and at its id for the editor", async () => {
+    const atSlug = await requestPreview("menu/latte");
+    const atId = await requestPreview("menu/d1");
+
+    expect(await atSlug.text()).toContain("<h1>Латте</h1>");
+    expect(await atId.text()).toContain("<p>Опубликовано, 1</p>");
+  });
+
+  it("shows the page of a record the editor added blank, until its draft renders", async () => {
+    const added = await requestPreview("menu/new-drink");
+    const rendered = await requestPreview(
+      "menu/new-drink",
+      postDraft(
+        '{"title":"Черновик","menu":[{"id":"new-drink","name":"Какао","slug":""}]}',
+      ),
+    );
+
+    expect(added.status).toBe(200);
+    expect(await added.text()).toContain("<h1></h1>");
+    expect(await rendered.text()).toContain("<h1>Какао</h1>");
+  });
+
+  it("finds no page of a record the draft has removed", async () => {
+    const response = await requestPreview(
+      "menu/latte",
+      postDraft('{"title":"Черновик","menu":[]}'),
+    );
 
     expect(response.status).toBe(404);
     expectPreviewHeaders(response);
+  });
+
+  it("finds no page the site does not have", async () => {
+    const response = await requestPreview("about");
+    const notAnId = await requestPreview("menu/Латте");
+    const unread = await requestPreview(
+      "about",
+      postDraft("not JSON", "text/plain"),
+    );
+
+    expect(response.status).toBe(404);
+    expectPreviewHeaders(response);
+    expect(notAnId.status).toBe(404);
+    // Answered before the draft is read: an address of no page is refused as such.
+    expect(unread.status).toBe(404);
   });
 
   it("refuses a draft that is not JSON or is too big, with the same headers", async () => {

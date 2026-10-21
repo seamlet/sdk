@@ -16,21 +16,25 @@ export const coffeeShopInitialContent: CoffeeShopContent = {
   menu: [
     {
       name: "Эспрессо",
+      slug: "espresso",
       description: richTextOf("Двойная порция, плотный и сладкий."),
       price: 150,
     },
     {
       name: "Капучино",
+      slug: "kapuchino",
       description: richTextOf("Эспрессо и молоко, взбитое в бархатную пену."),
       price: 220,
     },
     {
       name: "Фильтр-кофе",
+      slug: "filtr-kofe",
       description: richTextOf("Зерно недели, заваренное в воронке."),
       price: 190,
     },
     {
       name: "Раф с кардамоном",
+      slug: "raf-s-kardamonom",
       description: richTextOf("Сливки, ваниль и щепотка кардамона."),
       price: 260,
     },

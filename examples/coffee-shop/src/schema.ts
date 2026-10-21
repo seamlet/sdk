@@ -6,7 +6,9 @@ import {
   image,
   link,
   number,
+  recordPages,
   richText,
+  slug,
   text,
   type ContentOf,
 } from "@seamlet/astro/schema";
@@ -39,6 +41,7 @@ export const coffeeShopSchema = defineSchema({
         maxLength: 160,
       }),
       price: number({ label: "Цена, ₽", min: 0, max: 100_000 }),
+      slug: slug({ label: "Адрес страницы" }),
     },
   }),
   menuPage: group({
@@ -72,3 +75,10 @@ export const coffeeShopSchema = defineSchema({
 });
 
 export type CoffeeShopContent = ContentOf<typeof coffeeShopSchema>;
+export type Drink = CoffeeShopContent["menu"][number];
+
+/** Every drink of the menu has a page of its own: `/menu/espresso`. */
+export const drinkPages = recordPages(coffeeShopSchema, {
+  collection: "menu",
+  path: "/menu/[record]",
+});

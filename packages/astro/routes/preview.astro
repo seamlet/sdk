@@ -1,10 +1,15 @@
 ---
 // The preview the CMS's editor frames: a page of the site with the bridge to the editor.
-// `/preview` is the first page, `/preview/menu` the page at /menu. GET shows the published
-// content; POST shows the content in its JSON body, never saved: the bridge renders the editor's
-// draft this way.
+// `/preview` is the first page, `/preview/menu` the page at /menu, `/preview/menu/latte` the page of
+// a record. GET shows the published content; POST shows the content in its JSON body, never saved:
+// the bridge renders the editor's draft this way.
 import { parseContent } from "@seamlet/astro/schema";
-import { previewHeadersOf, readDraft } from "@seamlet/astro/preview-requests";
+import {
+  isPageAddress,
+  previewContentAt,
+  previewHeadersOf,
+  readDraft,
+} from "@seamlet/astro/preview-requests";
 import { cmsOrigin } from "virtual:seamlet/config";
 import site from "virtual:seamlet/site";
 
@@ -15,11 +20,10 @@ for (const [name, value] of Object.entries(headers)) {
   Astro.response.headers.set(name, value);
 }
 
-const Page = site.pageAt(Astro.params.page);
-if (Page === undefined) {
+const rest = Astro.params.page;
+if (!isPageAddress(site.description, rest)) {
   return new Response(null, { status: NOT_FOUND, headers });
 }
-
 const reading =
   Astro.request.method === "POST" ? await readDraft(Astro.request) : undefined;
 if (reading !== undefined && !reading.isRead) {
@@ -27,8 +31,18 @@ if (reading !== undefined && !reading.isRead) {
 }
 const content =
   reading === undefined
-    ? await site.loadPublishedContent()
+    ? previewContentAt(
+        site.description,
+        await site.loadPublishedContent(),
+        rest,
+      )
     : parseContent(site.schema, reading.draft).content;
+
+const page = site.pageOf(rest, content);
+if (page === undefined) {
+  return new Response(null, { status: NOT_FOUND, headers });
+}
+const { component: Page, props } = page;
 ---
 
-<Page content={content} />
+<Page {...props} />

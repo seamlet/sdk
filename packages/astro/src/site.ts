@@ -2,23 +2,32 @@ import type { ImageMetadata } from "astro";
 import type { AstroComponentFactory } from "astro/runtime/server/index.js";
 import { cmsOrigin, siteId, siteTitle } from "virtual:seamlet/config";
 import {
-  HOME_PAGE_PATH,
   parseContent,
+  type Content,
   type ContentOf,
   type Fields,
   type SiteDescription,
 } from "./schema";
 import { fetchPublishedAnswer } from "./published-answers";
 import { describeSite } from "./site-descriptions";
+import {
+  pagePathOf,
+  renderedPageAt,
+  staticPagesOf,
+  type RenderedPage,
+  type SeamletPage,
+  type SeamletRecordPage,
+  type SitePages,
+  type StaticPage,
+} from "./site-pages";
 
-/** A page of the site: how the editor names it, and the component that renders it. */
-export interface SeamletPage {
-  readonly title: string;
-  /** A component that takes the site's content as its `content` prop. */
-  readonly component: AstroComponentFactory;
-  /** Where the content holds the page's title and description for search engines (`seo.menu`). */
-  readonly searchTexts?: string;
-}
+export type {
+  PageProps,
+  RenderedPage,
+  SeamletPage,
+  SeamletRecordPage,
+  StaticPage,
+} from "./site-pages";
 
 /** The site's content and pages; its id and title come from `seamlet.json`. */
 export interface SeamletSiteDefinition<F extends Fields> {
@@ -27,6 +36,11 @@ export interface SeamletSiteDefinition<F extends Fields> {
   readonly initialContent: ContentOf<F>;
   /** The pages of the site by their address (`/`, `/menu`); the home page `/` comes first. */
   readonly pages: Readonly<Record<string, SeamletPage>>;
+  /**
+   * A page of every record of a collection, each kind with the component that renders it:
+   * `[{ pages: recordPages(schema, { collection: "menu", path: "/menu/[record]" }), component }]`.
+   */
+  readonly recordPages?: readonly SeamletRecordPage[];
   /**
    * The site's own photo at the address its content gives it (`/menu/cafe/01.jpg`), so the CMS's
    * editor can show it in the photo's field. A site without own photos leaves it out.
@@ -37,10 +51,23 @@ export interface SeamletSiteDefinition<F extends Fields> {
 export interface SeamletSite<F extends Fields = Fields> {
   readonly id: string;
   readonly schema: F;
-  /** The page at the rest of an address: nothing is the first page, `menu` the page at /menu. */
+  /**
+   * The page at the rest of an address: nothing is the first page, `menu` the page at /menu.
+   * @deprecated The site's own pages only: `pageOf` renders the pages of records too.
+   */
   readonly pageAt: (
     rest: string | undefined,
   ) => AstroComponentFactory | undefined;
+  /**
+   * What renders the page at the rest of an address (`[...page]`) with the content: nothing is the
+   * first page, `menu/latte` the page of the record at /menu/latte. Undefined when there is none.
+   */
+  readonly pageOf: (
+    rest: string | undefined,
+    content: ContentOf<F>,
+  ) => RenderedPage | undefined;
+  /** Every page of the site with the content, for `getStaticPaths` of a `[...page]` route. */
+  readonly staticPaths: (content: ContentOf<F>) => readonly StaticPage[];
   /** What the CMS published: the site's initial content until the first publication. */
   readonly loadPublishedContent: () => Promise<ContentOf<F>>;
   /** The site's own photo at an address its content gives it, if it has one there. */
@@ -53,13 +80,27 @@ export interface SeamletSite<F extends Fields = Fields> {
 export function defineSeamletSite<F extends Fields>(
   definition: SeamletSiteDefinition<F>,
 ): SeamletSite<F> {
-  const pages = new Map(Object.entries(definition.pages));
+  const sitePages: SitePages = {
+    schema: definition.schema,
+    pages: definition.pages,
+    recordPages: definition.recordPages ?? [],
+  };
+  // Content of the site's schema is content: every value is one of its fields'.
+  const contentOf = (content: ContentOf<F>) => content as Content;
 
   return {
     id: siteId,
     schema: definition.schema,
-    pageAt: (rest) =>
-      pages.get(rest === undefined ? HOME_PAGE_PATH : `/${rest}`)?.component,
+    pageAt: (rest) => {
+      const path = pagePathOf(rest);
+      const page = Object.hasOwn(definition.pages, path)
+        ? definition.pages[path]
+        : undefined;
+      return page?.component;
+    },
+    pageOf: (rest, content) =>
+      renderedPageAt(sitePages, pagePathOf(rest), contentOf(content)),
+    staticPaths: (content) => staticPagesOf(sitePages, contentOf(content)),
     loadPublishedContent: () => loadPublishedContent(definition.schema),
     ownPhotoAt: (src) => definition.photos?.(src),
     description: describeSite({ id: siteId, title: siteTitle }, definition),

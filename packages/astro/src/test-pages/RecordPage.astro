@@ -1,0 +1,15 @@
+---
+// A page of a record in the tests of the package's routes: the record's name and its place.
+interface Props {
+  content: { title: string };
+  record: { name: string };
+  index: number;
+}
+
+const { content, record, index } = Astro.props;
+---
+
+<h1>{record.name}</h1>
+<p>
+  {content.title}, {index}
+</p>

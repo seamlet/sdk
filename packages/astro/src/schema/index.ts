@@ -14,6 +14,7 @@ export {
   reference,
   references,
   richText,
+  slug,
   text,
   time,
   toggle,
@@ -34,6 +35,7 @@ export {
   type ReferenceField,
   type ReferencesField,
   type RichTextField,
+  type SlugField,
   type TextField,
   type TimeField,
   type ToggleField,
@@ -66,9 +68,14 @@ export {
   type ContentPath,
   type FieldMarker,
 } from "./field-markers";
-export { resolveFieldPath, type FieldTarget } from "./field-paths";
+export {
+  FIELD_PATH_SEPARATOR,
+  resolveFieldPath,
+  type FieldTarget,
+} from "./field-paths";
 export {
   collectionAt,
+  collectionFieldAt,
   findRecord,
   isRecordId,
   newRecord,
@@ -107,7 +114,7 @@ export {
   type RichSpan,
   type RichText,
 } from "./rich-text";
-export { isJsonObject, type JsonObject } from "./json-values";
+export { isContentObject, isJsonObject, type JsonObject } from "./json-values";
 export {
   checkFields,
   readFields,
@@ -130,8 +137,27 @@ export {
   readSiteDescription,
   SITE_DESCRIPTION_PATH,
   type PageProblemReason,
+  type RecordPageProblemReason,
   type SiteDescription,
   type SiteDescriptionProblem,
   type SiteDescriptionReading,
   type SitePageDescription,
 } from "./site-description";
+export {
+  isRecordPagePath,
+  PAGE_PATH_SEPARATOR,
+  RECORD_PLACEHOLDER,
+  recordAddressOf,
+  recordAt,
+  recordPageAt,
+  recordPagePath,
+  recordPages,
+  type CollectionPath,
+  type PlacedRecord,
+  type RecordFieldsAt,
+  type RecordPagePath,
+  type RecordPages,
+  type SiteRecordPageDescription,
+} from "./record-pages";
+export { isSlug, MAX_SLUG_LENGTH, slugOf } from "./slugs";
+export { slugFieldOf } from "./slug-checks";

@@ -4,11 +4,13 @@ import {
   type ContentIssue,
   type Fields,
   type PageProblemReason,
+  type RecordPageProblemReason,
   type SchemaProblemReason,
   type SiteConfig,
   type SiteDescription,
   type SiteDescriptionProblem,
   type SitePageDescription,
+  type SiteRecordPageDescription,
 } from "./schema";
 import type { SeamletSiteDefinition } from "./site";
 import { SITE_MODULE_FILE } from "./site-addresses";
@@ -33,12 +35,22 @@ export function describeSite<F extends Fields>(
         : { searchTexts: page.searchTexts }),
     }),
   );
+  const recordPages = (definition.recordPages ?? []).map(
+    ({
+      pages: { path, collection, searchTexts },
+    }): SiteRecordPageDescription => ({
+      path,
+      collection,
+      ...(searchTexts === undefined ? {} : { searchTexts }),
+    }),
+  );
   const description = {
     id: identity.id,
     title: identity.title,
     schema: definition.schema,
     initialContent: definition.initialContent,
     pages,
+    ...(recordPages.length === 0 ? {} : { recordPages }),
   };
 
   // The CMS gets the description as JSON: it is checked as the CMS will see it.
@@ -84,6 +96,18 @@ function problemText(problem: SiteDescriptionProblem): string {
       return 'the first of the pages is not the home page "/"';
     case "repeated-page-path":
       return `the page "${problem.path}" is named twice`;
+    case "invalid-record-pages":
+      return "recordPages is not a list";
+    case "invalid-record-page":
+      return `record pages ${String(problem.index + 1)}: ${RECORD_PAGE_PROBLEM_TEXTS[problem.reason]}`;
+    case "repeated-record-pages":
+      return `the records of "${problem.collection}" have pages twice: a record has one page`;
+    case "page-among-record-pages":
+      return `the page "${problem.path}" is where the pages of records are: give it another address`;
+    case "record-without-address":
+      return `record ${String(problem.index + 1)} of "${problem.collection}" in the initial content has neither a slug nor an id for its page`;
+    case "repeated-record-address":
+      return `two records of "${problem.collection}" in the initial content have their pages at "${problem.address}": give them other ids or slugs`;
   }
 }
 
@@ -97,6 +121,8 @@ const SCHEMA_PROBLEM_TEXTS: Readonly<Record<SchemaProblemReason, string>> = {
   "record-id-field": "a record has its own id: name the field otherwise",
   "invalid-item-title": "itemTitle names no text or link field of the record",
   "unknown-collection": "it refers to a collection the schema does not have",
+  "misplaced-slug":
+    "a slug is a field of a record of a collection, one per record",
 };
 
 const PAGE_PROBLEM_TEXTS: Readonly<Record<PageProblemReason, string>> = {
@@ -106,6 +132,17 @@ const PAGE_PROBLEM_TEXTS: Readonly<Record<PageProblemReason, string>> = {
   "invalid-title": "its title is empty",
   "invalid-search-texts":
     "searchTexts names no group of a title and a description text",
+};
+
+const RECORD_PAGE_PROBLEM_TEXTS: Readonly<
+  Record<RecordPageProblemReason, string>
+> = {
+  "not-a-page": "not pages of records",
+  "invalid-path":
+    'its address is not lower-case segments, then "/[record]", such as "/menu/[record]"',
+  "unknown-collection": "it names a collection the schema does not have",
+  "invalid-search-texts":
+    "searchTexts names no group of a title and a description text of the record",
 };
 
 function issueText(issue: ContentIssue): string {

@@ -65,6 +65,7 @@ function issuesInField(
     case "choices":
     case "url":
     case "time":
+    case "slug":
       return [];
   }
 }
