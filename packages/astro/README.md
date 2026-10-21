@@ -230,6 +230,33 @@ Sets of fields almost every site has, edited the same way everywhere; they are p
 
 Each takes `{ label }` to name it otherwise.
 
+`productFields()` is the fields of a product of a catalog, for the record of a collection: `name`, `slug` (the address of its page), `photos` (records of one `photo`, the first is the main one), `summary` (one line for a card), `description`, `price` with `priceNote` («от», «за м²»), `characteristics` (records of a `name` and a `value`, so the owner adds a property without code: «Площадь» — «36 м²»), `isHidden` and `seo`. A site adds its own fields beside them, a category for one:
+
+```ts
+export const schema = defineSchema({
+  categories: collection({
+    label: "Категории",
+    itemTitle: "name",
+    item: { name: text({ label: "Название" }) },
+  }),
+  products: collection({
+    label: "Товары",
+    itemTitle: "name",
+    item: {
+      ...productFields(),
+      category: reference({ label: "Категория", collection: "categories" }),
+    },
+  }),
+});
+
+export const productPages = recordPages(schema, {
+  collection: "products",
+  path: "/catalog/[record]",
+  searchTexts: "seo",
+  shows: (product) => !product.isHidden,
+});
+```
+
 ## Records and references
 
 Every record of a collection has an `id` of its own, which never changes when records move, so a record has no field named `id`. The CMS gives ids to records that have none (`withRecordIds`), so a site's initial content may leave them out, unless something refers to those records.
@@ -317,6 +344,8 @@ const edit = editable<Content>();
 <h1 {...edit("menu", index, "name")}>{record.name}</h1>
 ```
 
+`shows` leaves the pages of some records off the site, a hidden product's for one: `site.pageOf` and `site.staticPaths` leave them out and `pathOf` gives them no address, while the preview shows them, so the owner prepares a product before showing it.
+
 `drinkPages.pathOf(drink)` gives the address of a record's page for a link to it: `/menu/latte`. The address is the record's `slug` when it has one, a field the owner fills in (lower-case Latin letters, digits and hyphens; the CMS spells it from the record's name), and its id otherwise, so a record has its page from the moment it is added, and keeps it when it is renamed or moved. A slug another record of the collection has, as its slug or as its id, is the issue `taken-slug`; a slug with other characters, `invalid-slug`. A collection is `catalog.products` through groups, its pages have one segment more than a page of the site (`/catalog/[record]`, never `/[record]`), a record has one page, and no page of the site may stand among the pages of records (`/menu/specials` beside `/menu/[record]`). `searchTexts` names a group of the record with a `title` and a `description` text for its page.
 
 Every record of the initial content needs an address of its own, a slug or an id, since its page is built before the CMS saves anything. The preview shows a page of a record the owner has just added, so the editor opens it before it is saved or published: under the pages of records, an address that could be an id and names no record shows a blank record, which the editor's draft replaces at once.
@@ -335,7 +364,7 @@ What was opened stays open while the page is rendered anew after every edit: a p
 
 ## What the integration adds
 
-- `/preview` and `/preview/<page>`: the preview the CMS's editor frames, the pages of records too (at their address or at the record's id). `GET` shows the published content; `POST` with the content as JSON shows that content without saving it, which is how the editor shows every edit at once. Only the CMS may frame it (`Content-Security-Policy: frame-ancestors`), and it is never indexed or cached; its refusals (an address of no page, a record a draft does not have, a draft that is not JSON or is over 1 MB) say the same.
+- `/preview` and `/preview/<page>`: the preview the CMS's editor frames, the pages of records too (at their address or at the record's id, a page the site does not show too). `GET` shows the published content; `POST` with the content as JSON shows that content without saving it, which is how the editor shows every edit at once. Only the CMS may frame it (`Content-Security-Policy: frame-ancestors`), and it is never indexed or cached; its refusals (an address of no page, a record a draft does not have, a draft that is not JSON or is over 1 MB) say the same.
 - The bridge on the preview: it tells the editor where the marked elements are and what a person does on the page, and types texts in place, formatted ones too.
 - `/seamlet/site.json`: what the site tells the CMS about itself (`SITE_DESCRIPTION_PATH`): its id and name from `seamlet.json`, its schema, the content it starts with and its pages. The CMS reads it with `readSiteDescription` whenever the site is opened in its editor.
 - `/seamlet-photos/<address>`: the site's own photo at an address its content gives it, found by `photos` of `defineSeamletSite`, for the CMS's editor.

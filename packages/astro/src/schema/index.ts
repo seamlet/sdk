@@ -99,6 +99,7 @@ export { imagePosition } from "./image-position";
 export {
   contactsFields,
   openingHoursField,
+  productFields,
   seoFields,
   WEEKDAYS,
 } from "./presets";
@@ -158,6 +159,7 @@ export {
   type RecordPagePath,
   type RecordPages,
   type SiteRecordPageDescription,
+  type SiteRecordPages,
 } from "./record-pages";
 export { isSlug, MAX_SLUG_LENGTH, slugOf } from "./slugs";
 export { slugFieldOf } from "./slug-checks";

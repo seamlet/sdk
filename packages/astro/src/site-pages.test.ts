@@ -1,9 +1,17 @@
 import type { AstroComponentFactory } from "astro/runtime/server/index.js";
 import { describe, expect, it } from "vitest";
-import { collection, defineSchema, recordPages, slug, text } from "./schema";
+import {
+  collection,
+  defineSchema,
+  recordPages,
+  slug,
+  text,
+  toggle,
+} from "./schema";
 import {
   pageParameterOf,
   pagePathOf,
+  previewedPageAt,
   renderedPageAt,
   staticPagesOf,
   type SitePages,
@@ -19,7 +27,11 @@ const schema = defineSchema({
   title: text({ label: "Заголовок" }),
   menu: collection({
     label: "Меню",
-    item: { name: text({ label: "Название" }), slug: slug({ label: "Адрес" }) },
+    item: {
+      name: text({ label: "Название" }),
+      slug: slug({ label: "Адрес" }),
+      isHidden: toggle({ label: "Скрыть с сайта" }),
+    },
   }),
 });
 
@@ -34,15 +46,17 @@ const site: SitePages = {
       pages: recordPages(schema, {
         collection: "menu",
         path: "/menu/[record]",
+        shows: (drink) => !drink.isHidden,
       }),
       component: DrinkPage,
     },
   ],
 };
 
-const latte = { id: "d1", name: "Латте", slug: "latte" };
-const raf = { id: "d2", name: "Раф", slug: "" };
-const content = { title: "Зерно", menu: [latte, raf] };
+const latte = { id: "d1", name: "Латте", slug: "latte", isHidden: false };
+const raf = { id: "d2", name: "Раф", slug: "", isHidden: false };
+const cocoa = { id: "d3", name: "Какао", slug: "kakao", isHidden: true };
+const content = { title: "Зерно", menu: [latte, raf, cocoa] };
 
 describe("renderedPageAt", () => {
   it("renders a page of the site with the content", () => {
@@ -65,7 +79,15 @@ describe("renderedPageAt", () => {
 
   it("renders nothing where the site has no page", () => {
     expect(renderedPageAt(site, "/about", content)).toBeUndefined();
-    expect(renderedPageAt(site, "/menu/cocoa", content)).toBeUndefined();
+    expect(renderedPageAt(site, "/menu/tea", content)).toBeUndefined();
+  });
+
+  it("renders no page of a record the site does not show, but the preview does", () => {
+    expect(renderedPageAt(site, "/menu/kakao", content)).toBeUndefined();
+    expect(previewedPageAt(site, "/menu/kakao", content)).toEqual({
+      component: DrinkPage,
+      props: { content, record: cocoa, index: 2 },
+    });
   });
 });
 
@@ -85,10 +107,10 @@ describe("staticPagesOf", () => {
     });
   });
 
-  it("builds no page of a record without an address", () => {
+  it("builds no page of a record without an address, or one the site does not show", () => {
     const pages = staticPagesOf(site, {
       ...content,
-      menu: [{ name: "Какао", slug: "" }],
+      menu: [{ name: "Чай", slug: "", isHidden: false }, cocoa],
     });
 
     expect(pages).toHaveLength(2);

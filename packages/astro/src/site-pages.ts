@@ -9,7 +9,7 @@ import {
   recordPagePath,
   type Content,
   type Fields,
-  type SiteRecordPageDescription,
+  type SiteRecordPages,
 } from "./schema";
 
 // What renders each page of a site with its content. A page of the site takes the content; a page of
@@ -28,7 +28,7 @@ export interface SeamletPage {
 /** The pages of the records of a collection, and the component that renders each of them. */
 export interface SeamletRecordPage {
   /** Which records have pages and where: `recordPages(schema, { collection, path })`. */
-  readonly pages: SiteRecordPageDescription;
+  readonly pages: SiteRecordPages;
   /**
    * A component that takes the site's content, the record and its place in its collection as its
    * `content`, `record` and `index` props.
@@ -75,17 +75,37 @@ export function pageParameterOf(path: string): string | undefined {
     : path.slice(PAGE_PATH_SEPARATOR.length);
 }
 
+/** Which records' pages are shown: on the site, or in the preview. */
+type ShownRecords = (recordPage: SeamletRecordPage, record: Content) => boolean;
+
+/** The site shows the pages its pages of records show. */
+const SHOWN_ON_SITE: ShownRecords = (recordPage, record) =>
+  recordPage.pages.isShown?.(record) ?? true;
+/** The preview shows the page of every record, so the owner prepares a hidden one. */
+const EVERY_RECORD: ShownRecords = () => true;
+
 /** What renders the page at the address with the content; undefined when the site has no such page. */
 export function renderedPageAt(
   site: SitePages,
   path: string,
   content: Content,
 ): RenderedPage | undefined {
-  const page = Object.hasOwn(site.pages, path) ? site.pages[path] : undefined;
-  if (page !== undefined) {
-    return { component: page.component, props: { content } };
-  }
-  return renderedRecordPageAt(site, path, content);
+  return (
+    ownPageAt(site, path, content) ??
+    renderedRecordPageAt(site, { path, content, isShown: SHOWN_ON_SITE })
+  );
+}
+
+/** What renders the page at the address in the preview: the page of a hidden record too. */
+export function previewedPageAt(
+  site: SitePages,
+  path: string,
+  content: Content,
+): RenderedPage | undefined {
+  return (
+    ownPageAt(site, path, content) ??
+    renderedRecordPageAt(site, { path, content, isShown: EVERY_RECORD })
+  );
 }
 
 /** Every page of the site with the content: its own pages, and a page of every record that has one. */
@@ -102,14 +122,31 @@ export function staticPagesOf(
   return [...ownPages, ...recordPages];
 }
 
-function renderedRecordPageAt(
+function ownPageAt(
   site: SitePages,
   path: string,
   content: Content,
 ): RenderedPage | undefined {
+  const page = Object.hasOwn(site.pages, path) ? site.pages[path] : undefined;
+  return page === undefined
+    ? undefined
+    : { component: page.component, props: { content } };
+}
+
+interface RecordPageRequest {
+  readonly path: string;
+  readonly content: Content;
+  readonly isShown: ShownRecords;
+}
+
+function renderedRecordPageAt(
+  site: SitePages,
+  request: RecordPageRequest,
+): RenderedPage | undefined {
+  const { path, content, isShown } = request;
   const described = site.recordPages.map((recordPage) => ({
     ...recordPage.pages,
-    component: recordPage.component,
+    recordPage,
   }));
   const found = recordPageAt(described, path);
   if (found === undefined) return undefined;
@@ -117,10 +154,13 @@ function renderedRecordPageAt(
   if (records === undefined) return undefined;
 
   const placed = recordAt(records.collection, records.records, found.address);
-  if (placed === undefined) return undefined;
+  const { recordPage } = found.page;
+  if (placed === undefined || !isShown(recordPage, placed.record)) {
+    return undefined;
+  }
 
   const props = { content, record: placed.record, index: placed.index };
-  return { component: found.page.component, props };
+  return { component: recordPage.component, props };
 }
 
 function staticRecordPagesOf(
@@ -133,7 +173,8 @@ function staticRecordPagesOf(
 
   return found.records.flatMap((record, index) => {
     const address = recordAddressOf(found.collection, record);
-    if (address === undefined) return [];
+    const hasPage = address !== undefined && SHOWN_ON_SITE(recordPage, record);
+    if (!hasPage) return [];
 
     const path = recordPagePath(recordPage.pages.path, address);
     const props = { content, record, index };
