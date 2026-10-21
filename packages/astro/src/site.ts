@@ -76,7 +76,7 @@ export interface SeamletSite<F extends Fields = Fields> {
     content: ContentOf<F>,
   ) => RenderedPage | undefined;
   /** Every page of the site with the content, for `getStaticPaths` of a `[...page]` route. */
-  readonly staticPaths: (content: ContentOf<F>) => readonly StaticPage[];
+  readonly staticPaths: (content: ContentOf<F>) => StaticPage[];
   /** What the CMS published: the site's initial content until the first publication. */
   readonly loadPublishedContent: () => Promise<ContentOf<F>>;
   /** The site's own photo at an address its content gives it, if it has one there. */

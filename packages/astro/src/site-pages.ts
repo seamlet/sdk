@@ -36,11 +36,14 @@ export interface SeamletRecordPage {
   readonly component: AstroComponentFactory;
 }
 
+// The two types a `getStaticPaths` returns are type aliases, not interfaces: Astro takes the props of
+// a path as a record, and only a type alias is one.
+
 /** What renders a page: its component, and the props to give it. */
-export interface RenderedPage {
+export type RenderedPage = {
   readonly component: AstroComponentFactory;
   readonly props: PageProps;
-}
+};
 
 export type PageProps =
   | { readonly content: Content }
@@ -51,10 +54,10 @@ export type PageProps =
     };
 
 /** A page that `getStaticPaths` of a site's `[...page]` route builds. */
-export interface StaticPage {
+export type StaticPage = {
   readonly params: { readonly page: string | undefined };
   readonly props: RenderedPage;
-}
+};
 
 /** The pages of a site as its definition gives them. */
 export interface SitePages {
@@ -109,10 +112,7 @@ export function previewedPageAt(
 }
 
 /** Every page of the site with the content: its own pages, and a page of every record that has one. */
-export function staticPagesOf(
-  site: SitePages,
-  content: Content,
-): readonly StaticPage[] {
+export function staticPagesOf(site: SitePages, content: Content): StaticPage[] {
   const ownPages = Object.entries(site.pages).map(([path, page]) =>
     staticPage(path, { component: page.component, props: { content } }),
   );
