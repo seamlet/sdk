@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.0
+
+- Feeds of the catalog: `@seamlet/astro/feeds` with `yandexFeedOf` (YML for Яндекс), `avitoFeedOf` (an Avito autoload file, with the fields of its category from the site) and `productOffersOf`, the offers of `productFields` records.
+- A calculator whose prices the owner keeps: `ratesField()` and `estimateOf(rates, amounts)`.
+
 ## 1.4.0
 
 - Documents: `file({ label })` holds a PDF the owner uploads in the CMS, `{ src, name }` (`FileValue`): a price list, a menu, a contract. An empty name of a file asks for its file (`missing-file-src`). A static build copies the uploaded documents its pages link to, as it copies the photos, and the route of uploads serves them on request; `isUploadedFile` names both.

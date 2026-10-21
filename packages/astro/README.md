@@ -438,6 +438,41 @@ document.addEventListener(REQUEST_SENT_EVENT, (event) => {
 
 A site whose `Content-Security-Policy` sets `connect-src` or `form-action` lets the CMS's origin in both. A request the policy stops on its way is posted by the browser as a plain form.
 
+## A calculator
+
+`ratesField()` is a collection of rates the owner keeps (what is counted, its unit, its price), and `estimateOf(rates, amounts)` sums what a visitor chose, the amounts known by the ids of their rates, in whole rubles. The site's own script asks the amounts and shows the sum; the page writes the rates for it, `data-rates={JSON.stringify(content.rates)}`. A new price reaches the calculator with the next publication.
+
+## Feeds of the catalog
+
+`@seamlet/astro/feeds` writes the catalog for the places that sell it, from the published content: `yandexFeedOf(shop, offers, madeAt)` in YML (Яндекс Директ, Бизнес, Маркет) and `avitoFeedOf(seller, offers, fieldsOf?)` as an Avito autoload file, `fieldsOf` giving the fields Avito's category asks. `productOffersOf(products, { siteUrl, pathOf })` makes the offers of `productFields` records, leaving the hidden ones out; a product without a price is left out of both feeds.
+
+```ts
+// src/pages/feeds/yandex.xml.ts
+import { productOffersOf, yandexFeedOf } from "@seamlet/astro/feeds";
+import site from "../../seamlet";
+import { productPages } from "../../schema";
+
+export async function GET() {
+  const content = await site.loadPublishedContent();
+  const offers = productOffersOf(content.products, {
+    siteUrl: "https://lesnaya.ru",
+    pathOf: productPages.pathOf,
+  });
+  const feed = yandexFeedOf(
+    {
+      name: "Лесная мастерская",
+      company: "ООО «Лесная мастерская»",
+      url: "https://lesnaya.ru",
+    },
+    offers,
+    new Date(),
+  );
+  return new Response(feed, {
+    headers: { "Content-Type": "application/xml; charset=utf-8" },
+  });
+}
+```
+
 ## What the integration adds
 
 - `/preview` and `/preview/<page>`: the preview the CMS's editor frames, the pages of records too (at their address or at the record's id, a page the site does not show too). `GET` shows the published content; `POST` with the content as JSON shows that content without saving it, which is how the editor shows every edit at once. Only the CMS may frame it (`Content-Security-Policy: frame-ancestors`), and it is never indexed or cached; its refusals (an address of no page, a record a draft does not have, a draft that is not JSON or is over 1 MB) say the same.
