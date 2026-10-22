@@ -5,8 +5,8 @@ import {
   requestText,
 } from "@seamlet/astro/schema";
 
-// The forms the coffee shop's guests send requests with: the CMS keeps them and passes them on to
-// the coffee shop.
+// The forms the coffee shop's guests send requests with: the CMS passes them on to the coffee shop
+// by mail. A guest consents on the terms of the coffee shop's policy, its page `/privacy`.
 
 export const tableForm = requestForm({
   id: "table",

@@ -6,6 +6,7 @@ import {
   image,
   link,
   number,
+  privacyPolicyFields,
   recordPages,
   richText,
   slug,
@@ -67,6 +68,7 @@ export const coffeeShopSchema = defineSchema({
       hours: text({ label: "Часы работы", maxLength: 60 }),
     },
   }),
+  privacy: privacyPolicyFields(),
   links: collection({
     label: "Ссылки в подвале",
     itemTitle: "link",

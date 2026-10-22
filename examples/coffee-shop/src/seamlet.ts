@@ -2,6 +2,7 @@ import { defineSeamletSite } from "@seamlet/astro/site";
 import DrinkPage from "./components/DrinkPage.astro";
 import HomePage from "./components/HomePage.astro";
 import MenuPage from "./components/MenuPage.astro";
+import PrivacyPage from "./components/PrivacyPage.astro";
 import { tableForm } from "./forms";
 import { coffeeShopInitialContent } from "./initial-content";
 import { coffeeShopSchema, drinkPages } from "./schema";
@@ -15,6 +16,7 @@ export default defineSeamletSite({
   pages: {
     "/": { title: "Главная", component: HomePage },
     "/menu": { title: "Меню", component: MenuPage },
+    "/privacy": { title: "Политика данных", component: PrivacyPage },
   },
   recordPages: [{ pages: drinkPages, component: DrinkPage }],
   forms: [tableForm],

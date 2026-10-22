@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.0
+
+- The consent of a form links to the business's own policy, a page of the site (`policyHref`, `/privacy` by default, `PRIVACY_PAGE_PATH`), not to texts kept by the CMS: the business is the operator of its visitors' data, and the CMS only passes requests on. `privacyPolicyFields()` is the policy as content and `privacyPolicyTextOf({ siteTitle, operator, forms })` a template to start it with.
+- Breaking: `RequestForm.astro` has no `consentHref` and no separate paragraph of the policy (`seamlet-form-policy`); `legalPagePathOf` and `LegalDocument` are gone. The reason `closed` of `seamlet:request-failed` now means the CMS has nobody to mail the site's requests to.
+
 ## 1.5.0
 
 - Feeds of the catalog: `@seamlet/astro/feeds` with `yandexFeedOf` (YML for Яндекс), `avitoFeedOf` (an Avito autoload file, with the fields of its category from the site) and `productOffersOf`, the offers of `productFields` records.

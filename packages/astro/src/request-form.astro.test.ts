@@ -144,10 +144,7 @@ describe("the form of requests", () => {
     expect(consent.type).toBe("checkbox");
     expect(consent.checked).toBe(false);
     expect(element(".seamlet-form-consent a").getAttribute("href")).toBe(
-      "https://cms.example/legal/lesnaya/consent",
-    );
-    expect(element(".seamlet-form-policy a").getAttribute("href")).toBe(
-      "https://cms.example/legal/lesnaya/privacy",
+      "/privacy",
     );
   });
 
