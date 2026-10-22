@@ -7,7 +7,7 @@ Connects an [Astro](https://astro.build) site to the Seamlet CMS ([source](https
 The quick way, in an Astro project:
 
 ```bash
-npx @seamlet/astro init --title "Кофейня «Зерно»"   # seamlet.json, src/schema.ts, src/seamlet.ts, a first page component
+npx @seamlet/astro init --title "Моя кофейня"   # seamlet.json, src/schema.ts, src/seamlet.ts, a first page component
 npx astro add @seamlet/astro node                   # the integration, and an adapter for the preview
 ```
 
@@ -23,8 +23,8 @@ npx astro add @seamlet/astro node                   # the integration, and an ad
 
    ```json
    {
-     "id": "zerno",
-     "title": "Кофейня «Зерно»",
+     "id": "cafe",
+     "title": "Моя кофейня",
      "cms": "https://cms.seamlet.ru"
    }
    ```
@@ -297,7 +297,7 @@ A reference to a record removed since is kept, with the issue `missing-record`: 
 
 ## Pages of records
 
-A collection can have a page for each of its records: a product, a dish, an article. The site writes one component, and the owner who adds a record in the CMS gets its page, which the CMS's editor opens and edits like any other page (a CMS that reads descriptions of version 1.1, as cms.seamlet.ru does from its release 1.1.0). `recordPages` names the collection and the address of its pages, `[record]` standing for the record:
+A collection can have a page for each of its records: a product, a dish, an article. The site writes one component, and the owner who adds a record in the CMS gets its page, which the CMS's editor opens and edits like any other page (a CMS that reads descriptions of version 1.1). `recordPages` names the collection and the address of its pages, `[record]` standing for the record:
 
 ```ts
 // src/schema.ts
@@ -469,14 +469,14 @@ import { productPages } from "../../schema";
 export async function GET() {
   const content = await site.loadPublishedContent();
   const offers = productOffersOf(content.products, {
-    siteUrl: "https://lesnaya.ru",
+    siteUrl: "https://example.ru",
     pathOf: productPages.pathOf,
   });
   const feed = yandexFeedOf(
     {
-      name: "Лесная мастерская",
-      company: "ООО «Лесная мастерская»",
-      url: "https://lesnaya.ru",
+      name: "Ромашка",
+      company: "ООО «Ромашка»",
+      url: "https://example.ru",
     },
     offers,
     new Date(),

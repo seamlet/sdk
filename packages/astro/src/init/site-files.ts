@@ -33,7 +33,7 @@ export function moduleFilesOf(config: SiteConfig): readonly SiteFile[] {
 }
 
 /**
- * The id a package's name gives (`@studio/dzen-yoga` → `dzen-yoga`), or undefined when it gives
+ * The id a package's name gives (`@studio/my-site` → `my-site`), or undefined when it gives
  * none the CMS takes.
  */
 export function siteIdOf(packageName: string): string | undefined {

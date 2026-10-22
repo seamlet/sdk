@@ -4,16 +4,16 @@ import { isSiteId, readSiteConfig } from "./site-config";
 describe("readSiteConfig", () => {
   it("reads the id, the name and the CMS's origin of a site", () => {
     const reading = readSiteConfig({
-      id: "dzen-yoga",
-      title: " Студия йоги «Дзен» ",
+      id: "my-site",
+      title: " Студия йоги ",
       cms: "https://cms.seamlet.ru/",
     });
 
     expect(reading).toEqual({
       status: "read",
       config: {
-        id: "dzen-yoga",
-        title: "Студия йоги «Дзен»",
+        id: "my-site",
+        title: "Студия йоги",
         cms: "https://cms.seamlet.ru",
       },
     });
@@ -23,7 +23,7 @@ describe("readSiteConfig", () => {
     const reading = readSiteConfig({
       $schema: "https://example.com/seamlet.schema.json",
       id: "coffee-shop",
-      title: "Зерно",
+      title: "Кофейня",
       cms: "http://localhost:4321",
     });
 
@@ -31,7 +31,7 @@ describe("readSiteConfig", () => {
       status: "read",
       config: {
         id: "coffee-shop",
-        title: "Зерно",
+        title: "Кофейня",
         cms: "http://localhost:4321",
       },
     });
@@ -41,7 +41,7 @@ describe("readSiteConfig", () => {
     expect(
       readSiteConfig({ id: "Coffee Shop", title: "  ", cms: "ftp://cms" }),
     ).toEqual({ status: "invalid", invalidFields: ["id", "title", "cms"] });
-    expect(readSiteConfig({ id: "coffee-shop", title: "Зерно" })).toEqual({
+    expect(readSiteConfig({ id: "coffee-shop", title: "Кофейня" })).toEqual({
       status: "invalid",
       invalidFields: ["cms"],
     });
@@ -62,7 +62,7 @@ describe("readSiteConfig", () => {
 
 describe("isSiteId", () => {
   it("takes lower-case letters, digits and single hyphens between them", () => {
-    expect(["coffee-shop", "lampgreen", "studio-2"].every(isSiteId)).toBe(true);
+    expect(["coffee-shop", "studio", "studio-2"].every(isSiteId)).toBe(true);
   });
 
   it("refuses what cannot name an address, a file or the host of a preview", () => {

@@ -16,10 +16,10 @@ const schema = defineSchema({ title: text({ label: "Заголовок" }) });
 describe("describeSite", () => {
   it("tells the CMS everything about the site but how it renders, in a form it reads", () => {
     const description = describeSite(
-      { id: "coffee-shop", title: "Кофейня «Зерно»" },
+      { id: "coffee-shop", title: "Моя кофейня" },
       {
         schema,
-        initialContent: { title: "Зерно" },
+        initialContent: { title: "Кофейня" },
         pages: {
           "/": { title: "Главная", component },
           "/menu": { title: "Меню", component },
@@ -42,10 +42,10 @@ describe("describeSite", () => {
         string,
         { title: string; component: AstroComponentFactory }
       >,
-      initialContent = { title: "Зерно" },
+      initialContent = { title: "Кофейня" },
     ) =>
       describeSite(
-        { id: "coffee-shop", title: "Кофейня «Зерно»" },
+        { id: "coffee-shop", title: "Моя кофейня" },
         { schema, initialContent, pages },
       );
 
@@ -72,10 +72,10 @@ describe("describeSite", () => {
   it("stops a page whose search texts are not a group of a title and a description", () => {
     expect(() =>
       describeSite(
-        { id: "coffee-shop", title: "Кофейня «Зерно»" },
+        { id: "coffee-shop", title: "Моя кофейня" },
         {
           schema,
-          initialContent: { title: "Зерно" },
+          initialContent: { title: "Кофейня" },
           pages: { "/": { title: "Главная", component, searchTexts: "title" } },
         },
       ),

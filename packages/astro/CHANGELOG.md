@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.2
+
+- The examples of the README, the comments and the tests name no real site: `my-site`, «Моя кофейня», `example.ru`. A CMS a feature needs is named by the version of the description it reads. Nothing behaves differently.
+
 ## 2.2.1
 
 - The Russian texts a visitor and the owner read are edited to the copy rules of `.claude/skills/russian-copy`; nothing behaves differently. `RequestForm.astro` says «Заявка отправлена. Ответим по контактам, которые вы оставили.» once a request is sent and «Заявка не ушла. Всё, что вы ввели, осталось в форме — отправьте ещё раз через минуту.» when it is not; the hidden trap field reads «Оставьте это поле пустым». `REQUEST_ISSUE_TEXTS`: «Слишком длинный текст — сократите его», «Проверьте почту: нужен адрес вида name@mail.ru», «Выберите вариант из списка». The labels of the presets: `note` of `openingHoursField()` is «Примечание», `summary` of `productFields()` «Строка для карточки», `image` of `seoFields()` «Картинка для ссылки в соцсетях». `privacyPolicyTextOf` fixes two sentences of section 5 that did not agree in grammar; its legal meaning is the same.
@@ -29,7 +33,7 @@ A site with a form adds the page `/consent` (or passes `consentHref`).
 
 - Documents: `file({ label })` holds a PDF the owner uploads in the CMS, `{ src, name }` (`FileValue`): a price list, a menu, a contract. An empty name of a file asks for its file (`missing-file-src`). A static build copies the uploaded documents its pages link to, as it copies the photos, and the route of uploads serves them on request; `isUploadedFile` names both.
 
-A site with a file field needs a CMS that reads 1.4 (cms.seamlet.ru from its release that takes documents). Code with an exhaustive `switch` over `FieldKind` or over the issues of `parseContent` gets the new member to handle.
+A site with a file field needs a CMS that reads 1.4. Code with an exhaustive `switch` over `FieldKind` or over the issues of `parseContent` gets the new member to handle.
 
 ## 1.3.0
 
@@ -37,7 +41,7 @@ A site with a file field needs a CMS that reads 1.4 (cms.seamlet.ru from its rel
 - `readRequestEntries(body)` reads a request's body into its words, and `readRequestValues(form, entries)` checks a request the same way in the browser and in the CMS, with issues by field (`required`, `too-long`, `invalid-phone`, `invalid-email`, `unknown-option`) and their texts (`REQUEST_ISSUE_TEXTS`).
 - The events `seamlet:request-send` (cancelable), `seamlet:request-sent` and `seamlet:request-failed` on the form let the site's code send a request its own way or follow it.
 
-A site with forms needs a CMS that reads descriptions of 1.3 (cms.seamlet.ru from its release that takes requests). Code with an exhaustive `switch` over `SiteDescriptionProblem` gets its new members to handle.
+A site with forms needs a CMS that reads descriptions of 1.3. Code with an exhaustive `switch` over `SiteDescriptionProblem` gets its new members to handle.
 
 ## 1.2.1
 
@@ -55,7 +59,7 @@ A site with forms needs a CMS that reads descriptions of 1.3 (cms.seamlet.ru fro
 - `site.pageOf(rest, content)` and `site.staticPaths(content)` render every page of a site from one `[...page]` route, the pages of records too. `site.pageAt` renders the site's own pages only, and is deprecated.
 - The preview answers an address of no page at once, without asking the CMS or reading the draft.
 
-A site with a `slug` or pages of records needs a CMS that reads descriptions of 1.1 (cms.seamlet.ru from its release 1.1.0): an older one refuses the kind `slug`. Code with an exhaustive `switch` over `Field`, `ContentIssue`, `SchemaProblemReason` or `SiteDescriptionProblem` gets their new members to handle.
+A site with a `slug` or pages of records needs a CMS that reads descriptions of 1.1: an older one refuses the kind `slug`. Code with an exhaustive `switch` over `Field`, `ContentIssue`, `SchemaProblemReason` or `SiteDescriptionProblem` gets their new members to handle.
 
 ## 1.0.0
 

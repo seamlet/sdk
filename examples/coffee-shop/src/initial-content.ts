@@ -11,19 +11,19 @@ import type { CoffeeShopContent } from "./schema";
 
 /** The business behind the site, made up too, whose documents of personal data start the content. */
 const policySource: PolicySource = {
-  siteTitle: "Кофейня «Зерно»",
+  siteTitle: "Моя кофейня",
   operator: {
-    name: "ИП Зернов Иван Иванович",
+    name: "ИП Иванов Иван Иванович",
     inn: "000000000000",
-    address: "г. Киров, ул. Примерная, д. 1",
-    email: "hello@zerno.example",
+    address: "г. Москва, ул. Примерная, д. 1",
+    email: "hello@example.ru",
   },
   forms: [tableForm],
 };
 
 export const coffeeShopInitialContent: CoffeeShopContent = {
   hero: {
-    title: "Кофейня «Зерно»",
+    title: "Моя кофейня",
     subtitle: richTextOf(
       "Обжариваем зерно сами и варим кофе без спешки: эспрессо, фильтр и сезонные напитки.",
     ),
@@ -56,7 +56,7 @@ export const coffeeShopInitialContent: CoffeeShopContent = {
     {
       name: "Фильтр-кофе",
       slug: "filtr-kofe",
-      description: richTextOf("Зерно недели, заваренное в воронке."),
+      description: richTextOf("Кофе недели, заваренное в воронке."),
       price: 190,
     },
     {
@@ -85,7 +85,7 @@ export const coffeeShopInitialContent: CoffeeShopContent = {
     signup: { text: "Записаться", href: "tel:+70000000000" },
   },
   contacts: {
-    address: "ул. Садовая, 12",
+    address: "ул. Примерная, 12",
     phone: "+7 (000) 000-00-00",
     hours: "Ежедневно с 8:00 до 22:00",
   },

@@ -4,11 +4,11 @@ import { loadPublishedContent } from "./site";
 
 vi.mock("virtual:seamlet/config", () => ({
   siteId: "coffee-shop",
-  siteTitle: "Кофейня «Зерно»",
+  siteTitle: "Моя кофейня",
   cmsOrigin: "https://cms.example",
 }));
 vi.mock("virtual:seamlet/site", () => ({
-  default: { description: { initialContent: { title: "Зерно" } } },
+  default: { description: { initialContent: { title: "Кофейня" } } },
 }));
 
 const schema = defineSchema({ title: text({ label: "Заголовок" }) });
@@ -27,11 +27,11 @@ afterEach(() => {
 describe("loadPublishedContent", () => {
   it("takes what the CMS published for the site, in the shape of its schema", async () => {
     const fetchContent = answerWith(
-      Response.json({ title: "Новое Зерно", removed: true }),
+      Response.json({ title: "Новая кофейня", removed: true }),
     );
 
     await expect(loadPublishedContent(schema)).resolves.toEqual({
-      title: "Новое Зерно",
+      title: "Новая кофейня",
     });
     expect(fetchContent).toHaveBeenCalledWith(
       new URL("https://cms.example/api/sites/coffee-shop/published"),
@@ -44,7 +44,7 @@ describe("loadPublishedContent", () => {
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
     await expect(loadPublishedContent(schema)).resolves.toEqual({
-      title: "Зерно",
+      title: "Кофейня",
     });
   });
 

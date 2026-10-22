@@ -21,7 +21,7 @@ const FIRST_PRINTABLE_CODE = 0x20;
 const DELETE_CODE = 0x7f;
 const BACKSLASH = "\\";
 const WEB_ADDRESS = /^https?:\/\/[^\s/?#]+[^\s]*$/iu;
-/** `mailto:`, `javascript:`, but not `zerno.ru:8080`, where a port follows the colon. */
+/** `mailto:`, `javascript:`, but not `example.ru:8080`, where a port follows the colon. */
 const ANY_SCHEME = /^[a-z][a-z\d+.-]*:(?!\d)/iu;
 const PHONE_NUMBER = /^\+?[\d\s().-]*\d[\d\s().-]*$/u;
 const NOT_PHONE_DIGIT = /[^\d+]/gu;

@@ -14,7 +14,7 @@ import {
 /** What a field of `seamlet.json` must be, for the message about it. */
 const FIELD_RULES: Readonly<Record<SiteConfigField, string>> = {
   id: "the site's id in the CMS: lower-case letters, digits and single hyphens, such as coffee-shop",
-  title: "how the CMS names the site, such as «Кофейня «Зерно»»",
+  title: "how the CMS names the site, such as «Моя кофейня»",
   cms: "the address of the CMS, such as https://cms.seamlet.ru",
 };
 

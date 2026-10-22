@@ -5,16 +5,19 @@ import {
   readPublishedAnswer,
 } from "./published-answers";
 
-const url = new URL("https://cms.seamlet.ru/api/sites/dzen-yoga/published");
+const url = new URL("https://cms.seamlet.ru/api/sites/my-site/published");
 
 describe("readPublishedAnswer", () => {
   it("reads what the CMS published", async () => {
     const answer = await readPublishedAnswer(
-      Response.json({ title: "Дзен" }),
+      Response.json({ title: "Студия" }),
       url,
     );
 
-    expect(answer).toEqual({ status: "published", content: { title: "Дзен" } });
+    expect(answer).toEqual({
+      status: "published",
+      content: { title: "Студия" },
+    });
   });
 
   it("tells a site the CMS does not know yet", async () => {
@@ -30,7 +33,7 @@ describe("readPublishedAnswer", () => {
     const broken = new Response(null, { status: 500 });
 
     await expect(readPublishedAnswer(elsewhere, url)).rejects.toThrow(
-      "https://cms.seamlet.ru/api/sites/dzen-yoga/published failed with status 404",
+      "https://cms.seamlet.ru/api/sites/my-site/published failed with status 404",
     );
     await expect(readPublishedAnswer(broken, url)).rejects.toThrow(
       "failed with status 500",
@@ -57,7 +60,7 @@ describe("fetchPublishedAnswer", () => {
     );
 
     await expect(fetchPublishedAnswer(url)).rejects.toThrow(
-      "Loading the published content from https://cms.seamlet.ru/api/sites/dzen-yoga/published failed: the CMS did not answer",
+      "Loading the published content from https://cms.seamlet.ru/api/sites/my-site/published failed: the CMS did not answer",
     );
     expect(timeout).toHaveBeenCalledWith(PUBLISHED_CONTENT_TIMEOUT_MS);
     timeout.mockRestore();

@@ -13,7 +13,7 @@ let typing: PageTyping;
 
 beforeEach(() => {
   document.body.innerHTML = `
-    <h1 data-cms-path="title">Зерно</h1>
+    <h1 data-cms-path="title">Кофейня</h1>
     <p data-cms-path="menu.0.description">Плотный</p>
     <span data-cms-path="menu.0.price">150 ₽</span>
     <div data-cms-path="menu.0"><p data-cms-path="menu.0.name">Эспрессо</p></div>`;
@@ -58,7 +58,7 @@ function press(element: HTMLElement, key: string): void {
 
 describe("createPageTyping", () => {
   it("says when nothing is typed any more: the typing ended, or was refused", () => {
-    startAt("title", "Зерно");
+    startAt("title", "Кофейня");
     expect(onTypingOver).not.toHaveBeenCalled();
     press(marked("title"), "Enter");
     expect(onTypingOver).toHaveBeenCalledTimes(1);
@@ -81,13 +81,13 @@ describe("createPageTyping", () => {
   });
 
   it("types a text shown as it is and sends every typed character", () => {
-    startAt("title", "Зерно");
-    type(marked("title"), "Зерно и чай");
+    startAt("title", "Кофейня");
+    type(marked("title"), "Кофейня и чай");
     press(marked("title"), "Enter");
 
     expect(send.mock.calls).toEqual([
       [{ type: "typing-started", path: "title" }],
-      [{ type: "typed", path: "title", text: "Зерно и чай" }],
+      [{ type: "typed", path: "title", text: "Кофейня и чай" }],
       [{ type: "typing-ended", path: "title", outcome: "kept" }],
     ]);
     expect(typing.isTyping()).toBe(false);
@@ -97,7 +97,7 @@ describe("createPageTyping", () => {
   it("refuses a formatted value, an element with other fields and a text the page shows otherwise", () => {
     startAt("menu.0.price", "150");
     startAt("menu.0", "Эспрессо");
-    startAt("title", "Зерно — кофейня");
+    startAt("title", "Кофейня у дома");
     startAt("contacts.phone", "+7");
 
     expect(send.mock.calls).toEqual([
@@ -118,8 +118,8 @@ describe("createPageTyping", () => {
   });
 
   it("tells the editor to bring the text back on Escape", () => {
-    startAt("title", "Зерно");
-    type(marked("title"), "Зерно и");
+    startAt("title", "Кофейня");
+    type(marked("title"), "Кофейня и");
 
     press(marked("title"), "Escape");
 
@@ -131,7 +131,7 @@ describe("createPageTyping", () => {
   });
 
   it("ends the typing when told to", () => {
-    startAt("title", "Зерно");
+    startAt("title", "Кофейня");
 
     typing.stop();
 
@@ -176,7 +176,7 @@ describe("createPageTyping", () => {
     typing.startRich({
       type: "start-rich-typing",
       path: "title",
-      text: [{ kind: "paragraph", spans: [{ text: "Зерно", bold: true }] }],
+      text: [{ kind: "paragraph", spans: [{ text: "Кофейня", bold: true }] }],
       isInline: true,
       point: { x: 0, y: 0 },
     });
@@ -195,7 +195,7 @@ describe("createPageTyping", () => {
     expect(title.getAttribute("contenteditable")).toBe("plaintext-only");
     expect(document.activeElement).toBe(title);
 
-    startAt("title", "Зерно");
+    startAt("title", "Кофейня");
     expect(typing.isTyping()).toBe(true);
     expect(document.activeElement).toBe(title);
   });

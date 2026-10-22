@@ -21,7 +21,7 @@ beforeEach(async () => {
     join(root, "seamlet.json"),
     JSON.stringify({
       id: "coffee-shop",
-      title: "Кофейня «Зерно»",
+      title: "Моя кофейня",
       cms: "https://cms.seamlet.ru",
     }),
   );
@@ -69,7 +69,7 @@ describe("the integration", () => {
     expect(configModule).toBe(
       [
         'export const siteId = "coffee-shop";',
-        'export const siteTitle = "Кофейня «Зерно»";',
+        'export const siteTitle = "Моя кофейня";',
         'export const cmsOrigin = "https://cms.seamlet.ru";',
       ].join("\n"),
     );

@@ -32,11 +32,11 @@ describe("formatted text", () => {
       readRichText([
         {
           kind: "paragraph",
-          spans: [{ text: "Зе" }, { text: "" }, { text: "рно" }],
+          spans: [{ text: "Кофе" }, { text: "" }, { text: "йня" }],
         },
         { kind: "paragraph", spans: [] },
       ]),
-    ).toEqual([{ kind: "paragraph", spans: [{ text: "Зерно" }] }]);
+    ).toEqual([{ kind: "paragraph", spans: [{ text: "Кофейня" }] }]);
   });
 
   it("takes a plain text as paragraphs, so a text field keeps its words", () => {

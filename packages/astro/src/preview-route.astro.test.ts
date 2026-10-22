@@ -5,7 +5,7 @@ import { MAX_DRAFT_BYTES } from "./preview-requests";
 
 vi.mock("virtual:seamlet/config", () => ({
   siteId: "coffee-shop",
-  siteTitle: "Кофейня «Зерно»",
+  siteTitle: "Моя кофейня",
   cmsOrigin: "https://cms.example",
 }));
 // A mock is hoisted above the imports: it takes what it needs itself.
@@ -29,7 +29,7 @@ vi.mock("virtual:seamlet/site", async () => {
   const latte = { id: "d1", name: "Латте", slug: "latte", isHidden: false };
   const site = defineSeamletSite({
     schema,
-    initialContent: { title: "Зерно", menu: [latte] },
+    initialContent: { title: "Кофейня", menu: [latte] },
     pages: {
       "/": { title: "Главная", component: TitlePage },
       "/menu": { title: "Меню", component: TitlePage },

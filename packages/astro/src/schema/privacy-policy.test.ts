@@ -23,10 +23,10 @@ const callback = requestForm({
 });
 
 const operator = {
-  name: "ООО «Лесная мастерская»",
-  inn: "4345000000",
-  address: "610000, г. Киров, ул. Лесная, д. 1",
-  email: "data@lesnaya.example",
+  name: "ООО «Ромашка»",
+  inn: "7700000000",
+  address: "101000, г. Москва, ул. Примерная, д. 1",
+  email: "data@example.ru",
 };
 
 function wordsOf(source: Parameters<typeof privacyPolicyTextOf>[0]): string {
@@ -36,21 +36,21 @@ function wordsOf(source: Parameters<typeof privacyPolicyTextOf>[0]): string {
 describe("privacyPolicyTextOf", () => {
   it("names the business, the data its forms ask and how to withdraw the consent", () => {
     const words = wordsOf({
-      siteTitle: "Лесная мастерская",
+      siteTitle: "Ромашка",
       operator,
       forms: [callback],
     });
 
     expect(words).toContain(
-      "ООО «Лесная мастерская», ИНН 4345000000, адрес: 610000, г. Киров, ул. Лесная, д. 1",
+      "ООО «Ромашка», ИНН 7700000000, адрес: 101000, г. Москва, ул. Примерная, д. 1",
     );
     expect(words).toContain("в форме заявки: имя, телефон, а также");
-    expect(words).toContain("data@lesnaya.example");
+    expect(words).toContain("data@example.ru");
   });
 
   it("names Seamlet as the service that only passes requests on, and no person behind it", () => {
     const words = wordsOf({
-      siteTitle: "Лесная мастерская",
+      siteTitle: "Ромашка",
       operator,
       forms: [],
     });
@@ -80,19 +80,17 @@ describe("privacyConsentTextOf", () => {
   it("names the operator, the purpose, the data, who processes it by commission and how to withdraw", () => {
     const words = plainTextOf(
       privacyConsentTextOf({
-        siteTitle: "Лесная мастерская",
+        siteTitle: "Ромашка",
         operator,
         forms: [callback],
       }),
     );
 
-    expect(words).toContain(
-      "1. Оператор: ООО «Лесная мастерская», ИНН 4345000000",
-    );
+    expect(words).toContain("1. Оператор: ООО «Ромашка», ИНН 7700000000");
     expect(words).toContain("2. Цель обработки: рассмотрение заявки");
     expect(words).toContain("3. Персональные данные: имя, телефон");
     expect(words).toContain("сервису Seamlet (seamlet.ru)");
-    expect(words).toContain("написав Оператору на data@lesnaya.example");
+    expect(words).toContain("написав Оператору на data@example.ru");
   });
 });
 

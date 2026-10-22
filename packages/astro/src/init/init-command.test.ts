@@ -39,14 +39,14 @@ async function readConfig(): Promise<unknown> {
 
 describe("runInit", () => {
   it("names the site after its package and its CMS by default", async () => {
-    await writeFile(join(root, "package.json"), '{ "name": "dzen-yoga" }');
+    await writeFile(join(root, "package.json"), '{ "name": "my-site" }');
 
     const code = await init("init");
 
     expect(code).toBe(0);
     await expect(readConfig()).resolves.toEqual({
-      id: "dzen-yoga",
-      title: "dzen-yoga",
+      id: "my-site",
+      title: "my-site",
       cms: "https://cms.seamlet.ru",
     });
     expect(lines).toContain("wrote src/seamlet.ts");
@@ -56,25 +56,25 @@ describe("runInit", () => {
     const code = await init(
       "init",
       "--id",
-      "lampgreen",
+      "studio",
       "--title",
-      "Лампа Грина",
+      "Студия",
       "--cms",
       "http://localhost:4321",
     );
 
     expect(code).toBe(0);
     await expect(readConfig()).resolves.toEqual({
-      id: "lampgreen",
-      title: "Лампа Грина",
+      id: "studio",
+      title: "Студия",
       cms: "http://localhost:4321",
     });
   });
 
   it("writes the modules for the site's own seamlet.json", async () => {
     const own = {
-      id: "zerno",
-      title: "Кофейня «Зерно»",
+      id: "cafe",
+      title: "Моя кофейня",
       cms: "https://cms.example",
     };
     await writeFile(join(root, "seamlet.json"), JSON.stringify(own));
@@ -85,7 +85,7 @@ describe("runInit", () => {
     await expect(readConfig()).resolves.toEqual(own);
     await expect(
       readFile(join(root, "src", "schema.ts"), "utf8"),
-    ).resolves.toContain('title: "Кофейня «Зерно»"');
+    ).resolves.toContain('title: "Моя кофейня"');
     expect(lines).toContain(
       "kept seamlet.json: the site has it, or a file that goes with it, already",
     );
@@ -93,7 +93,7 @@ describe("runInit", () => {
   });
 
   it("refuses a seamlet.json it cannot read, and writes nothing", async () => {
-    await writeFile(join(root, "seamlet.json"), '{ "id": "Зерно" }');
+    await writeFile(join(root, "seamlet.json"), '{ "id": "Кофейня" }');
 
     const code = await init("init", "--id", "coffee-shop");
 
@@ -133,7 +133,7 @@ describe("runInit", () => {
   it("says how to use it for another command or an unknown option", async () => {
     expect(await init()).toBe(2);
     expect(await init("build")).toBe(2);
-    expect(await init("init", "--name", "zerno")).toBe(2);
+    expect(await init("init", "--name", "cafe")).toBe(2);
     expect(lines.every((line) => line.startsWith("Usage:"))).toBe(true);
   });
 });

@@ -20,9 +20,9 @@ async function statusOf(request: Request): Promise<number | undefined> {
 
 describe("readDraft", () => {
   it("reads the draft the bridge sends", async () => {
-    expect(await readDraft(post('{"title":"Зерно"}'))).toEqual({
+    expect(await readDraft(post('{"title":"Кофейня"}'))).toEqual({
       isRead: true,
-      draft: { title: "Зерно" },
+      draft: { title: "Кофейня" },
     });
   });
 

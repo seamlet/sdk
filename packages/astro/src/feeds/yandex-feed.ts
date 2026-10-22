@@ -6,9 +6,9 @@ import { escapeXml, textElement, XML_DECLARATION } from "./xml";
 // left out, as Яндекс refuses it.
 
 export interface YandexShop {
-  /** The short name buyers know: «Лесная мастерская». */
+  /** The short name buyers know: «Ромашка». */
   readonly name: string;
-  /** The company's full name: «ООО «Лесная мастерская»». */
+  /** The company's full name: «ООО «Ромашка»». */
   readonly company: string;
   /** The site's address. */
   readonly url: string;

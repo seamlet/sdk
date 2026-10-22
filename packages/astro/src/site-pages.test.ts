@@ -57,7 +57,7 @@ const site: SitePages = {
 const latte = { id: "d1", name: "Латте", slug: "latte", isHidden: false };
 const raf = { id: "d2", name: "Раф", slug: "", isHidden: false };
 const cocoa = { id: "d3", name: "Какао", slug: "kakao", isHidden: true };
-const content = { title: "Зерно", menu: [latte, raf, cocoa] };
+const content = { title: "Кофейня", menu: [latte, raf, cocoa] };
 
 describe("renderedPageAt", () => {
   it("renders a page of the site with the content", () => {

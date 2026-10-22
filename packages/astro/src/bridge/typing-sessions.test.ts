@@ -5,7 +5,7 @@ import { onElement } from "./event-listening";
 import { startTypingSession } from "./typing-sessions";
 
 function start(isEndingKey: (event: KeyboardEvent) => boolean = () => false) {
-  document.body.innerHTML = `<h1 style="color: red">Зерно</h1>`;
+  document.body.innerHTML = `<h1 style="color: red">Кофейня</h1>`;
   const element = document.querySelector("h1");
   if (element === null) throw new Error("No heading");
   const onInput = vi.fn();

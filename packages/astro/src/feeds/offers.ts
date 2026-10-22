@@ -23,7 +23,7 @@ export interface FeedOffer {
 export type ProductRecord = RecordOf<ReturnType<typeof productFields>>;
 
 export interface ProductOffersOptions {
-  /** The site's address: `https://lesnaya.ru`. */
+  /** The site's address: `https://example.ru`. */
   readonly siteUrl: string;
   /** The page of a product (`recordPages(...).pathOf`), or none: the catalog's page is used. */
   readonly pathOf?: (product: ProductRecord) => string | undefined;
