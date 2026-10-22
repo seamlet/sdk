@@ -1,0 +1,11 @@
+---
+// A guest's consent to the processing of personal data, a document of its own as the law asks.
+import DocumentPage from "./DocumentPage.astro";
+import type { CoffeeShopContent } from "../schema";
+
+interface Props {
+  content: CoffeeShopContent;
+}
+---
+
+<DocumentPage content={Astro.props.content} part="consent" path="/consent" />
