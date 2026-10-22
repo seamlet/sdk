@@ -8,14 +8,14 @@ import {
   type ProductRecord,
 } from "./index";
 
-const SITE = "https://lesnaya.example";
+const SITE = "https://example.ru";
 
 function product(change: Partial<ProductRecord> = {}): ProductRecord {
   return {
     id: "p-1",
     name: "Баня из бруса 6×4",
     slug: "banya-6x4",
-    photos: [{ photo: { src: "/media/lesnaya/a.webp", alt: "Баня" } }],
+    photos: [{ photo: { src: "/media/my-site/a.webp", alt: "Баня" } }],
     summary: richTextOf("Готова за 30 дней"),
     description: richTextOf("Брус 150×150 & печь «Жар»."),
     price: 450000,
@@ -33,7 +33,7 @@ const offer: FeedOffer = {
   url: `${SITE}/catalog/banya-6x4`,
   price: 450000,
   description: "Брус 150×150 & печь «Жар».",
-  pictures: [`${SITE}/media/lesnaya/a.webp`],
+  pictures: [`${SITE}/media/my-site/a.webp`],
 };
 
 describe("productOffersOf", () => {
@@ -60,8 +60,8 @@ describe("productOffersOf", () => {
 
 describe("yandexFeedOf", () => {
   const shop = {
-    name: "Лесная мастерская",
-    company: "ООО «Лесная мастерская»",
+    name: "Ромашка",
+    company: "ООО «Ромашка»",
     url: SITE,
   };
 
@@ -73,7 +73,7 @@ describe("yandexFeedOf", () => {
     );
 
     expect(feed).toContain('<yml_catalog date="2026-10-21T21:00:00Z">');
-    expect(feed).toContain('<category id="1">Лесная мастерская</category>');
+    expect(feed).toContain('<category id="1">Ромашка</category>');
     expect(feed).toContain('<offer id="p1" available="true">');
     expect(feed).toContain("<price>450000</price><currencyId>RUB</currencyId>");
     expect(feed).toContain(
@@ -113,7 +113,7 @@ describe("the words of a feed", () => {
 
 describe("avitoFeedOf", () => {
   const seller = {
-    address: "Киров, ул. Лесная, 1",
+    address: "Москва, ул. Примерная, 1",
     contactPhone: "+7 912 000-00-00",
     category: "Ремонт и строительство",
   };
@@ -127,7 +127,7 @@ describe("avitoFeedOf", () => {
     expect(feed).toContain("<Id>p-1</Id>");
     expect(feed).toContain("<Category>Ремонт и строительство</Category>");
     expect(feed).toContain(
-      `<Images><Image url="${SITE}/media/lesnaya/a.webp"/></Images>`,
+      `<Images><Image url="${SITE}/media/my-site/a.webp"/></Images>`,
     );
     expect(feed).toContain("<GoodsType>Готовые строения</GoodsType>");
   });

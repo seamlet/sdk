@@ -11,7 +11,7 @@ import { richTextOf, type RichText } from "./rich-text";
 
 /** The business that collects the data: as its documents name it. */
 export interface PolicyOperator {
-  /** «ООО «Лесная мастерская»» or «ИП Иванов Иван Иванович». */
+  /** «ООО «Ромашка»» or «ИП Иванов Иван Иванович». */
   readonly name: string;
   readonly inn: string;
   readonly address: string;

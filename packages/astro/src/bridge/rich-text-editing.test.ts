@@ -94,7 +94,7 @@ describe("startRichTextEditing", () => {
     const element = shown("<p>Студия <strong>на 11 этаже</strong></p>");
     const { onInput } = startEditing(element);
 
-    element.querySelector("strong")?.append(" в Кирове");
+    element.querySelector("strong")?.append(" в центре");
     element.dispatchEvent(new Event("input"));
 
     expect(element.getAttribute("contenteditable")).toBe("true");
@@ -103,7 +103,7 @@ describe("startRichTextEditing", () => {
         kind: "paragraph",
         spans: [
           { text: "Студия " },
-          { text: "на 11 этаже в Кирове", bold: true },
+          { text: "на 11 этаже в центре", bold: true },
         ],
       },
     ]);
@@ -202,7 +202,7 @@ describe("startRichTextEditing", () => {
     selectWords(element, 0, 6);
     const paste = new Event("paste", { cancelable: true });
     Object.assign(paste, {
-      clipboardData: { getData: () => "Йога\nв Кирове" },
+      clipboardData: { getData: () => "Йога\nв центре" },
     });
 
     element.dispatchEvent(paste);
@@ -212,7 +212,7 @@ describe("startRichTextEditing", () => {
       {
         kind: "paragraph",
         spans: [
-          { text: "Йога в Кирове " },
+          { text: "Йога в центре " },
           { text: "на 11 этаже", bold: true },
         ],
       },

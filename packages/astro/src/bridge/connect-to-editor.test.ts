@@ -22,7 +22,7 @@ let disconnect: () => void = () => undefined;
 
 beforeEach(() => {
   document.body.innerHTML = `
-    <h1 data-cms-path="title">Зерно</h1>
+    <h1 data-cms-path="title">Кофейня</h1>
     <img data-cms-path="photo" alt="">
     <a href="/menu">Меню</a>`;
   editor.postMessage.mockReset();
@@ -97,7 +97,7 @@ describe("connectToEditor", () => {
       {
         type: "start-typing",
         path: "title",
-        text: "Зерно",
+        text: "Кофейня",
         isSingleLine: true,
         point: { x: 0, y: 0 },
       },
@@ -189,7 +189,7 @@ describe("connectToEditor", () => {
     say({
       type: "start-typing",
       path: "title",
-      text: "Зерно",
+      text: "Кофейня",
       isSingleLine: true,
       point: { x: 0, y: 0 },
     });
@@ -207,7 +207,7 @@ describe("connectToEditor", () => {
     say({
       type: "start-typing",
       path: "title",
-      text: "Зерно",
+      text: "Кофейня",
       isSingleLine: true,
       point: { x: 0, y: 0 },
     });

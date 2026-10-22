@@ -4,7 +4,7 @@ import { measureLayout } from "./page-layout";
 
 beforeEach(() => {
   document.body.innerHTML = `
-    <h1 data-cms-path="title">Зерно</h1>
+    <h1 data-cms-path="title">Кофейня</h1>
     <p data-cms-path="hero.subtitle" hidden></p>
     <a href="/menu">Меню</a>`;
   vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(

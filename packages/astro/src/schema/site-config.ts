@@ -20,7 +20,7 @@ const WEB_PROTOCOLS = new Set(["https:", "http:"]);
 export interface SiteConfig {
   /** The site's id in the CMS: its address there (`/sites/<id>`) and the name of its content. */
   readonly id: string;
-  /** How the CMS names the site: «Кофейня «Зерно»». */
+  /** How the CMS names the site: «Моя кофейня». */
   readonly title: string;
   /** The origin of the CMS the site belongs to: `https://cms.seamlet.ru`. */
   readonly cms: string;

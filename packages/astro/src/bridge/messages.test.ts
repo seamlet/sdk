@@ -87,7 +87,7 @@ describe("readEditorMessage", () => {
     const typing = {
       type: "start-typing",
       path: "title",
-      text: "Зерно",
+      text: "Кофейня",
       isSingleLine: true,
       point: { x: 1, y: 2 },
     };

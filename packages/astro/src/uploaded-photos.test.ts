@@ -4,36 +4,36 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { copyUploadedPhotos, uploadedPhotoAddresses } from "./uploaded-photos";
 
-const PHOTO = "/media/dzen-yoga/0123456789abcdef.webp";
+const PHOTO = "/media/my-site/0123456789abcdef.webp";
 
 describe("uploadedPhotoAddresses", () => {
   it("finds the uploaded photos a page refers to, each once, in src and srcset alike", () => {
-    const html = `<img src="${PHOTO}"><img srcset="${PHOTO} 1x, /media/dzen-yoga/b_2.webp 2x"><a href="/media/dzen-yoga/b_2.webp">`;
+    const html = `<img src="${PHOTO}"><img srcset="${PHOTO} 1x, /media/my-site/b_2.webp 2x"><a href="/media/my-site/b_2.webp">`;
 
-    expect(uploadedPhotoAddresses(html, "dzen-yoga")).toEqual([
+    expect(uploadedPhotoAddresses(html, "my-site")).toEqual([
       PHOTO,
-      "/media/dzen-yoga/b_2.webp",
+      "/media/my-site/b_2.webp",
     ]);
   });
 
   it("finds the uploaded documents a page links to", () => {
-    const html = `<a href="/media/dzen-yoga/0123456789abcdef.pdf" download>Прайс</a>`;
+    const html = `<a href="/media/my-site/0123456789abcdef.pdf" download>Прайс</a>`;
 
-    expect(uploadedPhotoAddresses(html, "dzen-yoga")).toEqual([
-      "/media/dzen-yoga/0123456789abcdef.pdf",
+    expect(uploadedPhotoAddresses(html, "my-site")).toEqual([
+      "/media/my-site/0123456789abcdef.pdf",
     ]);
   });
 
   it("leaves out what no upload can be", () => {
-    const html = `<img src="/media/dzen-yoga/photo.jpg"><img src="/media/../secret.webp"><img src="/_astro/hall.webp">`;
+    const html = `<img src="/media/my-site/photo.jpg"><img src="/media/../secret.webp"><img src="/_astro/hall.webp">`;
 
-    expect(uploadedPhotoAddresses(html, "dzen-yoga")).toEqual([]);
+    expect(uploadedPhotoAddresses(html, "my-site")).toEqual([]);
   });
 
   it("leaves out the uploads of another site", () => {
-    const html = `<img src="/media/lampgreen/0123456789abcdef.webp">`;
+    const html = `<img src="/media/other-site/0123456789abcdef.webp">`;
 
-    expect(uploadedPhotoAddresses(html, "dzen-yoga")).toEqual([]);
+    expect(uploadedPhotoAddresses(html, "my-site")).toEqual([]);
   });
 });
 
@@ -63,7 +63,7 @@ describe("copyUploadedPhotos", () => {
 
     const copied = await copyUploadedPhotos({
       directory,
-      siteId: "dzen-yoga",
+      siteId: "my-site",
       cmsOrigin: "https://cms.example",
     });
 
@@ -85,7 +85,7 @@ describe("copyUploadedPhotos", () => {
     await expect(
       copyUploadedPhotos({
         directory,
-        siteId: "dzen-yoga",
+        siteId: "my-site",
         cmsOrigin: "https://cms.example",
       }),
     ).rejects.toThrow(/failed with status 404/u);
@@ -94,7 +94,7 @@ describe("copyUploadedPhotos", () => {
   it("copies a few photos at a time", async () => {
     const pages = Array.from(
       { length: 10 },
-      (_, index) => `<img src="/media/dzen-yoga/photo-${String(index)}.webp">`,
+      (_, index) => `<img src="/media/my-site/photo-${String(index)}.webp">`,
     );
     await writeFile(join(directory, "index.html"), pages.join(""));
     let running = 0;
@@ -112,7 +112,7 @@ describe("copyUploadedPhotos", () => {
 
     const copied = await copyUploadedPhotos({
       directory,
-      siteId: "dzen-yoga",
+      siteId: "my-site",
       cmsOrigin: "https://cms.example",
     });
 
@@ -130,7 +130,7 @@ describe("copyUploadedPhotos", () => {
     await expect(
       copyUploadedPhotos({
         directory,
-        siteId: "dzen-yoga",
+        siteId: "my-site",
         cmsOrigin: "https://cms.example",
       }),
     ).rejects.toThrow(

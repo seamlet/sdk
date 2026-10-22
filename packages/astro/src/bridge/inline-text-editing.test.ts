@@ -31,12 +31,12 @@ describe("startInlineTextEditing", () => {
     const element = heading();
     const { onInput } = startEditing(element, true);
 
-    element.textContent = "Кофейня «Зерно»";
+    element.textContent = "Моя кофейня";
     element.dispatchEvent(new Event("input"));
 
     expect(element.getAttribute("contenteditable")).toBe("plaintext-only");
     expect(document.activeElement).toBe(element);
-    expect(onInput).toHaveBeenCalledWith("Кофейня «Зерно»");
+    expect(onInput).toHaveBeenCalledWith("Моя кофейня");
   });
 
   it("ends a single-line text on Enter and keeps it", () => {

@@ -15,7 +15,7 @@ const schema = defineSchema({
 
 describe("a file field", () => {
   it("holds the address of a document and the name the site shows for it", () => {
-    const value = { src: "/media/lesnaya/0123456789abcdef.pdf", name: "Прайс" };
+    const value = { src: "/media/my-site/0123456789abcdef.pdf", name: "Прайс" };
 
     const parsed = parseContent(schema, { priceList: value });
 

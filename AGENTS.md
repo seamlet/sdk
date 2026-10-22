@@ -31,6 +31,10 @@ Boundaries, enforced by ESLint: `src/schema` imports nothing outside itself; `sr
 
 A site never renders content as raw HTML (`set:html`): the CMS's editor acts on what the preview says.
 
+## Impersonal package
+
+The package and this repository name no one: no site, client, business, person, server, host or domain, except the CMS's own `https://cms.seamlet.ru` as the default of `init` and Seamlet (`seamlet.ru`) as the processor in the template of the privacy policy, which the law asks it to name. Examples, comments, tests, the README and the changelog use made-up names that point at nobody (`my-site`, `cafe`, «Моя кофейня», «ООО «Ромашка»», `example.ru`, `cms.example`) and never the sites built with Seamlet; the test site is a coffee shop with no name of its own. Nothing here depends on what runs elsewhere: a CMS is named by the version of the description it reads, never by its address or its releases. The review checks every change against this.
+
 ## Public API
 
 - The package is public: a change of the schema language, of the messages or of what the integration adds is a change of its API, and it gets a version of the package (semver).

@@ -46,7 +46,7 @@ let holds: MotionHolds | undefined;
 beforeEach(() => {
   document.body.innerHTML = `
     <div data-cms-popover><span data-cms-path="notes">Ягоды · какао</span></div>
-    <h1 data-cms-path="title">Зерно</h1>`;
+    <h1 data-cms-path="title">Кофейня</h1>`;
 });
 
 afterEach(() => {

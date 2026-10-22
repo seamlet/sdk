@@ -19,8 +19,8 @@ import {
 } from "./schema";
 
 vi.mock("virtual:seamlet/config", () => ({
-  siteId: "lesnaya",
-  siteTitle: "Лесная мастерская",
+  siteId: "my-site",
+  siteTitle: "Ромашка",
   cmsOrigin: "https://cms.example",
 }));
 
@@ -56,14 +56,14 @@ async function renderForm(): Promise<string> {
   const container = await AstroContainer.create();
   return container.renderToString(RequestForm, {
     props: { form: estimate, submitLabel: "Рассчитать" },
-    request: new Request("https://lesnaya.example/catalog/banya"),
+    request: new Request("https://example.ru/catalog/banya"),
   });
 }
 
 beforeEach(async () => {
   markup ||= await renderForm();
   const dom = new JSDOM(`<main>${markup}</main>`, {
-    url: "https://lesnaya.example/catalog/banya",
+    url: "https://example.ru/catalog/banya",
   });
   window = dom.window;
   for (const name of browserGlobals) vi.stubGlobal(name, window[name]);
@@ -128,7 +128,7 @@ async function settled(): Promise<void> {
 describe("the form of requests", () => {
   it("posts to the CMS without a script, from the page it stands on", () => {
     expect(form().action).toBe(
-      "https://cms.example/api/sites/lesnaya/requests",
+      "https://cms.example/api/sites/my-site/requests",
     );
     expect(form().method).toBe("post");
     expect(control("seamlet-form").value).toBe("estimate");
@@ -183,7 +183,7 @@ describe("the form of requests", () => {
     await settled();
 
     const [url, init] = fetchRequest.mock.calls[0] ?? [];
-    expect(url).toBe("https://cms.example/api/sites/lesnaya/requests");
+    expect(url).toBe("https://cms.example/api/sites/my-site/requests");
     const body = typeof init?.body === "string" ? init.body : "";
     expect(JSON.parse(body)).toEqual({
       "seamlet-form": "estimate",
@@ -268,7 +268,7 @@ describe("the form of requests", () => {
     fetchRequest.mockImplementation(() => {
       const violation = new window.Event("securitypolicyviolation");
       Object.assign(violation, {
-        blockedURI: "https://cms.example/api/sites/lesnaya/requests",
+        blockedURI: "https://cms.example/api/sites/my-site/requests",
       });
       window.document.dispatchEvent(violation);
       return Promise.reject(new TypeError("Refused to connect"));
@@ -343,7 +343,7 @@ describe("the form of requests", () => {
     await settled();
 
     expect(fetchRequest.mock.calls[0]?.[0]).toBe(
-      "https://cms.example/api/sites/lesnaya/requests",
+      "https://cms.example/api/sites/my-site/requests",
     );
     expect(control("action").value).toBe("");
   });

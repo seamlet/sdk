@@ -7,8 +7,8 @@ import { readSiteConfig, readSiteDescription } from "../schema";
 import { configFileOf, moduleFilesOf, siteIdOf } from "./site-files";
 
 const config = {
-  id: "dzen-yoga",
-  title: "Студия «Дзен»",
+  id: "my-site",
+  title: "Моя студия",
   cms: "https://cms.seamlet.ru",
 };
 
@@ -42,8 +42,8 @@ describe("siteFilesOf", () => {
 
 describe("siteIdOf", () => {
   it("takes the id from a package's name", () => {
-    expect(siteIdOf("dzen-yoga")).toBe("dzen-yoga");
-    expect(siteIdOf("@bysavelii/Lamp_Green")).toBe("lamp-green");
+    expect(siteIdOf("my-site")).toBe("my-site");
+    expect(siteIdOf("@studio/My_Site")).toBe("my-site");
     expect(siteIdOf("  coffee   shop ")).toBe("coffee-shop");
   });
 

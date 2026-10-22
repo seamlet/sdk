@@ -25,15 +25,15 @@ describe("loadSiteConfig", () => {
   it("reads seamlet.json at the site's root", async () => {
     await writeConfig(
       JSON.stringify({
-        id: "dzen-yoga",
-        title: "Студия йоги «Дзен»",
+        id: "my-site",
+        title: "Студия йоги",
         cms: "https://cms.seamlet.ru",
       }),
     );
 
     await expect(loadSiteConfig(root, undefined)).resolves.toEqual({
-      id: "dzen-yoga",
-      title: "Студия йоги «Дзен»",
+      id: "my-site",
+      title: "Студия йоги",
       cms: "https://cms.seamlet.ru",
     });
   });
@@ -41,8 +41,8 @@ describe("loadSiteConfig", () => {
   it("takes the CMS of the environment over the file's", async () => {
     await writeConfig(
       JSON.stringify({
-        id: "dzen-yoga",
-        title: "Дзен",
+        id: "my-site",
+        title: "Студия",
         cms: "https://cms.seamlet.ru",
       }),
     );
@@ -56,7 +56,7 @@ describe("loadSiteConfig", () => {
     await writeConfig(
       JSON.stringify({
         id: "coffee-shop",
-        title: "Зерно",
+        title: "Кофейня",
         cms: "https://cms.seamlet.ru",
       }),
     );
@@ -67,7 +67,7 @@ describe("loadSiteConfig", () => {
   });
 
   it("lets the environment give the CMS a file leaves out", async () => {
-    await writeConfig(JSON.stringify({ id: "dzen-yoga", title: "Дзен" }));
+    await writeConfig(JSON.stringify({ id: "my-site", title: "Студия" }));
 
     const config = await loadSiteConfig(root, "https://cms.seamlet.ru");
 
@@ -81,7 +81,7 @@ describe("loadSiteConfig", () => {
   });
 
   it("says the file is not JSON", async () => {
-    await writeConfig("{ id: dzen-yoga }");
+    await writeConfig("{ id: my-site }");
 
     await expect(loadSiteConfig(root, undefined)).rejects.toThrow(
       /seamlet\.json is not JSON/u,
@@ -89,9 +89,7 @@ describe("loadSiteConfig", () => {
   });
 
   it("names each field to fix and what it must be", async () => {
-    await writeConfig(
-      JSON.stringify({ id: "Dzen Yoga", cms: "cms.seamlet.ru" }),
-    );
+    await writeConfig(JSON.stringify({ id: "My Site", cms: "cms.seamlet.ru" }));
 
     const loading = loadSiteConfig(root, undefined);
 

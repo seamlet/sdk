@@ -234,7 +234,7 @@ describe("parseContent", () => {
         booking: { text: "Book", href },
       });
 
-    expect(withHref("https://yclients.com/zerno").issues).toEqual([]);
+    expect(withHref("https://yclients.com/cafe").issues).toEqual([]);
     expect(withHref(" ").issues).toEqual([
       { path: ["booking"], code: "missing-link-href" },
     ]);

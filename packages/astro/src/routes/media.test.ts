@@ -4,7 +4,7 @@ import { GET } from "./media";
 
 vi.mock("virtual:seamlet/config", () => ({
   siteId: "coffee-shop",
-  siteTitle: "Кофейня «Зерно»",
+  siteTitle: "Моя кофейня",
   cmsOrigin: "https://cms.example",
 }));
 vi.mock("virtual:seamlet/site", () => ({ default: { id: "coffee-shop" } }));
@@ -45,7 +45,7 @@ describe("the route of the uploaded photos", () => {
     const fetchPhoto = vi.fn();
     vi.stubGlobal("fetch", fetchPhoto);
 
-    expect((await requestPhoto("dzen-yoga", PHOTO)).status).toBe(404);
+    expect((await requestPhoto("my-site", PHOTO)).status).toBe(404);
     expect((await requestPhoto("coffee-shop", "../secret.webp")).status).toBe(
       404,
     );

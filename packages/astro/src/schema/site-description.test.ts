@@ -21,10 +21,10 @@ const schema = defineSchema({
 
 const description = {
   id: "coffee-shop",
-  title: "Кофейня «Зерно»",
+  title: "Моя кофейня",
   schema,
   initialContent: {
-    title: "Зерно",
+    title: "Кофейня",
     seo: { home: { title: "", description: "" } },
   },
   pages: [
