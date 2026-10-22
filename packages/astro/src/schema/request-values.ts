@@ -76,10 +76,10 @@ export type RequestReading =
 /** What a visitor reads under a field whose words the form cannot take. */
 export const REQUEST_ISSUE_TEXTS: Readonly<Record<RequestIssueCode, string>> = {
   required: "Заполните это поле",
-  "too-long": "Здесь слишком длинный текст",
+  "too-long": "Слишком длинный текст — сократите его",
   "invalid-phone": "Проверьте номер телефона",
-  "invalid-email": "Проверьте адрес почты",
-  "unknown-option": "Выберите один из вариантов",
+  "invalid-email": "Проверьте почту: нужен адрес вида name@mail.ru",
+  "unknown-option": "Выберите вариант из списка",
 };
 
 /** What a visitor reads when the consent's checkbox is left empty. */

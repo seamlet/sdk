@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.1
+
+- The Russian texts a visitor and the owner read are edited to the copy rules of `.claude/skills/russian-copy`; nothing behaves differently. `RequestForm.astro` says «Заявка отправлена. Ответим по контактам, которые вы оставили.» once a request is sent and «Заявка не ушла. Всё, что вы ввели, осталось в форме — отправьте ещё раз через минуту.» when it is not; the hidden trap field reads «Оставьте это поле пустым». `REQUEST_ISSUE_TEXTS`: «Слишком длинный текст — сократите его», «Проверьте почту: нужен адрес вида name@mail.ru», «Выберите вариант из списка». The labels of the presets: `note` of `openingHoursField()` is «Примечание», `summary` of `productFields()` «Строка для карточки», `image` of `seoFields()` «Картинка для ссылки в соцсетях». `privacyPolicyTextOf` fixes two sentences of section 5 that did not agree in grammar; its legal meaning is the same.
+
 ## 2.2.0
 
 - Moving parts: `data-cms-popover` (`POPOVER_ATTRIBUTE`) on a part of the page that moves, or on a marked element, has its fields edited in the editor's popover instead of typed in place, and in the editor the part holds still while the pointer is over it and once one of its fields is chosen: the bridge pauses its CSS animations and transitions and sets `data-cms-held` (`HELD_ATTRIBUTE`), by which a site stops motion it runs with a script. The protocol is the same, so every editor reads it.

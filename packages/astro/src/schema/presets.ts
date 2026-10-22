@@ -29,7 +29,7 @@ export function seoFields(options: { readonly label?: string } = {}) {
         multiline: true,
         maxLength: 160,
       }),
-      image: image({ label: "Картинка для соцсетей" }),
+      image: image({ label: "Картинка для ссылки в соцсетях" }),
     },
   });
 }
@@ -70,7 +70,7 @@ export function openingHoursField(options: { readonly label?: string } = {}) {
       days: choices({ label: "Дни", options: WEEKDAYS }),
       opens: time({ label: "Открывается" }),
       closes: time({ label: "Закрывается" }),
-      note: text({ label: "Подпись", maxLength: 40 }),
+      note: text({ label: "Примечание", maxLength: 40 }),
     },
   });
 }
@@ -91,7 +91,11 @@ export function productFields() {
       label: "Фото",
       item: { photo: image({ label: "Фото" }) },
     }),
-    summary: richText({ label: "Кратко", inline: true, maxLength: 200 }),
+    summary: richText({
+      label: "Строка для карточки",
+      inline: true,
+      maxLength: 200,
+    }),
     description: richText({ label: "Описание" }),
     price: number({ label: "Цена, ₽", min: 0 }),
     priceNote: text({ label: "Уточнение цены", maxLength: 40 }),
