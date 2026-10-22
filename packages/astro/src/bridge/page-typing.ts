@@ -6,6 +6,7 @@ import {
   type EditableAs,
 } from "./editable-elements";
 import { canEditTextInPlace } from "./element-text";
+import { isEditedInPopover } from "./held-motion";
 import { placeCaretAt, startInlineTextEditing } from "./inline-text-editing";
 import type {
   EditorMessage,
@@ -118,7 +119,11 @@ export function createPageTyping(options: {
     stop();
     const { path } = start;
     const element = findMarkedElement(options.document, path);
-    if (element === undefined || !start.canTypeIn(element)) {
+    const canType =
+      element !== undefined &&
+      !isEditedInPopover(element) &&
+      start.canTypeIn(element);
+    if (!canType) {
       releasePrepared();
       send({ type: "typing-refused", path });
       reportIfOver();

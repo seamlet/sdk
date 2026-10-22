@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.0
+
+- Moving parts: `data-cms-popover` (`POPOVER_ATTRIBUTE`) on a part of the page that moves, or on a marked element, has its fields edited in the editor's popover instead of typed in place, and in the editor the part holds still while the pointer is over it and once one of its fields is chosen: the bridge pauses its CSS animations and transitions and sets `data-cms-held` (`HELD_ATTRIBUTE`), by which a site stops motion it runs with a script. The protocol is the same, so every editor reads it.
+
 ## 2.1.0
 
 - The visitor's consent is a document of its own, as 152-ФЗ asks since 1 September 2025: `privacyConsentFields()` and `privacyConsentTextOf(source)` make it, at `/consent` of the site (`CONSENT_PAGE_PATH`), and the checkbox of `RequestForm.astro` links to it and to the policy («Даю согласие на обработку персональных данных и принимаю политику их обработки»; `consentHref` names another page).

@@ -199,6 +199,24 @@ describe("connectToEditor", () => {
       "plaintext-only",
     );
   });
+
+  it("leaves a field of a moving part to the popover", () => {
+    document.querySelector("h1")?.setAttribute("data-cms-popover", "");
+    connect();
+
+    say({
+      type: "start-typing",
+      path: "title",
+      text: "Зерно",
+      isSingleLine: true,
+      point: { x: 0, y: 0 },
+    });
+
+    expect(said().at(-1)).toEqual({ type: "typing-refused", path: "title" });
+    expect(document.querySelector("h1")?.hasAttribute("contenteditable")).toBe(
+      false,
+    );
+  });
 });
 
 function fileDrag(): Event & { dataTransfer: { dropEffect: string } } {

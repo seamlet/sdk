@@ -91,6 +91,7 @@ export {
   REVEAL_EVENT,
   REVEALED_ATTRIBUTE,
 } from "./reveal-markers";
+export { HELD_ATTRIBUTE, POPOVER_ATTRIBUTE } from "./popover-markers";
 export {
   hrefOf,
   linkTargetOf,
