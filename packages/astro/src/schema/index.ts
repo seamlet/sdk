@@ -212,11 +212,14 @@ export {
   type RequestReading,
   type RequestValue,
 } from "./request-values";
+export { requestsPathOf } from "./request-addresses";
 export {
-  legalPagePathOf,
-  requestsPathOf,
-  type LegalDocument,
-} from "./request-addresses";
+  PRIVACY_PAGE_PATH,
+  privacyPolicyFields,
+  privacyPolicyTextOf,
+  type PolicyOperator,
+  type PolicySource,
+} from "./privacy-policy";
 export {
   REQUEST_FAILED_EVENT,
   REQUEST_SEND_EVENT,

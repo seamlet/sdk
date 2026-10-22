@@ -375,7 +375,7 @@ What was opened stays open while the page is rendered anew after every edit: a p
 
 ## Requests
 
-A visitor sends the business a request from the site: «Обратный звонок», «Рассчитать стоимость», «Бронь столика». The site declares its forms, gives them to `defineSeamletSite` and renders them; the CMS keeps every request a year, writes to the people who edit the site and passes it on where the site's developer says.
+A visitor sends the business a request from the site: «Обратный звонок», «Рассчитать стоимость», «Бронь столика». The site declares its forms, gives them to `defineSeamletSite` and renders them; the CMS passes every request on by mail to the people who edit the site and keeps nothing once it is delivered.
 
 ```ts
 // src/forms.ts
@@ -420,15 +420,15 @@ import { estimateForm } from "../forms";
 
 The fields are `requestText` (a line), `requestLongText` (several lines), `requestPhone`, `requestEmail` and `requestChoice` (one of `options`); each may be `required`, and a text has a `maxLength` (200 for a line, 2000 for several by default). A field's name is a name such as `phone` or `preferredTime`. The form's `title` names its requests in the CMS and in the letters.
 
-`RequestForm.astro` renders plain elements with classes (`seamlet-form`, `seamlet-form-field`, `seamlet-form-issue`, `seamlet-form-consent`, `seamlet-form-policy`, `seamlet-form-submit`, `seamlet-form-sent`, `seamlet-form-failed`), which the site styles from around it: `.contacts :global(.seamlet-form-field)`. Its props are the `form`, the words of the button (`submitLabel`), what the visitor reads once the request is sent or could not be (`sentText`, `failedText`), the addresses of the texts of consent and of the policy (`consentHref`, `policyHref`, the CMS's pages of them by default) and `instance`, which tells apart two forms of the same id on one page.
+`RequestForm.astro` renders plain elements with classes (`seamlet-form`, `seamlet-form-field`, `seamlet-form-issue`, `seamlet-form-consent`, `seamlet-form-submit`, `seamlet-form-sent`, `seamlet-form-failed`), which the site styles from around it: `.contacts :global(.seamlet-form-field)`. Its props are the `form`, the words of the button (`submitLabel`), what the visitor reads once the request is sent or could not be (`sentText`, `failedText`), the page of the business's policy the consent links to (`policyHref`, the site's own `/privacy` by default, `PRIVACY_PAGE_PATH`) and `instance`, which tells apart two forms of the same id on one page.
 
-The visitor consents with a checkbox of its own, never checked beforehand, to the texts the business confirmed in the CMS: until then the CMS takes no requests of the site, and the form says it could not send. Without a script the form is posted to the CMS, which answers with a page of its own; with the package's script (on every page, loaded only where a form is) the visitor stays on the page. The script checks what was typed with the code the CMS checks it with (`readRequestValues`), says what to fix under each field and sends the request.
+The visitor consents with a checkbox of its own, never checked beforehand, on the terms of the business's policy, a page of the site: `/privacy` unless `policyHref` names another. The business is the operator of its visitors' data and publishes its policy; Seamlet only passes a request on by its commission. `privacyPolicyFields()` is the policy as content the owner edits, and `privacyPolicyTextOf({ siteTitle, operator, forms })` starts it with the business's details and what its forms ask (152-ФЗ): put it in the initial content and render it with `RichText` at `/privacy`. While the CMS has nobody to mail a site's requests to, it takes none, and the form says it could not send. Without a script the form is posted to the CMS, which answers with a page of its own; with the package's script (on every page, loaded only where a form is) the visitor stays on the page. The script checks what was typed with the code the CMS checks it with (`readRequestValues`), says what to fix under each field and sends the request.
 
 The site's own code hears every step from events on the form element, which bubble:
 
 - `seamlet:request-send` (`REQUEST_SEND_EVENT`), before the request is sent, with `{ form, entries }`. Cancelable: after `event.preventDefault()` the package sends nothing, and the site sends the request its own way.
 - `seamlet:request-sent` (`REQUEST_SENT_EVENT`), once the CMS has kept it, with `{ form, entries, id }`: a goal of the site's analytics, its own message.
-- `seamlet:request-failed` (`REQUEST_FAILED_EVENT`), with `{ form, reason, issues }`; `reason` is `invalid`, `closed` (the business takes no requests yet), `too-many` or `unavailable`.
+- `seamlet:request-failed` (`REQUEST_FAILED_EVENT`), with `{ form, reason, issues }`; `reason` is `invalid`, `closed` (the CMS has nobody to mail the site's requests to), `too-many` or `unavailable`.
 
 ```ts
 document.addEventListener(REQUEST_SENT_EVENT, (event) => {

@@ -11,6 +11,7 @@ describe("the coffee shop as the CMS knows it", () => {
     expect(site.description.pages.map((page) => page.path)).toEqual([
       "/",
       "/menu",
+      "/privacy",
     ]);
     expect(site.description.recordPages).toEqual([
       { path: "/menu/[record]", collection: "menu" },

@@ -1,0 +1,40 @@
+---
+// The coffee shop's policy of personal data, which a guest consents to before sending a request.
+import RichText from "@seamlet/astro/components/RichText.astro";
+import { editable } from "@seamlet/astro/schema";
+import CoffeeShopLayout from "./CoffeeShopLayout.astro";
+import type { CoffeeShopContent } from "../schema";
+
+interface Props {
+  content: CoffeeShopContent;
+}
+
+const { content } = Astro.props;
+const { privacy } = content;
+const edit = editable<CoffeeShopContent>();
+---
+
+<CoffeeShopLayout
+  content={content}
+  title={`${privacy.title} — ${content.hero.title}`}
+  path="/privacy"
+>
+  <main {...edit("privacy")}>
+    <h1 {...edit("privacy", "title")}>{privacy.title}</h1>
+    <div class="policy" {...edit("privacy", "text")}>
+      <RichText value={privacy.text} />
+    </div>
+  </main>
+</CoffeeShopLayout>
+
+<style>
+  main {
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: 3rem 1.25rem 4rem;
+  }
+
+  .policy {
+    line-height: 1.6;
+  }
+</style>

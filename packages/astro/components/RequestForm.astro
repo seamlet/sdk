@@ -3,11 +3,11 @@
 // (`.contacts :global(.seamlet-form-field)`). Without a script it is a form posted to the CMS, and
 // the CMS answers with a page of its own; the package's script sends it in place. The checkbox of
 // consent stands apart from the fields and is never checked beforehand, as the law asks: the
-// visitor consents to the texts of the business, which the CMS shows at their addresses.
+// visitor consents on the terms of the business's policy, a page of the site itself.
 import { cmsOrigin, siteId } from "virtual:seamlet/config";
 import {
-  legalPagePathOf,
   maxLengthOf,
+  PRIVACY_PAGE_PATH,
   REQUEST_CONSENT_KEY,
   REQUEST_FORM_KEY,
   REQUEST_PAGE_KEY,
@@ -25,9 +25,7 @@ interface Props {
   readonly sentText?: string;
   /** What the visitor reads when the request could not be sent. */
   readonly failedText?: string;
-  /** Where the text of consent is: the CMS's page of it unless the site has its own. */
-  readonly consentHref?: string;
-  /** Where the business's policy is: the CMS's page of it unless the site has its own. */
+  /** Where the business's policy is: the site's `/privacy` unless it says another page. */
   readonly policyHref?: string;
   /** Tells two forms of the same id on one page apart, in the ids of their elements. */
   readonly instance?: string;
@@ -39,8 +37,7 @@ const {
   submitLabel = "Отправить",
   sentText = "Спасибо! Заявка отправлена, мы скоро свяжемся с вами.",
   failedText = "Не получилось отправить заявку. Попробуйте ещё раз чуть позже.",
-  consentHref = new URL(legalPagePathOf(siteId, "consent"), cmsOrigin).href,
-  policyHref = new URL(legalPagePathOf(siteId, "privacy"), cmsOrigin).href,
+  policyHref = PRIVACY_PAGE_PATH,
   instance = form.id,
   class: className,
 } = Astro.props;
@@ -145,9 +142,9 @@ const isLineField = (field: RequestField): field is LineField =>
       aria-describedby={issueIdOf(REQUEST_CONSENT_KEY)}
     />
     <label for={idOf(REQUEST_CONSENT_KEY)}>
-      Даю{" "}
-      <a href={consentHref} target="_blank" rel="noopener">
-        согласие на обработку персональных данных
+      Даю согласие на обработку персональных данных на условиях{" "}
+      <a href={policyHref} target="_blank" rel="noopener">
+        политики
       </a>
     </label>
     <p
@@ -157,11 +154,6 @@ const isLineField = (field: RequestField): field is LineField =>
       hidden
     />
   </div>
-  <p class="seamlet-form-policy">
-    <a href={policyHref} target="_blank" rel="noopener">
-      Политика обработки персональных данных
-    </a>
-  </p>
   <button class="seamlet-form-submit" type="submit">
     {submitLabel}
   </button>

@@ -1,4 +1,5 @@
-import { richTextOf } from "@seamlet/astro/schema";
+import { privacyPolicyTextOf, richTextOf } from "@seamlet/astro/schema";
+import { tableForm } from "./forms";
 import type { CoffeeShopContent } from "./schema";
 
 // A made-up coffee shop: the content the demo starts with.
@@ -12,6 +13,19 @@ export const coffeeShopInitialContent: CoffeeShopContent = {
       src: "/cup.svg",
       alt: "Чашка капучино на блюдце, над ней поднимается пар",
     },
+  },
+  privacy: {
+    title: "Политика обработки персональных данных",
+    text: privacyPolicyTextOf({
+      siteTitle: "Кофейня «Зерно»",
+      operator: {
+        name: "ИП Зернов Иван Иванович",
+        inn: "000000000000",
+        address: "г. Киров, ул. Примерная, д. 1",
+        email: "hello@zerno.example",
+      },
+      forms: [tableForm],
+    }),
   },
   menu: [
     {
