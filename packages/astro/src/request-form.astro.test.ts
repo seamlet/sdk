@@ -196,7 +196,7 @@ describe("the form of requests", () => {
       "seamlet-consent": "on",
     });
     expect(element("[data-seamlet-sent]").textContent).toBe(
-      "Спасибо! Заявка отправлена, мы скоро свяжемся с вами.",
+      "Заявка отправлена. Ответим по контактам, которые вы оставили.",
     );
     expect(window.document.activeElement).toBe(element("[data-seamlet-sent]"));
     expect(control("name").value).toBe("");
@@ -234,7 +234,7 @@ describe("the form of requests", () => {
     submit();
     await settled();
 
-    expect(issue("size").textContent).toBe("Выберите один из вариантов");
+    expect(issue("size").textContent).toBe("Выберите вариант из списка");
     expect(element("[data-seamlet-failed]").textContent).not.toBe("");
     expect(window.document.activeElement).toBe(control("size"));
     expect(control("phone").value).toBe("89123456789");

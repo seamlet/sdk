@@ -38,8 +38,8 @@ interface Props {
 const {
   form,
   submitLabel = "Отправить",
-  sentText = "Спасибо! Заявка отправлена, мы скоро свяжемся с вами.",
-  failedText = "Не получилось отправить заявку. Попробуйте ещё раз чуть позже.",
+  sentText = "Заявка отправлена. Ответим по контактам, которые вы оставили.",
+  failedText = "Заявка не ушла. Всё, что вы ввели, осталось в форме — отправьте ещё раз через минуту.",
   consentHref = CONSENT_PAGE_PATH,
   policyHref = PRIVACY_PAGE_PATH,
   instance = form.id,
@@ -127,7 +127,7 @@ const isLineField = (field: RequestField): field is LineField =>
   ))}
   <div class="seamlet-form-trap" aria-hidden="true">
     <label>
-      Это поле заполнять не нужно
+      Оставьте это поле пустым
       <input
         type="text"
         name={REQUEST_TRAP_KEY}
