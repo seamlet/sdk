@@ -8,6 +8,7 @@ What a site installs to be edited in the Seamlet CMS. The CMS (a separate, close
 
 - TypeScript, strict (`astro/tsconfigs/strict` plus `noUncheckedIndexedAccess`, `noUnusedLocals`, `noUnusedParameters`). ESLint with `strictTypeChecked` and an exhaustive `switch` over a union; Prettier with `prettier-plugin-astro`; Vitest, with jsdom for the DOM (`// @vitest-environment jsdom`); tsup builds the package. Node 24+, npm workspaces.
 - Everything is in English: code, comments, messages, tests, commits, documentation. Texts a site's visitor or the CMS's user reads are in Russian.
+- Every Russian text a person reads (the interface, messages, pages, letters, documentation) follows `.claude/skills/russian-copy/SKILL.md`: information style, concrete facts and benefits instead of abstractions, no AI clichés («уникальный», «инновационный», «индивидуальный подход»), no bureaucratese and no empty promises. Read it before writing Russian text; the review checks every changed Russian line against it.
 
 ## Architecture
 
