@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.0
+
+- The visitor's consent is a document of its own, as 152-ФЗ asks since 1 September 2025: `privacyConsentFields()` and `privacyConsentTextOf(source)` make it, at `/consent` of the site (`CONSENT_PAGE_PATH`), and the checkbox of `RequestForm.astro` links to it and to the policy («Даю согласие на обработку персональных данных и принимаю политику их обработки»; `consentHref` names another page).
+- `privacyPolicyTextOf` follows the sections Роскомнадзор recommends a policy to have: general provisions, purposes with the data, subjects, ways, terms and erasure of each, legal grounds, the data and whose it is, how it is processed and protected (the commission to Seamlet, storage in Russia, notice of leaks), and how it is corrected, erased and asked about, with the terms of the law.
+
+A site with a form adds the page `/consent` (or passes `consentHref`).
+
 ## 2.0.0
 
 - The consent of a form links to the business's own policy, a page of the site (`policyHref`, `/privacy` by default, `PRIVACY_PAGE_PATH`), not to texts kept by the CMS: the business is the operator of its visitors' data, and the CMS only passes requests on. `privacyPolicyFields()` is the policy as content and `privacyPolicyTextOf({ siteTitle, operator, forms })` a template to start it with.

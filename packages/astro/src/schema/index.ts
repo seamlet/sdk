@@ -214,7 +214,10 @@ export {
 } from "./request-values";
 export { requestsPathOf } from "./request-addresses";
 export {
+  CONSENT_PAGE_PATH,
   PRIVACY_PAGE_PATH,
+  privacyConsentFields,
+  privacyConsentTextOf,
   privacyPolicyFields,
   privacyPolicyTextOf,
   type PolicyOperator,

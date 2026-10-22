@@ -2,10 +2,11 @@
 // A form of the site's requests as plain elements, which the site styles from around it
 // (`.contacts :global(.seamlet-form-field)`). Without a script it is a form posted to the CMS, and
 // the CMS answers with a page of its own; the package's script sends it in place. The checkbox of
-// consent stands apart from the fields and is never checked beforehand, as the law asks: the
-// visitor consents on the terms of the business's policy, a page of the site itself.
+// consent stands apart from the fields and is never checked beforehand, as the law asks, and links
+// to the consent and the policy of the business, pages of the site itself.
 import { cmsOrigin, siteId } from "virtual:seamlet/config";
 import {
+  CONSENT_PAGE_PATH,
   maxLengthOf,
   PRIVACY_PAGE_PATH,
   REQUEST_CONSENT_KEY,
@@ -25,6 +26,8 @@ interface Props {
   readonly sentText?: string;
   /** What the visitor reads when the request could not be sent. */
   readonly failedText?: string;
+  /** Where the visitor's consent is: the site's `/consent` unless it says another page. */
+  readonly consentHref?: string;
   /** Where the business's policy is: the site's `/privacy` unless it says another page. */
   readonly policyHref?: string;
   /** Tells two forms of the same id on one page apart, in the ids of their elements. */
@@ -37,6 +40,7 @@ const {
   submitLabel = "Отправить",
   sentText = "Спасибо! Заявка отправлена, мы скоро свяжемся с вами.",
   failedText = "Не получилось отправить заявку. Попробуйте ещё раз чуть позже.",
+  consentHref = CONSENT_PAGE_PATH,
   policyHref = PRIVACY_PAGE_PATH,
   instance = form.id,
   class: className,
@@ -142,9 +146,13 @@ const isLineField = (field: RequestField): field is LineField =>
       aria-describedby={issueIdOf(REQUEST_CONSENT_KEY)}
     />
     <label for={idOf(REQUEST_CONSENT_KEY)}>
-      Даю согласие на обработку персональных данных на условиях{" "}
+      Даю{" "}
+      <a href={consentHref} target="_blank" rel="noopener">
+        согласие на обработку персональных данных
+      </a>{" "}
+      и принимаю{" "}
       <a href={policyHref} target="_blank" rel="noopener">
-        политики
+        политику их обработки
       </a>
     </label>
     <p

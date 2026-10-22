@@ -1,0 +1,44 @@
+---
+// A document of the coffee shop about personal data, its policy or a guest's consent: a title and a
+// formatted text the owner edits in the CMS.
+import RichText from "@seamlet/astro/components/RichText.astro";
+import { editable } from "@seamlet/astro/schema";
+import CoffeeShopLayout from "./CoffeeShopLayout.astro";
+import type { CoffeeShopContent } from "../schema";
+
+interface Props {
+  content: CoffeeShopContent;
+  /** Which document of the content the page shows. */
+  part: "privacy" | "consent";
+  path: string;
+}
+
+const { content, part, path } = Astro.props;
+const shown = content[part];
+const edit = editable<CoffeeShopContent>();
+---
+
+<CoffeeShopLayout
+  content={content}
+  title={`${shown.title} — ${content.hero.title}`}
+  path={path}
+>
+  <main {...edit(part)}>
+    <h1 {...edit(part, "title")}>{shown.title}</h1>
+    <div class="document" {...edit(part, "text")}>
+      <RichText value={shown.text} />
+    </div>
+  </main>
+</CoffeeShopLayout>
+
+<style>
+  main {
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: 3rem 1.25rem 4rem;
+  }
+
+  .document {
+    line-height: 1.6;
+  }
+</style>

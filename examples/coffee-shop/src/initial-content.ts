@@ -1,8 +1,26 @@
-import { privacyPolicyTextOf, richTextOf } from "@seamlet/astro/schema";
+import {
+  privacyConsentTextOf,
+  privacyPolicyTextOf,
+  richTextOf,
+  type PolicySource,
+} from "@seamlet/astro/schema";
 import { tableForm } from "./forms";
 import type { CoffeeShopContent } from "./schema";
 
 // A made-up coffee shop: the content the demo starts with.
+
+/** The business behind the site, made up too, whose documents of personal data start the content. */
+const policySource: PolicySource = {
+  siteTitle: "Кофейня «Зерно»",
+  operator: {
+    name: "ИП Зернов Иван Иванович",
+    inn: "000000000000",
+    address: "г. Киров, ул. Примерная, д. 1",
+    email: "hello@zerno.example",
+  },
+  forms: [tableForm],
+};
+
 export const coffeeShopInitialContent: CoffeeShopContent = {
   hero: {
     title: "Кофейня «Зерно»",
@@ -16,16 +34,11 @@ export const coffeeShopInitialContent: CoffeeShopContent = {
   },
   privacy: {
     title: "Политика обработки персональных данных",
-    text: privacyPolicyTextOf({
-      siteTitle: "Кофейня «Зерно»",
-      operator: {
-        name: "ИП Зернов Иван Иванович",
-        inn: "000000000000",
-        address: "г. Киров, ул. Примерная, д. 1",
-        email: "hello@zerno.example",
-      },
-      forms: [tableForm],
-    }),
+    text: privacyPolicyTextOf(policySource),
+  },
+  consent: {
+    title: "Согласие на обработку персональных данных",
+    text: privacyConsentTextOf(policySource),
   },
   menu: [
     {

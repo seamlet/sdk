@@ -6,6 +6,7 @@ import {
   image,
   link,
   number,
+  privacyConsentFields,
   privacyPolicyFields,
   recordPages,
   richText,
@@ -69,6 +70,7 @@ export const coffeeShopSchema = defineSchema({
     },
   }),
   privacy: privacyPolicyFields(),
+  consent: privacyConsentFields(),
   links: collection({
     label: "Ссылки в подвале",
     itemTitle: "link",

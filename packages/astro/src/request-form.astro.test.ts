@@ -143,9 +143,13 @@ describe("the form of requests", () => {
 
     expect(consent.type).toBe("checkbox");
     expect(consent.checked).toBe(false);
-    expect(element(".seamlet-form-consent a").getAttribute("href")).toBe(
+    const links = [
+      ...window.document.querySelectorAll(".seamlet-form-consent a"),
+    ];
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "/consent",
       "/privacy",
-    );
+    ]);
   });
 
   it("says what to fix under every field and sends nothing", () => {
