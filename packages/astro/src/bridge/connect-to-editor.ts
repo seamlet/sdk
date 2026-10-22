@@ -1,5 +1,6 @@
 import type { FieldPath, Fields } from "../schema";
 import { shortcutOf } from "./editor-shortcuts";
+import { holdMotionOnPage, isEditedInPopover } from "./held-motion";
 import { imageFieldAt } from "./image-fields";
 import { typedKindAt } from "./typed-fields";
 import {
@@ -87,12 +88,14 @@ export function connectPage(
     onTypingOver: showHeldPage,
   });
   const presses = followPresses(document, showHeldPage);
+  const motion = holdMotionOnPage(document);
   const renderer = createPageRenderer({
     document,
     // Replacing the page under a text being typed would throw the typing away.
     canReplacePage: () => !typing.isTyping(),
     isPagePressed: presses.isPressed,
     onRendered: () => {
+      motion.holdAgain();
       layout.reportNow();
       send({ type: "rendered" });
     },
@@ -121,6 +124,7 @@ export function connectPage(
       typing.stop();
       renderer.stop();
       presses.stop();
+      motion.stop();
       layout.stop();
       stopListening();
     },
@@ -178,7 +182,8 @@ function clickOn(page: ConnectedPage, pointer: PagePointer | undefined): void {
   }
 
   const kind = typedKindAt(page.schema, pointer.path);
-  if (kind !== undefined) page.typing.prepare(pointer.element, kind);
+  const canBeTyped = kind !== undefined && !isEditedInPopover(pointer.element);
+  if (canBeTyped) page.typing.prepare(pointer.element, kind);
   page.send({
     type: "click",
     target: { path: pointer.path, point: pointer.point },

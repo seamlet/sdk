@@ -373,6 +373,20 @@ A field is edited where it is seen, so the editor opens what hides it when a per
 
 What was opened stays open while the page is rendered anew after every edit: a part is known again by its `id`, or else by the field marked on it, in it or around it.
 
+### Moving parts
+
+A text that moves (a marquee, a flipping board, a turning stamp) cannot be typed where it stands, and a moving thing is hard to click. Give such a part, or the marked element itself, the attribute `data-cms-popover` (`POPOVER_ATTRIBUTE`): its fields are edited in the editor's popover, never typed on the page, and in the editor the part holds still while the pointer is over it and once one of its fields is chosen. The bridge pauses the part's CSS animations and transitions itself and sets `data-cms-held` (`HELD_ATTRIBUTE`) on it; motion the site runs with a script stops while that attribute is there. Outside the editor nothing changes.
+
+```astro
+---
+import { POPOVER_ATTRIBUTE } from "@seamlet/astro/schema";
+---
+
+<div class="marquee" {...{ [POPOVER_ATTRIBUTE]: "" }}>
+  <p {...edit("specials", "line")}>{content.specials.line}</p>
+</div>
+```
+
 ## Requests
 
 A visitor sends the business a request from the site: «Обратный звонок», «Рассчитать стоимость», «Бронь столика». The site declares its forms, gives them to `defineSeamletSite` and renders them; the CMS passes every request on by mail to the people who edit the site and keeps nothing once it is delivered.
