@@ -1,5 +1,6 @@
-import type { FieldPath, Fields } from "../schema";
-import { shortcutOf } from "./editor-shortcuts";
+import { resolveFieldPath, type FieldPath, type Fields } from "../schema";
+import { readElementText } from "./element-text";
+import { fieldStepOf, shortcutOf } from "./editor-shortcuts";
 import { holdMotionOnPage, isEditedInPopover } from "./held-motion";
 import { imageFieldAt } from "./image-fields";
 import { typedKindAt } from "./typed-fields";
@@ -16,7 +17,7 @@ import {
   type PagePointer,
 } from "./page-events";
 import { createLayoutReports, type LayoutReports } from "./page-layout";
-import { findClosestMarkedElement } from "./page-markers";
+import { findClosestMarkedElement, hasMarkedDescendants } from "./page-markers";
 import { revealAround } from "./page-reveals";
 import { followPresses } from "./page-presses";
 import { warnAboutUnreachableFields } from "./page-checks";
@@ -78,8 +79,13 @@ export function connectPage(
   schema: Fields,
   send: (message: PageMessage) => void,
 ): EditorConnection {
-  const layout = createLayoutReports(document, (measured) => {
-    send({ type: "layout", layout: measured });
+  const layout = createLayoutReports(document, {
+    onLayout: (measured) => {
+      send({ type: "layout", layout: measured });
+    },
+    onStaticText: (box) => {
+      send({ type: "static-hover", box });
+    },
   });
   const showHeldPage = () => {
     renderer.showHeldPage();
@@ -154,6 +160,14 @@ function pageListenersOf(page: ConnectedPage): PageListeners {
     onClick: (pointer) => {
       clickOn(page, pointer);
     },
+    onClickOutside: (text) => {
+      send({
+        type: "click",
+        target: undefined,
+        isStaticText: text !== undefined,
+      });
+    },
+    onStaticTextHover: layout.hoverStaticText,
     onLinkHover: layout.hoverLink,
     onLinkClick: (link) => {
       send({ type: "link-click", href: link.href });
@@ -178,25 +192,37 @@ function pageListenersOf(page: ConnectedPage): PageListeners {
 }
 
 /** A click on a field makes its text ready to be typed, at once, while the tap gives the focus. */
-function clickOn(page: ConnectedPage, pointer: PagePointer | undefined): void {
-  if (pointer === undefined) {
-    page.send({ type: "click", target: undefined });
-    return;
-  }
+function clickOn(page: ConnectedPage, pointer: PagePointer): void {
+  const { path, element, point } = pointer;
+  const kind = typedKindAt(page.schema, path);
+  const canBeTyped = kind !== undefined && !isEditedInPopover(element);
+  if (canBeTyped) page.typing.prepare(element, kind);
 
-  const kind = typedKindAt(page.schema, pointer.path);
-  const canBeTyped = kind !== undefined && !isEditedInPopover(pointer.element);
-  if (canBeTyped) page.typing.prepare(pointer.element, kind);
-  page.send({
-    type: "click",
-    target: { path: pointer.path, point: pointer.point },
-  });
+  const shownText = shownTextOf(page.schema, pointer);
+  page.send({ type: "click", target: { path, point, shownText } });
+}
+
+/**
+ * The words a field's element shows, when it shows one field alone: the editor tells by them a
+ * field the site shows otherwise than its value. None for a record, a group or a list.
+ */
+function shownTextOf(schema: Fields, pointer: PagePointer): string | undefined {
+  const target = resolveFieldPath(schema, pointer.path);
+  const isField =
+    target?.kind === "field" &&
+    target.field.kind !== "group" &&
+    target.field.kind !== "collection";
+  if (!isField || hasMarkedDescendants(pointer.element)) return undefined;
+
+  const words = readElementText(pointer.element);
+  return words === "" ? undefined : words;
 }
 
 function pressKey(page: ConnectedPage, event: KeyboardEvent): void {
-  const key = editorKeyOf(event);
-  // While a text is typed, Escape belongs to the typing: it brings the text back.
-  const isTypingEscape = key === "escape" && page.typing.isTyping();
+  const isTyping = page.typing.isTyping();
+  const key = editorKeyOf(event, isTyping);
+  // While a text is typed, Escape belongs to the typing: it ends it, keeping what was typed.
+  const isTypingEscape = key === "escape" && isTyping;
   if (key === undefined || isTypingEscape) return;
 
   event.preventDefault();
@@ -220,6 +246,9 @@ function receiveEditorMessage(
       break;
     case "start-rich-typing":
       typing.startRich(message);
+      break;
+    case "start-value-typing":
+      typing.startValue(message);
       break;
     case "format-typed":
       typing.format(message.format);
@@ -245,7 +274,12 @@ function scrollToField(document: Document, path: FieldPath): void {
   element.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
-function editorKeyOf(event: KeyboardEvent): EditorKey | undefined {
+/** The key the editor acts on; Tab only while a text is typed, elsewhere it moves the focus. */
+function editorKeyOf(
+  event: KeyboardEvent,
+  isTyping: boolean,
+): EditorKey | undefined {
   if (event.key === "Escape") return "escape";
+  if (isTyping) return fieldStepOf(event) ?? shortcutOf(event);
   return shortcutOf(event);
 }

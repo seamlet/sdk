@@ -1,6 +1,9 @@
 import { resolveFieldPath, type Fields } from "../schema";
 
-/** How a text field is typed in place: as plain text or as formatted text. */
+/**
+ * How a field is typed in place: as plain text (a text, the words of a link, a number, a time) or as
+ * formatted text.
+ */
 export type TypedKind = "plain" | "rich";
 
 /** How the field a marker points at is typed in place, or undefined for a field not typed. */
@@ -13,16 +16,16 @@ export function typedKindAt(
 
   switch (target.field.kind) {
     case "text":
+    case "link":
+    case "number":
+    case "time":
       return "plain";
     case "richText":
       return "rich";
-    case "number":
     case "date":
-    case "time":
     case "slug":
     case "image":
     case "file":
-    case "link":
     case "url":
     case "toggle":
     case "choice":

@@ -182,7 +182,7 @@ describe("startRichTextEditing", () => {
     expect(onInput).not.toHaveBeenCalled();
   });
 
-  it("ends on Enter in an element of one line, and brings the text back on Escape", () => {
+  it("ends on Enter in an element of one line, and on Escape in any, keeping the text", () => {
     const heading = shown("Студия <strong>на 11 этаже</strong>");
     const inline = startEditing(heading, true);
     press(heading, { key: "Enter" });
@@ -192,7 +192,7 @@ describe("startRichTextEditing", () => {
     const element = shown("<p>Студия <strong>на 11 этаже</strong></p>");
     const block = startEditing(element);
     press(element, { key: "Escape" });
-    expect(block.onEnd).toHaveBeenCalledWith("reverted");
+    expect(block.onEnd).toHaveBeenCalledWith("kept");
     expect(block.onSelect).toHaveBeenLastCalledWith(undefined);
   });
 

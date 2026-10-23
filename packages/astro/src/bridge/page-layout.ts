@@ -1,4 +1,4 @@
-import { boxOf } from "./boxes";
+import { boxOf, type Box } from "./boxes";
 import type { LinkBox, MarkerBox, PageLayout } from "./messages";
 import { allMarkedElements, type PageLink } from "./page-markers";
 
@@ -32,25 +32,42 @@ export interface LayoutReports {
   readonly schedule: () => void;
   readonly reportNow: () => void;
   readonly hoverLink: (link: PageLink | undefined) => void;
+  /** The text of the site's own under the pointer, or none: its box is reported now and on moves. */
+  readonly hoverStaticText: (text: Element | undefined) => void;
   readonly stop: () => void;
+}
+
+export interface LayoutReporters {
+  readonly onLayout: (layout: PageLayout) => void;
+  /** Where the hovered text of the site's own is, or that none is hovered (undefined). */
+  readonly onStaticText: (box: Box | undefined) => void;
 }
 
 /** Tells the editor where things are whenever the page moves: scroll, resize, a new render. */
 export function createLayoutReports(
   document: Document,
-  report: (layout: PageLayout) => void,
+  reporters: LayoutReporters,
 ): LayoutReports {
   const view = document.defaultView;
   let link: PageLink | undefined;
+  let staticText: Element | undefined;
   let frame: number | undefined;
 
   const cancel = () => {
     if (frame !== undefined) view?.cancelAnimationFrame(frame);
     frame = undefined;
   };
+  const reportStaticText = () => {
+    // A render replaced the hovered text: it is gone from the page.
+    if (staticText?.isConnected === false) staticText = undefined;
+    reporters.onStaticText(
+      staticText === undefined ? undefined : boxOf(staticText),
+    );
+  };
   const reportNow = () => {
     cancel();
-    report(measureLayout(document, link));
+    reporters.onLayout(measureLayout(document, link));
+    if (staticText !== undefined) reportStaticText();
   };
   const schedule = () => {
     if (frame !== undefined) return;
@@ -64,6 +81,11 @@ export function createLayoutReports(
       if (hovered?.element === link?.element) return;
       link = hovered;
       schedule();
+    },
+    hoverStaticText: (hovered) => {
+      if (hovered === staticText) return;
+      staticText = hovered;
+      reportStaticText();
     },
     stop: cancel,
   };

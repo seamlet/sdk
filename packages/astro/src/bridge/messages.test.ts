@@ -58,6 +58,51 @@ describe("readPageMessage", () => {
     ).toBeUndefined();
   });
 
+  it("reads what a bridge of version 3 adds: the chosen click, the site's own texts, Tab", () => {
+    const click = {
+      type: "click",
+      target: {
+        path: "menu.0.roasted",
+        point: { x: 1, y: 2 },
+        shownText: "обжарено 4 дня назад",
+      },
+    };
+    const outside = { type: "click", target: undefined, isStaticText: true };
+
+    expect(readPageMessage(click)).toEqual(click);
+    expect(readPageMessage(outside)).toEqual(outside);
+    expect(readPageMessage({ type: "static-hover", box })).toEqual({
+      type: "static-hover",
+      box,
+    });
+    expect(
+      readPageMessage({ type: "static-hover", box: undefined }),
+    ).toBeDefined();
+    expect(readPageMessage({ type: "key", key: "next-field" })).toBeDefined();
+    expect(
+      readPageMessage({ type: "key", key: "previous-field" }),
+    ).toBeDefined();
+    expect(
+      readPageMessage({ ...click, target: { ...click.target, shownText: 4 } }),
+    ).toBeUndefined();
+    expect(
+      readPageMessage({ ...outside, isStaticText: "yes" }),
+    ).toBeUndefined();
+    expect(
+      readPageMessage({ type: "static-hover", box: { top: 1 } }),
+    ).toBeUndefined();
+  });
+
+  it("reads a click of a bridge before version 3, without the words and the site's texts", () => {
+    const click = {
+      type: "click",
+      target: { path: "title", point: { x: 1, y: 2 } },
+    };
+
+    expect(readPageMessage(click)).toEqual(click);
+    expect(readPageMessage({ type: "click", target: undefined })).toBeDefined();
+  });
+
   it("drops anything that is not a message of the page", () => {
     expect(readPageMessage("ready")).toBeUndefined();
     expect(readPageMessage({ type: "ready" })).toBeUndefined();
@@ -122,6 +167,36 @@ describe("readEditorMessage", () => {
       readEditorMessage({ type: "format-typed", format: "underline" }),
     ).toBeUndefined();
     expect(readEditorMessage({ type: "link-typed", href: 1 })).toBeUndefined();
+  });
+
+  it("reads the typing of a number and a time, and a typing without a point", () => {
+    const price = {
+      type: "start-value-typing",
+      path: "menu.0.price",
+      kind: "number",
+      value: 1990,
+      point: { x: 1, y: 2 },
+    };
+    const opensAt = {
+      type: "start-value-typing",
+      path: "hours.opensAt",
+      kind: "time",
+      value: "08:00",
+    };
+    const typing = {
+      type: "start-typing",
+      path: "title",
+      text: "Кофейня",
+      isSingleLine: true,
+    };
+
+    expect(readEditorMessage(price)).toEqual(price);
+    expect(readEditorMessage(opensAt)).toEqual(opensAt);
+    expect(readEditorMessage(typing)).toEqual(typing);
+    expect(readEditorMessage({ ...price, value: "1990" })).toBeUndefined();
+    expect(readEditorMessage({ ...opensAt, value: 8 })).toBeUndefined();
+    expect(readEditorMessage({ ...price, kind: "date" })).toBeUndefined();
+    expect(readEditorMessage({ ...price, point: { x: 1 } })).toBeUndefined();
   });
 
   it("drops anything that is not a message of the editor", () => {

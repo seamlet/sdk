@@ -7,8 +7,9 @@ import { listenToAll, onElement, type EventListening } from "./event-listening";
 import type { InlineEditingOutcome } from "./messages";
 
 // What every typing in an element of the page shares, a plain text or a formatted one: the element
-// is editable while it lasts, Escape brings the text back, the key that ends a text of one line
-// keeps it, and it ends once, giving the element back as it was.
+// is editable while it lasts, Escape and the key that ends a text of one line end it and keep what
+// was typed (the editor's undo takes it back, as in a word processor), and it ends once, giving the
+// element back as it was.
 
 export interface TypingSessionOptions {
   readonly editableAs: EditableAs;
@@ -32,11 +33,11 @@ export function startTypingSession(
   options: TypingSessionOptions,
 ): TypingSession {
   const endOnKey = (event: KeyboardEvent) => {
-    const outcome = outcomeOfKey(event, options.isEndingKey);
-    if (outcome === undefined) return;
+    const isEnding = event.key === "Escape" || options.isEndingKey(event);
+    if (!isEnding) return;
 
     event.preventDefault();
-    end(outcome);
+    end("kept");
   };
   let hasEnded = false;
   const end = (outcome: InlineEditingOutcome) => {
@@ -55,12 +56,4 @@ export function startTypingSession(
   ]);
   element.focus();
   return { end };
-}
-
-function outcomeOfKey(
-  event: KeyboardEvent,
-  isEndingKey: (event: KeyboardEvent) => boolean,
-): InlineEditingOutcome | undefined {
-  if (event.key === "Escape") return "reverted";
-  return isEndingKey(event) ? "kept" : undefined;
 }

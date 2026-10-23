@@ -1,6 +1,9 @@
 import { FIELD_PATH_ATTRIBUTE, type FieldPath } from "../schema";
+import { boxOf } from "./boxes";
 import { asElement } from "./dom-nodes";
+import { rankedMarkersAt } from "./marker-picks";
 import { closestMarkedPath } from "./marked-paths";
+import type { Point } from "./messages";
 
 // Finding the elements a site marked with the paths of its fields.
 
@@ -20,6 +23,26 @@ export function markedElementAround(
   const path = element?.getAttribute(FIELD_PATH_ATTRIBUTE);
   const isMarked = isHtmlElement(element) && typeof path === "string";
   return isMarked ? { element, path } : undefined;
+}
+
+/**
+ * The marked element a click at the point chooses, by the boxes of the marked elements around the
+ * one it landed on (`rankedMarkersAt`): a price under a card's link stretched over the card is the
+ * price. The element it landed on when no box holds the point.
+ */
+export function markedElementPickedAt(
+  document: Document,
+  landed: MarkedElement,
+  point: Point,
+): MarkedElement {
+  const placed = allMarkedElements(document).flatMap((marked) => {
+    const box = boxOf(marked.element);
+    return box === undefined ? [] : [{ ...marked, box }];
+  });
+  const [picked] = rankedMarkersAt(placed, { path: landed.path, point });
+  return picked === undefined
+    ? landed
+    : { element: picked.element, path: picked.path };
 }
 
 export interface PageLink {

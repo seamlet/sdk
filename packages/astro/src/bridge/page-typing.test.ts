@@ -117,7 +117,7 @@ describe("createPageTyping", () => {
     expect(typing.isTyping()).toBe(true);
   });
 
-  it("tells the editor to bring the text back on Escape", () => {
+  it("ends the typing on Escape, keeping the typed text in the element", () => {
     startAt("title", "Кофейня");
     type(marked("title"), "Кофейня и");
 
@@ -126,8 +126,88 @@ describe("createPageTyping", () => {
     expect(send).toHaveBeenLastCalledWith({
       type: "typing-ended",
       path: "title",
-      outcome: "reverted",
+      outcome: "kept",
     });
+    expect(marked("title").textContent).toBe("Кофейня и");
+  });
+
+  it("types a number its element shows with spaces between thousands, taking only its characters", () => {
+    document.body.innerHTML = `<p>от <span data-cms-path="menu.0.price">1 990</span> ₽</p>`;
+    const price = marked("menu.0.price");
+    typing.startValue({
+      type: "start-value-typing",
+      path: "menu.0.price",
+      kind: "number",
+      value: 1990,
+    });
+    const letter = new InputEvent("beforeinput", {
+      data: "р",
+      inputType: "insertText",
+      cancelable: true,
+    });
+    const digits = new InputEvent("beforeinput", {
+      data: "2 5,5",
+      inputType: "insertText",
+      cancelable: true,
+    });
+    price.dispatchEvent(letter);
+    price.dispatchEvent(digits);
+    type(price, "2 490");
+    press(price, "Enter");
+
+    expect(letter.defaultPrevented).toBe(true);
+    expect(digits.defaultPrevented).toBe(false);
+    expect(send.mock.calls).toEqual([
+      [{ type: "typing-started", path: "menu.0.price" }],
+      [{ type: "typed", path: "menu.0.price", text: "2 490" }],
+      [{ type: "typing-ended", path: "menu.0.price", outcome: "kept" }],
+    ]);
+  });
+
+  it("types a time shown as it is, taking digits and a colon", () => {
+    document.body.innerHTML = `<time data-cms-path="hours.opensAt">08:00</time>`;
+    const opensAt = marked("hours.opensAt");
+    typing.startValue({
+      type: "start-value-typing",
+      path: "hours.opensAt",
+      kind: "time",
+      value: "08:00",
+      point: { x: 0, y: 0 },
+    });
+    const comma = new InputEvent("beforeinput", {
+      data: ",",
+      inputType: "insertText",
+      cancelable: true,
+    });
+    const colon = new InputEvent("beforeinput", {
+      data: ":",
+      inputType: "insertText",
+      cancelable: true,
+    });
+    opensAt.dispatchEvent(comma);
+    opensAt.dispatchEvent(colon);
+
+    expect(comma.defaultPrevented).toBe(true);
+    expect(colon.defaultPrevented).toBe(false);
+    expect(send).toHaveBeenCalledWith({
+      type: "typing-started",
+      path: "hours.opensAt",
+    });
+  });
+
+  it("refuses a value its element shows with words around it", () => {
+    typing.startValue({
+      type: "start-value-typing",
+      path: "menu.0.price",
+      kind: "number",
+      value: 150,
+    });
+
+    expect(send).toHaveBeenCalledWith({
+      type: "typing-refused",
+      path: "menu.0.price",
+    });
+    expect(marked("menu.0.price").hasAttribute("contenteditable")).toBe(false);
   });
 
   it("ends the typing when told to", () => {

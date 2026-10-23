@@ -5,6 +5,7 @@ export {
   PROTOCOL_VERSION,
   readEditorMessage,
   readPageMessage,
+  type ClickTarget,
   type EditorKey,
   type EditorMessage,
   type InlineEditingOutcome,
@@ -17,12 +18,24 @@ export {
   type TextFormat,
   type TextFormats,
   type TypedSelection,
+  type TypedValue,
+  type TypedValueKind,
 } from "./bridge/messages";
 export type { Box, Viewport } from "./bridge/boxes";
-export { shortcutOf } from "./bridge/editor-shortcuts";
+export {
+  fieldStepOf,
+  shortcutOf,
+  type FieldStep,
+} from "./bridge/editor-shortcuts";
 export { carriesFiles } from "./bridge/file-drags";
 export { imageFieldAt } from "./bridge/image-fields";
 export { closestMarkedPath } from "./bridge/marked-paths";
+export {
+  pickedPathAt,
+  rankedMarkersAt,
+  type MarkerClick,
+} from "./bridge/marker-picks";
+export { numberShownBy } from "./bridge/typed-values";
 export {
   insertPlainText,
   readRichTextFrom,

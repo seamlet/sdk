@@ -10,6 +10,8 @@ let stopListening: () => void = () => undefined;
 const listeners = {
   onHover: vi.fn<PageListeners["onHover"]>(),
   onClick: vi.fn<PageListeners["onClick"]>(),
+  onClickOutside: vi.fn<PageListeners["onClickOutside"]>(),
+  onStaticTextHover: vi.fn<PageListeners["onStaticTextHover"]>(),
   onKeyDown: vi.fn<PageListeners["onKeyDown"]>(),
   onLayoutChange: vi.fn<PageListeners["onLayoutChange"]>(),
   onFileDragOver: vi.fn<PageListeners["onFileDragOver"]>(),
