@@ -30,6 +30,26 @@ export interface PageTexts {
 /** How the build answers texts the editor cannot reach. */
 export type ChecksMode = "warn" | "strict" | "off";
 
+/**
+ * Why a strict check stopped the build, the list itself logged before it. The message is short and
+ * names no text or element of the pages: Astro reads a thrown error's words, and one that holds
+ * `document` or `window` gets a hint about browser APIs that has nothing to do with the check.
+ */
+export class PageTextsCheckError extends Error {
+  override readonly name = "PageTextsCheckError";
+}
+
+export const UNREACHED_TEXTS_STOP =
+  'the build stopped on the texts listed above, which the CMS\'s editor cannot reach (seamlet({ checks: "strict" }))';
+
+export const UNCHECKED_TEXTS_STOP =
+  'the build stopped: the texts of the pages could not be checked, see above (seamlet({ checks: "strict" }))';
+
+/** The line the build logs when every text of its pages is reached. */
+export function reachedTextsLine(pages: readonly PageTexts[]): string {
+  return `Every text of ${String(pages.length)} pages is reachable in the editor or marked as the code's`;
+}
+
 /** The pages of the description: its own, then the page of every record of its initial content. */
 export function checkedPagesOf(description: SiteDescription): CheckedPage[] {
   const ownPages = description.pages.map(({ path }) => ({ path, kind: path }));

@@ -8,6 +8,10 @@ import {
 } from "./schema";
 import {
   checkedPagesOf,
+  PageTextsCheckError,
+  reachedTextsLine,
+  UNCHECKED_TEXTS_STOP,
+  UNREACHED_TEXTS_STOP,
   unmarkedTextsReport,
   type CheckedPage,
 } from "./text-checks";
@@ -88,5 +92,30 @@ describe("unmarkedTextsReport", () => {
 
   it("reports nothing when the editor reaches every text", () => {
     expect(unmarkedTextsReport([{ page: home, texts: [] }])).toBeUndefined();
+  });
+});
+
+describe("reachedTextsLine", () => {
+  it("counts the pages whose every text is reached", () => {
+    const pages = [
+      { page: home, texts: [] },
+      { page: { path: "/menu", kind: "/menu" }, texts: [] },
+    ];
+
+    expect(reachedTextsLine(pages)).toBe(
+      "Every text of 2 pages is reachable in the editor or marked as the code's",
+    );
+  });
+});
+
+describe("a strict check that stops the build", () => {
+  it("says so in words Astro takes for no browser API", () => {
+    const stops = [UNREACHED_TEXTS_STOP, UNCHECKED_TEXTS_STOP].map((stop) =>
+      String(new PageTextsCheckError(stop)),
+    );
+
+    for (const stop of stops) {
+      expect(stop).not.toMatch(/document|window/);
+    }
   });
 });

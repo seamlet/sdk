@@ -2,7 +2,15 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import type { AstroIntegration, AstroIntegrationLogger } from "astro";
 import { unmarkedTextsOfBuild } from "./built-pages";
-import { unmarkedTextsReport, type ChecksMode } from "./text-checks";
+import {
+  PageTextsCheckError,
+  reachedTextsLine,
+  UNCHECKED_TEXTS_STOP,
+  UNREACHED_TEXTS_STOP,
+  unmarkedTextsReport,
+  type ChecksMode,
+  type PageTexts,
+} from "./text-checks";
 import { copyUploadedPhotos } from "./uploaded-photos";
 import { OWN_PHOTOS_PATH } from "./own-photos";
 import {
@@ -212,26 +220,41 @@ async function checkPageTexts(check: PageTextsCheck): Promise<void> {
     return;
   }
 
-  const report = await pageTextsReport(serverEntry, checks);
-  if (report === undefined) return;
-  if (checks === "strict") throw new Error(report);
+  const pages = await checkedPageTexts(serverEntry, checks, logger);
+  if (pages === undefined) return;
+
+  const report = unmarkedTextsReport(pages);
+  if (report === undefined) {
+    logger.info(reachedTextsLine(pages));
+    return;
+  }
+  if (checks === "strict") {
+    logger.error(report);
+    throw new PageTextsCheckError(UNREACHED_TEXTS_STOP);
+  }
   logger.warn(report);
 }
 
 /**
- * The report of the texts the editor cannot reach. Pages that could not be rendered are reported
- * in their place, unless the check is strict: a check that fails never fails a build by itself.
+ * The texts of every built page, or undefined when they could not be rendered, which is reported in
+ * their place unless the check is strict: a check that fails never fails a build by itself.
  */
-async function pageTextsReport(
+async function checkedPageTexts(
   serverEntry: URL,
   checks: ChecksMode,
-): Promise<string | undefined> {
+  logger: AstroIntegrationLogger,
+): Promise<PageTexts[] | undefined> {
   try {
-    return unmarkedTextsReport(await unmarkedTextsOfBuild(serverEntry));
+    return await unmarkedTextsOfBuild(serverEntry);
   } catch (error) {
-    if (checks === "strict") throw error;
     const reason = error instanceof Error ? error.message : String(error);
-    return `the texts of the pages could not be checked: ${reason}`;
+    const failure = `the texts of the pages could not be checked: ${reason}`;
+    if (checks === "strict") {
+      logger.error(failure);
+      throw new PageTextsCheckError(UNCHECKED_TEXTS_STOP);
+    }
+    logger.warn(failure);
+    return undefined;
   }
 }
 

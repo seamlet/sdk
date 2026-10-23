@@ -65,7 +65,7 @@ export const WEEKDAYS = [
 export function openingHoursField(options: { readonly label?: string } = {}) {
   return collection({
     label: options.label ?? "Часы работы",
-    itemTitle: "note",
+    itemTitle: "days",
     item: {
       days: choices({ label: "Дни", options: WEEKDAYS }),
       opens: time({ label: "Открывается" }),

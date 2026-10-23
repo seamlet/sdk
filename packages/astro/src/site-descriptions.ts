@@ -140,7 +140,8 @@ const SCHEMA_PROBLEM_TEXTS: Readonly<Record<SchemaProblemReason, string>> = {
   "invalid-option": "an option of the field is not of its kind",
   "invalid-choice-options": "its options are not a list of { value, label }",
   "record-id-field": "a record has its own id: name the field otherwise",
-  "invalid-item-title": "itemTitle names no text or link field of the record",
+  "invalid-item-title":
+    "itemTitle names no text, link, choice or choices field of the record",
   "unknown-collection": "it refers to a collection the schema does not have",
   "misplaced-slug":
     "a slug is a field of a record of a collection, one per record",

@@ -4,6 +4,7 @@ import {
   isContentObject,
   recordAddressOf,
   recordPageAt,
+  recordTitleOf,
   type Content,
   type FieldValue,
   type SiteDescription,
@@ -79,7 +80,7 @@ function recordSearchPage(
   if (collection === undefined) return undefined;
 
   const texts = searchTextsAt(record, found.page.searchTexts);
-  const title = recordTitleOf(record, collection.itemTitle);
+  const title = recordTitleOf(collection, record);
   const address = recordAddressOf(collection, record) ?? found.address;
   const name = [texts.title, title, address].find((words) => words !== "");
   return {
@@ -109,13 +110,4 @@ function searchTextsAt(
     title: typeof title === "string" ? title.trim() : "",
     description: typeof description === "string" ? description.trim() : "",
   };
-}
-
-/** The words of the record's field that names it in the editor: a text, or a link's text. */
-function recordTitleOf(record: Content, itemTitle: string | undefined): string {
-  const value = itemTitle === undefined ? undefined : record[itemTitle];
-  if (typeof value === "string") return value.trim();
-
-  const linkText = isContentObject(value) ? value["text"] : undefined;
-  return typeof linkText === "string" ? linkText.trim() : "";
 }

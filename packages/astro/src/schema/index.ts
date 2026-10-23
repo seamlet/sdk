@@ -121,6 +121,7 @@ export {
   type RichSpan,
   type RichText,
 } from "./rich-text";
+export { choiceTitleOf, recordTitleOf } from "./record-titles";
 export { isContentObject, isJsonObject, type JsonObject } from "./json-values";
 export {
   checkFields,
