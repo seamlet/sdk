@@ -85,7 +85,7 @@ npx astro add @seamlet/astro node                   # the integration, and an ad
    });
    ```
 
-   The CMS takes all of it from the site itself, so connecting a site, or changing its schema, needs no change of the CMS. `defineSeamletSite` checks the description exactly as the CMS reads it (`checkSiteDescription`), so a site the CMS would refuse stops its own build and says what to fix: a page address that is not `/` or lower-case segments without a trailing slash (`/menu`, not `/Menu` or `/menu/`), a first page other than `/`, initial content the CMS could not save, `searchTexts` that name no group of a `title` and a `description`, or a schema that cannot work. A schema cannot work with a field name that is empty, holds a dot or is a number (a path of a field reads them as its separator and as a record), an option of the wrong kind (`maxLength: "10"`), a `reference` to a collection it does not have, or an `itemTitle` that names no `text` or `link` field of the record.
+   The CMS takes all of it from the site itself, so connecting a site, or changing its schema, needs no change of the CMS. `defineSeamletSite` checks the description exactly as the CMS reads it (`checkSiteDescription`), so a site the CMS would refuse stops its own build and says what to fix: a page address that is not `/` or lower-case segments without a trailing slash (`/menu`, not `/Menu` or `/menu/`), a first page other than `/`, initial content the CMS could not save, `searchTexts` that name no group of a `title` and a `description`, or a schema that cannot work. A schema cannot work with a field name that is empty, holds a dot or is a number (a path of a field reads them as its separator and as a record), an option of the wrong kind (`maxLength: "10"`), a `reference` to a collection it does not have, or an `itemTitle` that names no `text`, `link`, `choice` or `choices` field of the record.
 
 5. Add the integration; it reads `seamlet.json` and `src/seamlet.ts` itself:
 
@@ -138,6 +138,8 @@ The site's pages take their published content with `site.loadPublishedContent()`
 | `references({ label, collection })`        | the `id`s of any number of such records                                 | `[]`             |
 | `group({ label, fields })`                 | named fields shown together                                             | each field empty |
 | `collection({ label, item, itemTitle? })`  | a list of records of the same fields                                    | `[]`             |
+
+`itemTitle` names the field whose words name a record in the CMS's list of records, its history and the site's `llms.txt`: a `text`, a `link` by its text, or a `choice` or `choices` by the labels of the options picked. `choiceTitleOf(field, value)` of `@seamlet/astro/schema` is how such a title reads, the same in the CMS and on the site: a `choice` gives its option's label; `choices` gives the labels in the schema's order, joined by commas, and when its options are days of the week in the week's order (`WEEKDAYS`, or some of them), three or more days in a row read as the first and the last: «Пн–Пт, Сб». `recordTitleOf(collection, record)` reads the title of any record that way. A CMS reads a site's description with its own version of the package: a schema that titles records by a choice needs a CMS that reads 2.5.
 
 A file is a document the owner uploads in the CMS as a PDF. The site links to it, and a static build copies it next to its pages as it copies the uploaded photos:
 
@@ -237,7 +239,7 @@ Sets of fields almost every site has, edited the same way everywhere; they are p
 
 - `seoFields()` — `title`, `description` and `image` of a page for search engines and links shared in messengers;
 - `contactsFields()` — `phone` (a link), `address`, `map` (an address) and `messengers` (links);
-- `openingHoursField()` — rows of `days` (`WEEKDAYS`), `opens` and `closes` times and a `note`.
+- `openingHoursField()` — rows of `days` (`WEEKDAYS`), `opens` and `closes` times and a `note`; a row is named by its days, «Пн–Пт».
 
 Each takes `{ label }` to name it otherwise.
 
@@ -415,7 +417,7 @@ After a build the integration renders every page of the site's description in it
     «Похожие товары» in section.related > h2
 ```
 
-`seamlet({ checks: "strict" })` stops the build when there is such a text, `"off"` turns the check off; `"warn"`, the default, lists them. The check renders the pages with the built server of `@astrojs/node` on this computer, asking nothing of the CMS; with another adapter it is skipped.
+`seamlet({ checks: "strict" })` lists them as an error and stops the build when there is such a text, `"off"` turns the check off; `"warn"`, the default, lists them. When the editor reaches every text, the build says so in one line: `[@seamlet/astro] Every text of 8 pages is reachable in the editor or marked as the code's`. The check renders the pages with the built server of `@astrojs/node` on this computer, asking nothing of the CMS; with another adapter it is skipped.
 
 In the editor, the preview writes the same list for the page it shows to the console of its frame once, and, as fields come into view, the fields a click cannot reach: another element lies over every point tried, so a click chooses it instead. The usual one is a card whose link is stretched over the whole card (`a::after { position: absolute; inset: 0 }`): every click on the card's photo, price or description lands on the link. Lift the card's other fields above it, so a visitor still opens the card from anywhere else:
 

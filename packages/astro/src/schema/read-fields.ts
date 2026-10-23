@@ -11,6 +11,7 @@ import type {
 import { FIELD_PATH_SEPARATOR, isRecordIndex } from "./field-paths";
 import { isJsonObject, type JsonObject } from "./json-values";
 import { collectionFieldAt, RECORD_ID_KEY } from "./record-ids";
+import { TITLE_KINDS } from "./record-titles";
 
 // A schema read back from JSON: the CMS takes a site's schema from the site itself, so it reads
 // every field by its kind and keeps only what the schema language knows. Anything that cannot
@@ -31,7 +32,7 @@ export type SchemaProblemReason =
   | "invalid-choice-options"
   /** A record has a field named `id`, which is the record's own. */
   | "record-id-field"
-  /** `itemTitle` names no text or link field of the record. */
+  /** `itemTitle` names no text, link, choice or choices field of the record. */
   | "invalid-item-title"
   /** A reference names a collection the schema does not have. */
   | "unknown-collection"
@@ -53,12 +54,6 @@ type Reading<T> =
   | { readonly isRead: false; readonly problem: SchemaProblem };
 
 type FieldPathNames = readonly string[];
-
-/** A record of a collection may be named by the words of one of these fields. */
-const TITLE_KINDS: ReadonlySet<FieldKind> = new Set<FieldKind>([
-  "text",
-  "link",
-]);
 
 /** The schema the input describes, or undefined when it is not one. */
 export function readFields(input: unknown): Fields | undefined {

@@ -147,7 +147,10 @@ export interface CollectionField<F extends RecordFields = RecordFields> {
   readonly kind: "collection";
   readonly label: string;
   readonly item: F;
-  /** The field of a record that names it in the editor: a text field, or a link by its text. */
+  /**
+   * The field of a record that names it in the editor: a text, a link by its text, or a choice or
+   * choices by the labels of the options picked («Пн–Пт», see choiceTitleOf).
+   */
   readonly itemTitle?: keyof F & string;
 }
 

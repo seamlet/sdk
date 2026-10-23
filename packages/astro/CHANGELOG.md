@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.5.0
+
+- A record of a collection may be titled by a `choice` or `choices` field: `itemTitle` names a `text`, a `link`, a `choice` or a `choices` field. `choiceTitleOf(field, value)` of `@seamlet/astro/schema` is the one rule of how it reads: a `choice` gives its option's label, `choices` the labels in the schema's order joined by commas, three or more days of the week in a row as the first and the last when its options are days of the week («Пн–Пт, Сб»); a value the options no longer list reads as itself. `recordTitleOf(collection, record)` reads the title of any record by that rule; the pages of records in `llms.txt` take it.
+- `openingHoursField()` titles its rows by their `days` («Пн–Пт») instead of their `note`.
+- The check of the texts of the pages says in one line when the editor reaches every text («Every text of 8 pages is reachable in the editor or marked as the code's»). With `checks: "strict"`, the list of texts is logged as an error and the build stops with a short message of its own, without Astro's unrelated hint about browser APIs and `client:only`.
+
+A CMS reads a site's description with its own version of the package: a site whose schema titles records by a choice, `openingHoursField()` among them, needs a CMS that reads 2.5.0 descriptions; an older one refuses the schema (`invalid-item-title`).
+
 ## 2.4.0
 
 - The build lists the texts of the site's pages the CMS's editor cannot reach: after `astro build` the integration renders every page of the site's description in its preview with the initial content (the page of every record too) with the built server of `@astrojs/node`, and warns about every visible text that stands in no element marked with a field and in none marked `data-cms-fixed`, the texts of every page once. `seamlet({ checks: "strict" })` stops the build on one, `"off"` turns the check off, `"warn"` is the default.
