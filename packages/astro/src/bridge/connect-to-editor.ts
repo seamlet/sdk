@@ -19,6 +19,7 @@ import { createLayoutReports, type LayoutReports } from "./page-layout";
 import { findClosestMarkedElement } from "./page-markers";
 import { revealAround } from "./page-reveals";
 import { followPresses } from "./page-presses";
+import { warnAboutUnreachableFields } from "./page-checks";
 import { createPageRenderer, type PageRenderer } from "./page-rendering";
 import { createPageTyping, type PageTyping } from "./page-typing";
 
@@ -58,7 +59,9 @@ export function connectToEditor(options: BridgeOptions): () => void {
 
   window.addEventListener("message", receive);
   send({ type: "ready", protocol: PROTOCOL_VERSION });
+  const stopChecks = warnAboutUnreachableFields(document);
   return () => {
+    stopChecks();
     window.removeEventListener("message", receive);
     connection?.stop();
   };

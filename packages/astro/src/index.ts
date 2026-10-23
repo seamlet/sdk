@@ -1,6 +1,8 @@
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import type { AstroIntegration } from "astro";
+import type { AstroIntegration, AstroIntegrationLogger } from "astro";
+import { unmarkedTextsOfBuild } from "./built-pages";
+import { unmarkedTextsReport, type ChecksMode } from "./text-checks";
 import { copyUploadedPhotos } from "./uploaded-photos";
 import { OWN_PHOTOS_PATH } from "./own-photos";
 import {
@@ -35,6 +37,8 @@ const RESOLVED_SEARCH_MODULE = `\0${SEARCH_MODULE}`;
  * development, or the CMS's builder, which builds a site for itself.
  */
 const CMS_ORIGIN_VARIABLE = "CMS_ORIGIN";
+/** The adapter whose built server the check of texts renders the pages with. */
+const NODE_ADAPTER = "@astrojs/node";
 
 /** What the integration serves for search engines and AI assistants; each is on unless set to false. */
 export interface SeamletOptions {
@@ -44,6 +48,12 @@ export interface SeamletOptions {
   readonly robots?: boolean;
   /** `/llms.txt`, the site's pages for AI assistants with their titles and descriptions. */
   readonly llms?: boolean;
+  /**
+   * What the build does with the texts of its pages the CMS's editor cannot reach, texts with no
+   * field's marker and no `data-cms-fixed`: `"warn"` lists them (the default), `"strict"` stops
+   * the build, `"off"` leaves them unchecked.
+   */
+  readonly checks?: ChecksMode;
 }
 
 /** Which of the files for search engines the integration serves. */
@@ -60,6 +70,9 @@ export default function seamlet(
   let siteConfig: SiteConfig | undefined;
   /** Whether a sitemap was asked for and is not served, as the site sets no `site`. */
   let isSitemapWithoutSite = false;
+  /** The built server that renders the pages for the check of texts, with the node adapter. */
+  let serverEntry: URL | undefined;
+  const checks = options.checks ?? "warn";
 
   return {
     name: "@seamlet/astro",
@@ -150,6 +163,12 @@ export default function seamlet(
           });
         }
       },
+      "astro:config:done": ({ config }) => {
+        const isNodeAdapter = config.adapter?.name === NODE_ADAPTER;
+        serverEntry = isNodeAdapter
+          ? new URL(config.build.serverEntry, config.build.server)
+          : undefined;
+      },
       "astro:build:start": ({ logger }) => {
         if (!isSitemapWithoutSite) return;
         logger.warn(
@@ -167,9 +186,53 @@ export default function seamlet(
           cmsOrigin: siteConfig.cms,
         });
         if (copied > 0) logger.info(`copied ${String(copied)} uploaded photos`);
+        await checkPageTexts({ checks, serverEntry, logger });
       },
     },
   };
+}
+
+interface PageTextsCheck {
+  readonly checks: ChecksMode;
+  readonly serverEntry: URL | undefined;
+  readonly logger: AstroIntegrationLogger;
+}
+
+/**
+ * Lists the texts of the built pages the CMS's editor cannot reach; in the strict mode, stops the
+ * build when there are any.
+ */
+async function checkPageTexts(check: PageTextsCheck): Promise<void> {
+  const { checks, serverEntry, logger } = check;
+  if (checks === "off") return;
+  if (serverEntry === undefined) {
+    logger.info(
+      `the texts of the pages are not checked: the check renders them with the server of ${NODE_ADAPTER}`,
+    );
+    return;
+  }
+
+  const report = await pageTextsReport(serverEntry, checks);
+  if (report === undefined) return;
+  if (checks === "strict") throw new Error(report);
+  logger.warn(report);
+}
+
+/**
+ * The report of the texts the editor cannot reach. Pages that could not be rendered are reported
+ * in their place, unless the check is strict: a check that fails never fails a build by itself.
+ */
+async function pageTextsReport(
+  serverEntry: URL,
+  checks: ChecksMode,
+): Promise<string | undefined> {
+  try {
+    return unmarkedTextsReport(await unmarkedTextsOfBuild(serverEntry));
+  } catch (error) {
+    if (checks === "strict") throw error;
+    const reason = error instanceof Error ? error.message : String(error);
+    return `the texts of the pages could not be checked: ${reason}`;
+  }
 }
 
 /** The files for search engines the site asks for and does not serve itself. */

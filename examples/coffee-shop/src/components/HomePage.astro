@@ -48,9 +48,11 @@ const edit = editable<CoffeeShopContent>();
   <main>
     {menu.length > 0 && (
       <section class="menu" aria-labelledby="popular-heading">
-        <h2 id="popular-heading">Популярное</h2>
+        <h2 id="popular-heading" data-cms-fixed>
+          Популярное
+        </h2>
         <MenuList menu={menu} limit={POPULAR_COUNT} />
-        <a class="more" href="/menu">
+        <a class="more" href="/menu" data-cms-fixed>
           Всё меню →
         </a>
       </section>
@@ -80,7 +82,9 @@ const edit = editable<CoffeeShopContent>();
     )}
 
     <section class="booking" aria-labelledby="booking-heading">
-      <h2 id="booking-heading">Забронировать столик</h2>
+      <h2 id="booking-heading" data-cms-fixed>
+        Забронировать столик
+      </h2>
       <RequestForm form={tableForm} submitLabel="Забронировать" />
     </section>
   </main>

@@ -23,7 +23,7 @@ const edit = editable<CoffeeShopContent>();
   path="/menu"
 >
   <main>
-    <a class="back" href="/menu">
+    <a class="back" href="/menu" data-cms-fixed>
       ← {content.menuPage.title}
     </a>
     <article {...edit("menu", index)}>
