@@ -10,12 +10,15 @@ import {
   isInTypedText,
   linkAround,
   markedElementAround,
+  markedElementPickedAt,
   type PageLink,
 } from "./page-markers";
 import { revealPartAt, togglePartAt } from "./page-reveals";
+import { staticTextAround } from "./static-texts";
 
 // What the bridge hears from the site's page. In the editor a click selects what it points at and
-// does nothing else: links do not navigate and forms are not sent. A link that is not a field is
+// does nothing else: links do not navigate and forms are not sent. What it points at is the
+// smallest marked element whose box holds the point, not the one on top (`markedElementPickedAt`). A link that is not a field is
 // reported, so the editor can open the page it leads to. The summary of a `<details>` still opens
 // it, and a switch (a tab, a filter) still flips: what they hide holds fields too.
 
@@ -36,8 +39,12 @@ export interface PagePointer {
 export interface PageListeners {
   /** The pointer moved onto a marked element, or off all of them (undefined). */
   readonly onHover: (path: string | undefined) => void;
-  /** A click on a marked element, or outside all of them (undefined). */
-  readonly onClick: (pointer: PagePointer | undefined) => void;
+  /** The pointer moved onto a text of the site's own, outside every marked element, or off it. */
+  readonly onStaticTextHover: (text: Element | undefined) => void;
+  /** A click on a marked element: the one it chooses. */
+  readonly onClick: (pointer: PagePointer) => void;
+  /** A click outside every marked element: on a text of the site's own, or elsewhere (undefined). */
+  readonly onClickOutside: (text: Element | undefined) => void;
   /** The pointer moved onto a link that is not a field, or off it (undefined). */
   readonly onLinkHover: (link: PageLink | undefined) => void;
   /** A click on a link that is not a field. */
@@ -65,6 +72,7 @@ export function listenToPage(
   const leave = () => {
     listeners.onHover(undefined);
     listeners.onLinkHover(undefined);
+    listeners.onStaticTextHover(undefined);
   };
 
   const stopListening = listenToAll([
@@ -99,8 +107,12 @@ function hover(event: MouseEvent, listeners: PageListeners): void {
   const link = linkToFollow(event.target);
   const path =
     link === undefined ? markedElementAround(event.target)?.path : undefined;
+  const isStaticTextPossible = link === undefined && path === undefined;
   listeners.onHover(path);
   listeners.onLinkHover(link);
+  listeners.onStaticTextHover(
+    isStaticTextPossible ? staticTextAround(event.target) : undefined,
+  );
 }
 
 /** A click selects what it points at: a link it follows, a field it chooses. */
@@ -112,16 +124,18 @@ function click(event: MouseEvent, listeners: PageListeners): void {
     return;
   }
 
-  const marked = markedElementAround(event.target);
-  if (marked === undefined) {
+  const landed = markedElementAround(event.target);
+  if (landed === undefined) {
     togglePartAt(event.target);
-    listeners.onClick(undefined);
+    listeners.onClickOutside(staticTextAround(event.target));
     return;
   }
 
   revealPartAt(event.target);
   const point = { x: event.clientX, y: event.clientY };
-  listeners.onClick({ ...marked, point });
+  const document = landed.element.ownerDocument;
+  const picked = markedElementPickedAt(document, landed, point);
+  listeners.onClick({ ...picked, point });
 }
 
 function preventDefault(event: Event): void {

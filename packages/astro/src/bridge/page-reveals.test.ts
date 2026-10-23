@@ -101,6 +101,8 @@ describe("a click on the summary of details", () => {
   const listeners: PageListeners = {
     onHover: vi.fn(),
     onClick: vi.fn(),
+    onClickOutside: vi.fn(),
+    onStaticTextHover: vi.fn(),
     onLinkHover: vi.fn(),
     onLinkClick: vi.fn(),
     onKeyDown: vi.fn(),
@@ -156,6 +158,8 @@ describe("a click on a switch of the page", () => {
   const listeners: PageListeners = {
     onHover: vi.fn(),
     onClick: vi.fn(),
+    onClickOutside: vi.fn(),
+    onStaticTextHover: vi.fn(),
     onLinkHover: vi.fn(),
     onLinkClick: vi.fn(),
     onKeyDown: vi.fn(),

@@ -58,7 +58,7 @@ describe("startInlineTextEditing", () => {
     expect(onEnd).not.toHaveBeenCalled();
   });
 
-  it("reverts on Escape and ends once", () => {
+  it("ends on Escape keeping the text, once", () => {
     const element = heading();
     const { onEnd, stop } = startEditing(element, true);
 
@@ -67,7 +67,7 @@ describe("startInlineTextEditing", () => {
     element.dispatchEvent(new Event("blur"));
 
     expect(onEnd).toHaveBeenCalledTimes(1);
-    expect(onEnd).toHaveBeenCalledWith("reverted");
+    expect(onEnd).toHaveBeenCalledWith("kept");
   });
 
   it("keeps the text when the element loses focus", () => {

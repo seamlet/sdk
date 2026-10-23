@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { shortcutOf } from "./editor-shortcuts";
+import { fieldStepOf, shortcutOf } from "./editor-shortcuts";
 
 function keyDown(init: KeyboardEventInit): KeyboardEvent {
   return new KeyboardEvent("keydown", init);
@@ -34,5 +34,20 @@ describe("shortcutOf", () => {
         keyDown({ code: "KeyZ", key: "z", metaKey: true, altKey: true }),
       ),
     ).toBeUndefined();
+  });
+});
+
+describe("fieldStepOf", () => {
+  it("takes Tab to the next field and Shift+Tab to the previous one", () => {
+    expect(fieldStepOf(keyDown({ key: "Tab" }))).toBe("next-field");
+    expect(fieldStepOf(keyDown({ key: "Tab", shiftKey: true }))).toBe(
+      "previous-field",
+    );
+  });
+
+  it("leaves Tab with a command key and other keys to the browser", () => {
+    expect(fieldStepOf(keyDown({ key: "Tab", ctrlKey: true }))).toBeUndefined();
+    expect(fieldStepOf(keyDown({ key: "Tab", altKey: true }))).toBeUndefined();
+    expect(fieldStepOf(keyDown({ key: "Enter" }))).toBeUndefined();
   });
 });

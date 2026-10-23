@@ -436,6 +436,32 @@ In the editor, the preview writes the same list for the page it shows to the con
 }
 ```
 
+## Typing on the page
+
+In the editor, a click on the page chooses the smallest marked element whose box holds the point, not the element on top: a price or a photo under a card's name stretched as a link over the card is chosen where it is. The choice stays in the block around the element the click landed on, so a sticky header keeps its clicks. A field the page shows as it is, is typed right there:
+
+- a `text` and the words of a `link`, when the marked element shows them alone;
+- a `richText` rendered with `RichText` alone in its element;
+- a `number` its element shows alone: `240`, or with spaces between thousands and a decimal comma, `1 990` and `2,5`. A unit or a word around it stays outside the marked element, and the page then types only the digits, which take nothing but digits, spaces and a comma:
+
+  ```astro
+  {content.menu.map((drink, index) => (
+    <p class="price">
+      от{" "}
+      <span {...edit("menu", index, "price")}>
+        {drink.price?.toLocaleString("ru-RU")}
+      </span>{" "}
+      ₽
+    </p>
+  ))}
+  ```
+
+- a `time` its element shows as it is, `19:00`.
+
+A field the page shows otherwise (a date written in words, a price inside a phrase, a photo, a switch) is edited beside the page, and the editor quotes what the page shows. A tap on a phone gives the keyboard to the field it chooses at once. Escape ends a typing and keeps what was typed, and Tab and Shift+Tab move to the next and the previous field. A text with no field, `data-cms-fixed` or not, is outlined when the pointer is over it, so the owner sees that a developer changes it.
+
+These need a bridge of protocol version 3 (`@seamlet/astro` 2.6.0 or later) and a CMS that speaks it; with an older bridge the editor types texts, and a number its element shows as the bare digits, and edits the rest beside the page.
+
 ## Requests
 
 A visitor sends the business a request from the site: «Обратный звонок», «Рассчитать стоимость», «Бронь столика». The site declares its forms, gives them to `defineSeamletSite` and renders them; the CMS passes every request on by mail to the people who edit the site and keeps nothing once it is delivered.
@@ -632,7 +658,7 @@ What a page shows and what its structured data says must be the same: a price, h
 ## What the integration adds
 
 - `/preview` and `/preview/<page>`: the preview the CMS's editor frames, the pages of records too (at their address or at the record's id, a page the site does not show too). `GET` shows the published content; `POST` with the content as JSON shows that content without saving it, which is how the editor shows every edit at once. Only the CMS may frame it (`Content-Security-Policy: frame-ancestors`), and it is never indexed or cached; its refusals (an address of no page, a record a draft does not have, a draft that is not JSON or is over 1 MB) say the same.
-- The bridge on the preview: it tells the editor where the marked elements are and what a person does on the page, and types texts in place, formatted ones too.
+- The bridge on the preview: it tells the editor where the marked elements are and what a person does on the page, and types in place texts, formatted ones, the words of links, numbers and times (below).
 - `/seamlet/site.json`: what the site tells the CMS about itself (`SITE_DESCRIPTION_PATH`): its id and name from `seamlet.json`, its schema, the content it starts with and its pages. The CMS reads it with `readSiteDescription` whenever the site is opened in its editor.
 - After a build, the check of the texts of its pages the editor cannot reach (`checks`, above); in the preview, the same list and the fields another element covers, in the console of the editor's frame.
 - `/sitemap.xml`, `/robots.txt` and `/llms.txt` for search engines and AI assistants (above), unless the site serves its own or turns them off.

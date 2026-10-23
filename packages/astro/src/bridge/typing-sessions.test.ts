@@ -38,10 +38,10 @@ describe("startTypingSession", () => {
     expect(onInput).toHaveBeenCalledOnce();
   });
 
-  it("brings the text back on Escape and keeps it on the key that ends it", () => {
-    const reverted = start();
-    expect(press(reverted.element, "Escape").defaultPrevented).toBe(true);
-    expect(reverted.onEnd).toHaveBeenCalledWith("reverted");
+  it("ends on Escape and on the key that ends it, keeping the text", () => {
+    const escaped = start();
+    expect(press(escaped.element, "Escape").defaultPrevented).toBe(true);
+    expect(escaped.onEnd).toHaveBeenCalledWith("kept");
 
     const kept = start((event) => event.key === "Enter");
     press(kept.element, "a");

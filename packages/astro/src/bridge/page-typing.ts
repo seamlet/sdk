@@ -23,9 +23,11 @@ import {
 } from "./rich-text-editing";
 import { richTextLayoutOf } from "./rich-text-layouts";
 import type { TypedKind } from "./typed-fields";
+import { canTypeValueInPlace, TYPED_VALUE_CHARACTERS } from "./typed-values";
 
 type StartTyping = Extract<EditorMessage, { type: "start-typing" }>;
 type StartRichTyping = Extract<EditorMessage, { type: "start-rich-typing" }>;
+type StartValueTyping = Extract<EditorMessage, { type: "start-value-typing" }>;
 
 /** How long a text made ready by a tap waits for the editor to start typing it. */
 export const PREPARED_TYPING_TIMEOUT_MS = 3000;
@@ -48,6 +50,8 @@ export interface PageTyping {
   readonly start: (request: StartTyping) => void;
   /** The same for formatted text. */
   readonly startRich: (request: StartRichTyping) => void;
+  /** The same for a number or a time, which takes only the characters of its words. */
+  readonly startValue: (request: StartValueTyping) => void;
   /** Formats the selection of the formatted text being typed. */
   readonly format: (format: TextFormat) => void;
   /** Sets or removes the link on the selection of the formatted text being typed. */
@@ -157,6 +161,24 @@ export function createPageTyping(options: {
       }),
     });
   };
+  const typeValue = (request: StartValueTyping) => {
+    const { path } = request;
+    begin({
+      path,
+      point: request.point,
+      canTypeIn: (element) => canTypeValueInPlace(element, request),
+      typeIn: (element, onEnd) => ({
+        stop: startInlineTextEditing(element, {
+          isSingleLine: true,
+          acceptedCharacters: TYPED_VALUE_CHARACTERS[request.kind],
+          onInput: (typed) => {
+            reportTyped({ type: "typed", path, text: typed });
+          },
+          onEnd,
+        }),
+      }),
+    });
+  };
   const typeRichText = (request: StartRichTyping) => {
     const { path, text } = request;
     const layout = richTextLayoutOf(request.isInline);
@@ -185,6 +207,7 @@ export function createPageTyping(options: {
     isTyping,
     start: typePlainText,
     startRich: typeRichText,
+    startValue: typeValue,
     format: (format) => typing?.richText?.format(format),
     setLink: (href) => typing?.richText?.setLink(href),
     stop,
@@ -206,7 +229,8 @@ interface CurrentTyping {
 
 interface TypingStart {
   readonly path: string;
-  readonly point: Point;
+  /** Where the caret goes; after the text without it. */
+  readonly point: Point | undefined;
   readonly canTypeIn: (element: HTMLElement) => boolean;
   readonly typeIn: (
     element: HTMLElement,

@@ -18,7 +18,7 @@ import type { Box, Viewport } from "./boxes";
  * editor may meet a bridge of another version: it tells by this number, said with `ready`, instead
  * of misreading the page. Raised whenever a message changes in a way the other side cannot read.
  */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 export interface Point {
   readonly x: number;
@@ -48,21 +48,41 @@ export interface PageLayout {
 }
 
 const SHORTCUTS = ["save", "undo", "redo"] as const;
-const EDITOR_KEY_NAMES = [...SHORTCUTS, "escape"] as const;
+const EDITOR_KEY_NAMES = [
+  ...SHORTCUTS,
+  "escape",
+  "next-field",
+  "previous-field",
+] as const;
 const TEXT_FORMAT_NAMES = ["bold", "italic", "list"] as const;
 const TYPING_OUTCOME_NAMES = ["kept", "reverted"] as const;
 
 /** A keyboard shortcut of the editor, pressed on the page. */
 export type Shortcut = (typeof SHORTCUTS)[number];
 
-/** A key the editor acts on: its shortcuts, and Escape that closes what is open. */
+/**
+ * A key the editor acts on: its shortcuts, Escape that closes what is open, and Tab and Shift+Tab
+ * pressed while a text is typed (`next-field`, `previous-field`; a bridge of version 3 and later).
+ */
 export type EditorKey = (typeof EDITOR_KEY_NAMES)[number];
 
 /** A change of formatting the editor's toolbar asks for. */
 export type TextFormat = (typeof TEXT_FORMAT_NAMES)[number];
 
-/** How a typing in place ended: the typed text kept, or brought back as it was. */
+/**
+ * How a typing in place ended: the typed text kept, or brought back as it was. A bridge before
+ * version 3 brings the element's text back on Escape (`reverted`); from version 3 every typing ends
+ * `kept`, Escape too, and the editor's undo takes the text back.
+ */
 export type InlineEditingOutcome = (typeof TYPING_OUTCOME_NAMES)[number];
+
+/** A value typed in place, as the field holds it: a number, or a time as `19:00`. */
+export type TypedValue =
+  | { readonly kind: "number"; readonly value: number }
+  | { readonly kind: "time"; readonly value: string };
+
+/** The kind of a value typed in place as words: a number or a time. */
+export type TypedValueKind = TypedValue["kind"];
 
 /** The marks of the selected words of a formatted text. */
 export interface TextFormats {
@@ -80,6 +100,18 @@ export interface TypedSelection {
   readonly formats: TextFormats;
 }
 
+/** A click on a marked element: the smallest one at the point, as `pickedPathAt` chooses it. */
+export interface ClickTarget {
+  readonly path: string;
+  readonly point: Point;
+  /**
+   * The words the field's element shows, when it holds no other field (a bridge of version 3 and
+   * later): the editor tells by them a field the site shows otherwise than its value, a phrase
+   * around it («обжарено 4 дня назад»).
+   */
+  readonly shownText?: string;
+}
+
 /** What the page tells the editor. */
 export type PageMessage =
   /** The bridge runs and waits for the editor to connect; it speaks this version of the protocol. */
@@ -87,11 +119,17 @@ export type PageMessage =
   | { readonly type: "layout"; readonly layout: PageLayout }
   /** The pointer moved onto a marked element, or off all of them. */
   | { readonly type: "hover"; readonly path: string | undefined }
+  /**
+   * The pointer moved onto a text of the page outside every marked element (the site's own words,
+   * `data-cms-fixed` or not), or off it: where it is (a bridge of version 3 and later).
+   */
+  | { readonly type: "static-hover"; readonly box: Box | undefined }
   /** A click on a marked element, or outside all of them. */
   | {
       readonly type: "click";
-      readonly target:
-        { readonly path: string; readonly point: Point } | undefined;
+      readonly target: ClickTarget | undefined;
+      /** A click outside the marked elements landed on a text of the site's own (version 3). */
+      readonly isStaticText?: boolean;
     }
   | { readonly type: "link-click"; readonly href: string }
   | { readonly type: "key"; readonly key: EditorKey }
@@ -100,7 +138,7 @@ export type PageMessage =
   | { readonly type: "file-drag-end" }
   | { readonly type: "file-drop"; readonly path: string; readonly file: File }
   | { readonly type: "typing-started"; readonly path: string }
-  /** The element does not show the text as it is: the field is edited in a popover. */
+  /** The element does not show the text as it is: the field is edited beside the page. */
   | { readonly type: "typing-refused"; readonly path: string }
   | { readonly type: "typed"; readonly path: string; readonly text: string }
   /** The formatted text typed in place, after every character and every change of its marks. */
@@ -135,7 +173,8 @@ export type EditorMessage =
       readonly path: string;
       readonly text: string;
       readonly isSingleLine: boolean;
-      readonly point: Point;
+      /** Where to put the caret; without it (version 3 and later), after the text. */
+      readonly point?: Point;
     }
   /** Type the formatted text of the field in its element, if the element shows it as it is. */
   | {
@@ -144,8 +183,20 @@ export type EditorMessage =
       readonly text: RichText;
       /** The words alone, in an element of one line. */
       readonly isInline: boolean;
-      readonly point: Point;
+      /** Where to put the caret; without it (version 3 and later), after the text. */
+      readonly point?: Point;
     }
+  /**
+   * Type a number or a time in its element, if the element shows the value as it is: a number with
+   * spaces between thousands or a decimal comma («1 990», «2,5») too (version 3 and later). The page
+   * answers as for `start-typing` and sends the words typed, which the editor reads by its rule.
+   */
+  | ({
+      readonly type: "start-value-typing";
+      readonly path: string;
+      /** Where to put the caret; without it, after the value. */
+      readonly point?: Point;
+    } & TypedValue)
   /** Mark the selected words of the formatted text typed in place, or make its lines a list. */
   | { readonly type: "format-typed"; readonly format: TextFormat }
   /** The selected words of the typed text, or the link at the cursor, lead here, or nowhere. */
@@ -183,8 +234,13 @@ function isPageMessage(message: JsonObject): message is PageMessage {
     case "hover":
     case "file-drag":
       return isOptional(message["path"], isString);
+    case "static-hover":
+      return isOptional(message["box"], isBox);
     case "click":
-      return isOptional(message["target"], isClickTarget);
+      return (
+        isOptional(message["target"], isClickTarget) &&
+        isOptional(message["isStaticText"], isBoolean)
+      );
     case "link-click":
       return isString(message["href"]);
     case "key":
@@ -224,15 +280,21 @@ function isEditorMessage(message: JsonObject): message is EditorMessage {
       return (
         isString(message["path"]) &&
         isString(message["text"]) &&
-        typeof message["isSingleLine"] === "boolean" &&
-        isPoint(message["point"])
+        isBoolean(message["isSingleLine"]) &&
+        isOptional(message["point"], isPoint)
       );
     case "start-rich-typing":
       return (
         isString(message["path"]) &&
         isRichText(message["text"]) &&
-        typeof message["isInline"] === "boolean" &&
-        isPoint(message["point"])
+        isBoolean(message["isInline"]) &&
+        isOptional(message["point"], isPoint)
+      );
+    case "start-value-typing":
+      return (
+        isString(message["path"]) &&
+        isTypedValue(message) &&
+        isOptional(message["point"], isPoint)
       );
     case "format-typed":
       return isString(message["format"]) && TEXT_FORMATS.has(message["format"]);
@@ -266,10 +328,24 @@ function isLinkBox(value: unknown): value is LinkBox {
   return isJsonObject(value) && isString(value["href"]) && isBox(value["box"]);
 }
 
-function isClickTarget(value: unknown): boolean {
+function isClickTarget(value: unknown): value is ClickTarget {
   return (
-    isJsonObject(value) && isString(value["path"]) && isPoint(value["point"])
+    isJsonObject(value) &&
+    isString(value["path"]) &&
+    isPoint(value["point"]) &&
+    isOptional(value["shownText"], isString)
   );
+}
+
+function isTypedValue(message: JsonObject): boolean {
+  switch (message["kind"]) {
+    case "number":
+      return isNumber(message["value"]);
+    case "time":
+      return isString(message["value"]);
+    default:
+      return false;
+  }
 }
 
 function isRichText(value: unknown): value is RichText {
@@ -327,6 +403,10 @@ function isOptional(
   isPresent: (value: unknown) => boolean,
 ): boolean {
   return value === undefined || isPresent(value);
+}
+
+function isBoolean(value: unknown): value is boolean {
+  return typeof value === "boolean";
 }
 
 function isString(value: unknown): value is string {

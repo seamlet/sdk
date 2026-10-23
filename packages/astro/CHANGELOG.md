@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.6.0
+
+The bridge on the preview speaks version 3 of the protocol with the CMS's editor (`PROTOCOL_VERSION` is 3):
+
+- A click chooses the smallest marked element whose box holds its point, in the block around the element it landed on, not the element on top: a price or a photo under a card's name stretched as a link over the card is chosen where it is, and a tap gives the focus and a phone's keyboard to that element at once. `pickedPathAt` and `rankedMarkersAt` of `@seamlet/astro/protocol` are the one rule, which the editor applies to the boxes of any bridge.
+- A number and a time are typed right on the page: `start-value-typing` (`{ path, kind: "number", value }` or `{ path, kind: "time", value }`, with an optional `point`) types a number its element shows alone, with spaces between thousands or a decimal comma too («1 990», «2,5»), and a time it shows as it is («19:00»); while typed, a number takes only digits, spaces and a comma, a time digits and a colon. The page answers with `typing-started` or `typing-refused`, sends the words in `typed` (the editor reads them by its own rule; `numberShownBy` is how the bridge reads a shown number) and ends with `typing-ended`.
+- A tap on the words of a link, a number or a time makes them ready to be typed, as on a text, so a phone shows its keyboard.
+- Texts of the site's own: `static-hover` (`{ box }`, or `{ box: undefined }` when the pointer leaves) says where a hovered text outside every marked element is, `data-cms-fixed` or not, and a click outside the marked elements says `isStaticText`, so the editor can say that a developer changes it.
+- A click on a field carries `shownText`, the words its element shows when it shows that field alone, so the editor can quote a phrase the site builds around a value («обжарено 4 дня назад»).
+- Tab and Shift+Tab while a text is typed end the typing and say `key` with `next-field` or `previous-field`; elsewhere Tab moves the focus as always.
+- Escape ends a typing in place with `kept` and leaves the typed text in its element; the editor's undo takes it back. No bridge 3 typing ends `reverted`.
+- `start-typing` and `start-rich-typing` may come without `point`: the caret goes after the text.
+
+Formatted text, opening `<details>`, tabs and filters, and holding moving parts are as they were.
+
+The order of updates: the CMS takes 2.6.0 first. An editor speaks with bridges up to its own `PROTOCOL_VERSION`, so an editor of 2.5.0 or older does not speak with a page of 2.6.0 and says that the site must be updated. An editor of 2.6.0 speaks with bridges 1 to 3 and asks a bridge before 3 only for what it does. Then sites update the package when they like.
+
 ## 2.5.0
 
 - A record of a collection may be titled by a `choice` or `choices` field: `itemTitle` names a `text`, a `link`, a `choice` or a `choices` field. `choiceTitleOf(field, value)` of `@seamlet/astro/schema` is the one rule of how it reads: a `choice` gives its option's label, `choices` the labels in the schema's order joined by commas, three or more days of the week in a row as the first and the last when its options are days of the week («Пн–Пт, Сб»); a value the options no longer list reads as itself. `recordTitleOf(collection, record)` reads the title of any record by that rule; the pages of records in `llms.txt` take it.
