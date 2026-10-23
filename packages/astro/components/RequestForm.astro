@@ -3,10 +3,14 @@
 // (`.contacts :global(.seamlet-form-field)`). Without a script it is a form posted to the CMS, and
 // the CMS answers with a page of its own; the package's script sends it in place. The checkbox of
 // consent stands apart from the fields and is never checked beforehand, as the law asks, and links
-// to the consent and the policy of the business, pages of the site itself.
+// to the consent and the policy of the business, pages of the site itself. The labels come from the
+// form, which the CMS names a request's values by, and the consent says what the law asks: the code
+// owns them (`data-cms-fixed`). The words of the button are the site's to give, from its content
+// with the marker of their field when the owner edits them.
 import { cmsOrigin, siteId } from "virtual:seamlet/config";
 import {
   CONSENT_PAGE_PATH,
+  FIXED_TEXT_ATTRIBUTE,
   maxLengthOf,
   PRIVACY_PAGE_PATH,
   REQUEST_CONSENT_KEY,
@@ -14,6 +18,7 @@ import {
   REQUEST_PAGE_KEY,
   REQUEST_TRAP_KEY,
   requestsPathOf,
+  type FieldMarker,
   type RequestField,
   type RequestForm,
 } from "@seamlet/astro/schema";
@@ -22,6 +27,11 @@ interface Props {
   readonly form: RequestForm;
   /** The words of the button. */
   readonly submitLabel?: string;
+  /**
+   * The marker of the field the words of the button come from, so the owner edits them on the page:
+   * `submitMarker={edit("order", "submit")}`. Without it the button's words are the code's.
+   */
+  readonly submitMarker?: FieldMarker;
   /** What the visitor reads once the business has the request. */
   readonly sentText?: string;
   /** What the visitor reads when the request could not be sent. */
@@ -38,6 +48,7 @@ interface Props {
 const {
   form,
   submitLabel = "Отправить",
+  submitMarker,
   sentText = "Заявка отправлена. Ответим по контактам, которые вы оставили.",
   failedText = "Заявка не ушла. Всё, что вы ввели, осталось в форме — отправьте ещё раз через минуту.",
   consentHref = CONSENT_PAGE_PATH,
@@ -64,6 +75,9 @@ const AUTOCOMPLETE: Partial<Record<LineField["kind"], string>> = {
   phone: "tel",
   email: "email",
 };
+/** The texts of the form the code owns, so the check of a build does not report them. */
+const fixedText = { [FIXED_TEXT_ATTRIBUTE]: "" };
+const submitText = submitMarker ?? fixedText;
 const isLineField = (field: RequestField): field is LineField =>
   field.kind === "text" || field.kind === "phone" || field.kind === "email";
 ---
@@ -79,7 +93,7 @@ const isLineField = (field: RequestField): field is LineField =>
   <input type="hidden" name={REQUEST_PAGE_KEY} value={page} />
   {fields.map(([name, field]) => (
     <div class="seamlet-form-field" data-field={name}>
-      <label for={idOf(name)}>
+      <label for={idOf(name)} {...fixedText}>
         {field.label}
         {field.required === true && <span aria-hidden="true"> *</span>}
       </label>
@@ -145,7 +159,7 @@ const isLineField = (field: RequestField): field is LineField =>
       required
       aria-describedby={issueIdOf(REQUEST_CONSENT_KEY)}
     />
-    <label for={idOf(REQUEST_CONSENT_KEY)}>
+    <label for={idOf(REQUEST_CONSENT_KEY)} {...fixedText}>
       Даю{" "}
       <a href={consentHref} target="_blank" rel="noopener">
         согласие на обработку персональных данных
@@ -162,7 +176,7 @@ const isLineField = (field: RequestField): field is LineField =>
       hidden
     />
   </div>
-  <button class="seamlet-form-submit" type="submit">
+  <button class="seamlet-form-submit" type="submit" {...submitText}>
     {submitLabel}
   </button>
   <p

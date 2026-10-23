@@ -12,7 +12,9 @@ export default defineConfig({
   server: { port: 4322 },
   // The site's id, title and CMS are in seamlet.json: development runs the CMS on its default port,
   // and a deployment sets the CMS's address in CMS_ORIGIN when it builds the site.
-  integrations: [seamlet()],
+  // Strict: the build stops on a text of a page the CMS's editor cannot reach, so the test site
+  // keeps every text either a field or the code's own (data-cms-fixed).
+  integrations: [seamlet({ checks: "strict" })],
   vite: {
     // The package is linked from the workspace, outside this folder.
     server: { fs: { allow: ["../.."] } },

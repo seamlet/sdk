@@ -92,6 +92,7 @@ export {
   REVEALED_ATTRIBUTE,
 } from "./reveal-markers";
 export { HELD_ATTRIBUTE, POPOVER_ATTRIBUTE } from "./popover-markers";
+export { FIXED_TEXT_ATTRIBUTE } from "./fixed-text-markers";
 export {
   hrefOf,
   linkTargetOf,

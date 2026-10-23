@@ -387,6 +387,53 @@ import { POPOVER_ATTRIBUTE } from "@seamlet/astro/schema";
 </div>
 ```
 
+## Texts the editor reaches
+
+The owner edits what is marked: a click on a text with no field's marker does nothing in the editor, and a field that another element covers cannot be chosen on the page. Two checks name both, so a site does not ship them unnoticed.
+
+Every text a visitor reads is either a field, marked with `edit(...)`, or the code's own: the words of controls («К содержанию», «Назад»), a fixed legal text, what the code builds from the content (an open status, a sum, the year of the copyright line). Mark the code's own texts with `data-cms-fixed` (`FIXED_TEXT_ATTRIBUTE`) on their element or on a part around them:
+
+```astro
+<nav class="site-nav" data-cms-fixed>
+  <a href="/menu">Меню</a>
+  <a href="/contacts">Контакты</a>
+</nav>
+<p data-cms-fixed>
+  © {year} {content.brand.name}
+</p>
+```
+
+A text inside a marked element counts as reached, and so do texts hidden (`hidden`, `aria-hidden="true"`), what runs and styles (`<script>`, `<style>`, `<template>`), the options of a list and a lone sign such as `·` or `→`.
+
+After a build the integration renders every page of the site's description in its preview with the initial content, the way the editor first shows it, the page of every record too, and lists the texts with no field and no `data-cms-fixed`, the texts every page shows (a header, a footer) once and each kind of page with its own:
+
+```
+[@seamlet/astro] 3 texts of the pages have no field, so the CMS's editor cannot edit them. Mark each with editable() of its field, or with data-cms-fixed when the code owns it:
+  every page:
+    «Каталог» in header > nav > a
+  /catalog/[record]:
+    «Похожие товары» in section.related > h2
+```
+
+`seamlet({ checks: "strict" })` stops the build when there is such a text, `"off"` turns the check off; `"warn"`, the default, lists them. The check renders the pages with the built server of `@astrojs/node` on this computer, asking nothing of the CMS; with another adapter it is skipped.
+
+In the editor, the preview writes the same list for the page it shows to the console of its frame once, and, as fields come into view, the fields a click cannot reach: another element lies over every point tried, so a click chooses it instead. The usual one is a card whose link is stretched over the whole card (`a::after { position: absolute; inset: 0 }`): every click on the card's photo, price or description lands on the link. Lift the card's other fields above it, so a visitor still opens the card from anywhere else:
+
+```css
+.card {
+  position: relative;
+}
+.card-name a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.card [data-cms-path] {
+  position: relative;
+  z-index: 1;
+}
+```
+
 ## Requests
 
 A visitor sends the business a request from the site: «Обратный звонок», «Рассчитать стоимость», «Бронь столика». The site declares its forms, gives them to `defineSeamletSite` and renders them; the CMS passes every request on by mail to the people who edit the site and keeps nothing once it is delivered.
@@ -434,7 +481,19 @@ import { estimateForm } from "../forms";
 
 The fields are `requestText` (a line), `requestLongText` (several lines), `requestPhone`, `requestEmail` and `requestChoice` (one of `options`); each may be `required`, and a text has a `maxLength` (200 for a line, 2000 for several by default). A field's name is a name such as `phone` or `preferredTime`. The form's `title` names its requests in the CMS and in the letters.
 
-`RequestForm.astro` renders plain elements with classes (`seamlet-form`, `seamlet-form-field`, `seamlet-form-issue`, `seamlet-form-consent`, `seamlet-form-submit`, `seamlet-form-sent`, `seamlet-form-failed`), which the site styles from around it: `.contacts :global(.seamlet-form-field)`. Its props are the `form`, the words of the button (`submitLabel`), what the visitor reads once the request is sent or could not be (`sentText`, `failedText`), the pages of the visitor's consent and of the business's policy the checkbox links to (`consentHref` and `policyHref`, the site's own `/consent` and `/privacy` by default, `CONSENT_PAGE_PATH` and `PRIVACY_PAGE_PATH`) and `instance`, which tells apart two forms of the same id on one page.
+`RequestForm.astro` renders plain elements with classes (`seamlet-form`, `seamlet-form-field`, `seamlet-form-issue`, `seamlet-form-consent`, `seamlet-form-submit`, `seamlet-form-sent`, `seamlet-form-failed`), which the site styles from around it: `.contacts :global(.seamlet-form-field)`. Its props are the `form`, the words of the button (`submitLabel`) and the marker of the field they come from (`submitMarker`), what the visitor reads once the request is sent or could not be (`sentText`, `failedText`), the pages of the visitor's consent and of the business's policy the checkbox links to (`consentHref` and `policyHref`, the site's own `/consent` and `/privacy` by default, `CONSENT_PAGE_PATH` and `PRIVACY_PAGE_PATH`) and `instance`, which tells apart two forms of the same id on one page.
+
+The labels of the fields are the form's, the words the CMS names a request's values by in its letters, and the consent says what the law asks, so the form gives both to the code (`data-cms-fixed`): a label changes in `src/forms.ts`. The words of the button are the site's to give; to let the owner edit them, keep them in the content and pass the marker of their field:
+
+```astro
+<RequestForm
+  form={estimateForm}
+  submitLabel={content.order.submit}
+  submitMarker={edit("order", "submit")}
+/>
+```
+
+Without `submitMarker` the button's words are the code's too.
 
 The visitor consents with a checkbox of its own, never checked beforehand, linking to two pages of the site: the consent, a document of its own as 152-ФЗ asks (`/consent` unless `consentHref` names another), and the business's policy (`/privacy` unless `policyHref` names another). The business is the operator of its visitors' data and publishes both; Seamlet only passes a request on by its commission. `privacyConsentFields()` and `privacyPolicyFields()` are the two as content the owner edits, and `privacyConsentTextOf(source)` and `privacyPolicyTextOf(source)` (`source` is `{ siteTitle, operator, forms }`) start them with the business's details and what its forms ask, the policy in the sections Роскомнадзор recommends: put them in the initial content and render each with `RichText` at its page. While the CMS has nobody to mail a site's requests to, it takes none, and the form says it could not send. Without a script the form is posted to the CMS, which answers with a page of its own; with the package's script (on every page, loaded only where a form is) the visitor stays on the page. The script checks what was typed with the code the CMS checks it with (`readRequestValues`), says what to fix under each field and sends the request.
 
@@ -573,6 +632,7 @@ What a page shows and what its structured data says must be the same: a price, h
 - `/preview` and `/preview/<page>`: the preview the CMS's editor frames, the pages of records too (at their address or at the record's id, a page the site does not show too). `GET` shows the published content; `POST` with the content as JSON shows that content without saving it, which is how the editor shows every edit at once. Only the CMS may frame it (`Content-Security-Policy: frame-ancestors`), and it is never indexed or cached; its refusals (an address of no page, a record a draft does not have, a draft that is not JSON or is over 1 MB) say the same.
 - The bridge on the preview: it tells the editor where the marked elements are and what a person does on the page, and types texts in place, formatted ones too.
 - `/seamlet/site.json`: what the site tells the CMS about itself (`SITE_DESCRIPTION_PATH`): its id and name from `seamlet.json`, its schema, the content it starts with and its pages. The CMS reads it with `readSiteDescription` whenever the site is opened in its editor.
+- After a build, the check of the texts of its pages the editor cannot reach (`checks`, above); in the preview, the same list and the fields another element covers, in the console of the editor's frame.
 - `/sitemap.xml`, `/robots.txt` and `/llms.txt` for search engines and AI assistants (above), unless the site serves its own or turns them off.
 - `/seamlet-photos/<address>`: the site's own photo at an address its content gives it, found by `photos` of `defineSeamletSite`, for the CMS's editor.
 - `/media/<site>/<file>`: the photos uploaded for the site in the CMS, taken from it on request (`502` when the CMS does not answer in 10 seconds or fails); a static build copies every photo uploaded for the site that its built pages refer to next to them, a few at a time, so a static host serves them too. Loading the published content waits 30 seconds for the CMS and stops the build when it does not answer.

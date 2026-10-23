@@ -4,8 +4,11 @@ import { experimental_AstroContainer as AstroContainer } from "astro/container";
 import { JSDOM } from "jsdom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import RequestForm from "../components/RequestForm.astro";
+import { unmarkedTextsOf } from "./bridge/unmarked-texts";
+import { pageBodyOf } from "./html-page-nodes";
 import { connectRequestForms } from "./request-sending";
 import {
+  editable,
   requestChoice,
   requestForm,
   requestLongText,
@@ -358,5 +361,37 @@ describe("the form of requests", () => {
 
     expect(event.defaultPrevented).toBe(true);
     expect(fetchRequest).not.toHaveBeenCalled();
+  });
+});
+
+describe("the texts of the form of requests", () => {
+  async function unmarkedTextsOfForm(props: object): Promise<string[]> {
+    const container = await AstroContainer.create();
+    const rendered = await container.renderToString(RequestForm, {
+      props: { form: estimate, ...props },
+      request: new Request("https://example.ru/catalog/banya"),
+    });
+    const body = pageBodyOf(`<body>${rendered}</body>`);
+    const texts = body === undefined ? [] : unmarkedTextsOf(body);
+    return texts.map(({ text }) => text);
+  }
+
+  it("gives the labels, the consent and the button to the code", async () => {
+    expect(await unmarkedTextsOfForm({ submitLabel: "Рассчитать" })).toEqual(
+      [],
+    );
+  });
+
+  it("marks the button with the field its words come from", async () => {
+    const container = await AstroContainer.create();
+    const edit = editable<{ order: { submit: string } }>();
+    const rendered = await container.renderToString(RequestForm, {
+      props: { form: estimate, submitMarker: edit("order", "submit") },
+      request: new Request("https://example.ru/catalog/banya"),
+    });
+
+    expect(rendered).toMatch(
+      /<button class="seamlet-form-submit" type="submit" data-cms-path="order\.submit"/u,
+    );
   });
 });

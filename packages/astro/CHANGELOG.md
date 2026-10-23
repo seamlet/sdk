@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.4.0
+
+- The build lists the texts of the site's pages the CMS's editor cannot reach: after `astro build` the integration renders every page of the site's description in its preview with the initial content (the page of every record too) with the built server of `@astrojs/node`, and warns about every visible text that stands in no element marked with a field and in none marked `data-cms-fixed`, the texts of every page once. `seamlet({ checks: "strict" })` stops the build on one, `"off"` turns the check off, `"warn"` is the default.
+- `data-cms-fixed` (`FIXED_TEXT_ATTRIBUTE` of `@seamlet/astro/schema`) marks the texts the code owns: the words of controls, a fixed legal text, what the code builds.
+- In the editor, the preview writes to the console of its frame the texts of the page with no field, once, and, as they come into view, the fields another element covers at every point a click could take (a link stretched over a card), with what lies over them. The protocol is the same, so every editor reads it.
+- `RequestForm.astro` gives the labels of its fields and the consent to the code (`data-cms-fixed`), and its button too unless `submitMarker` names the field its words come from: `submitMarker={edit("order", "submit")}`.
+
+A site with a build warning marks each text listed: with `edit(...)` of a field the owner edits, or with `data-cms-fixed`.
+
 ## 2.3.0
 
 - A site is ready to be found by search engines and AI assistants out of the box. The integration serves `/sitemap.xml` (the site's own pages and the pages of the records `shows` keeps on the site, by `site` of the Astro config), `/robots.txt` (open to every crawler, naming those of search engines and AI assistants, `SEARCH_CRAWLERS`, closing `/preview`, `/seamlet` and `/seamlet-photos`, naming the sitemap) and `/llms.txt` (the site's name, the description of its home page and its pages with their titles and descriptions for search engines). They are rendered on request from the published content, kept for half a minute, and answer `503` while the CMS does not.
