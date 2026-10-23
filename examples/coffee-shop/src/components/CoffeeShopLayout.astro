@@ -1,6 +1,8 @@
 ---
 // The frame of every page of the coffee shop: navigation, contacts and the shared design.
+import StructuredData from "@seamlet/astro/components/StructuredData.astro";
 import { editable, safeHref } from "@seamlet/astro/schema";
+import { localBusinessOf } from "@seamlet/astro/search";
 import { phoneHref } from "../format";
 import type { CoffeeShopContent } from "../schema";
 
@@ -22,6 +24,14 @@ const footerLinks = links.flatMap(({ link }, index) => {
     ? []
     : [{ index, href, text: link.text || link.href }];
 });
+// What search engines and AI assistants read of the coffee shop on every page.
+const business = localBusinessOf({
+  type: "CafeOrCoffeeShop",
+  name: "Кофейня",
+  url: Astro.site?.href ?? Astro.url.origin,
+  telephone: contacts.phone,
+  address: contacts.address,
+});
 const pages = [
   { path: "/", name: "Главная" },
   { path: "/menu", name: "Меню" },
@@ -35,6 +45,7 @@ const pages = [
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <title>{title}</title>
+    <StructuredData value={business} />
   </head>
   <body class="coffee-shop">
     <nav class="site-nav" aria-label="Страницы">

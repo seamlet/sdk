@@ -1,7 +1,7 @@
 {
   "name": "@seamlet/astro",
-  "version": "2.2.2",
-  "description": "Connects an Astro site to the Seamlet CMS: the schema of its content, the preview the editor frames, and its published content.",
+  "version": "2.3.0",
+  "description": "Connects an Astro site to the Seamlet CMS: the schema of its content, the preview the editor frames, its published content, and what makes it found by search engines and AI assistants.",
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -24,6 +24,10 @@
     "./feeds": {
       "types": "./dist/feeds.d.ts",
       "default": "./dist/feeds.js"
+    },
+    "./search": {
+      "types": "./dist/search.d.ts",
+      "default": "./dist/search.js"
     },
     "./bridge": {
       "types": "./dist/bridge.d.ts",
@@ -58,8 +62,21 @@
       "types": "./dist/routes/site-description.d.ts",
       "default": "./dist/routes/site-description.js"
     },
+    "./routes/sitemap": {
+      "types": "./dist/routes/sitemap.d.ts",
+      "default": "./dist/routes/sitemap.js"
+    },
+    "./routes/robots": {
+      "types": "./dist/routes/robots.d.ts",
+      "default": "./dist/routes/robots.js"
+    },
+    "./routes/llms": {
+      "types": "./dist/routes/llms.d.ts",
+      "default": "./dist/routes/llms.js"
+    },
     "./components/RichText.astro": "./components/RichText.astro",
-    "./components/RequestForm.astro": "./components/RequestForm.astro"
+    "./components/RequestForm.astro": "./components/RequestForm.astro",
+    "./components/StructuredData.astro": "./components/StructuredData.astro"
   },
   "files": [
     "dist",

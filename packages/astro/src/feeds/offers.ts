@@ -53,7 +53,7 @@ function offerOf(
   const photos = product.photos.flatMap(({ photo }) =>
     photo === null || photo.src.trim() === "" ? [] : [photo.src],
   );
-  const description = descriptionOf(product);
+  const description = productDescriptionOf(product);
   const category = options.categoryOf?.(product);
   return {
     id,
@@ -66,8 +66,8 @@ function offerOf(
   };
 }
 
-/** The whole description, or the short line when the product has none. */
-function descriptionOf(
+/** The whole description of a product, or its short line when it has none. */
+export function productDescriptionOf(
   product: ContentOf<ReturnType<typeof productFields>>,
 ): string {
   const whole = plainTextOf(product.description).trim();
