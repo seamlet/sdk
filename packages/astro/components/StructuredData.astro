@@ -1,0 +1,17 @@
+---
+// The structured data of a page (schema.org in JSON-LD), for search engines and AI assistants:
+// `<StructuredData value={[localBusinessOf(...), faqPageOf(...)]} />` in the page's head or body.
+// It renders nothing when there is nothing to say. The JSON is written with `<` escaped, so no
+// word of the content can close the element, and browsers never run a data block: a
+// Content-Security-Policy of scripts from the site alone lets it be.
+import { structuredDataText, type StructuredNode } from "@seamlet/astro/search";
+
+interface Props {
+  /** One thing, or several, which go in one `@graph`; an undefined one is left out. */
+  value: StructuredNode | readonly (StructuredNode | undefined)[];
+}
+
+const text = structuredDataText(Astro.props.value);
+---
+
+{text !== undefined && <script type="application/ld+json" set:html={text} />}

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.3.0
+
+- A site is ready to be found by search engines and AI assistants out of the box. The integration serves `/sitemap.xml` (the site's own pages and the pages of the records `shows` keeps on the site, by `site` of the Astro config), `/robots.txt` (open to every crawler, naming those of search engines and AI assistants, `SEARCH_CRAWLERS`, closing `/preview`, `/seamlet` and `/seamlet-photos`, naming the sitemap) and `/llms.txt` (the site's name, the description of its home page and its pages with their titles and descriptions for search engines). They are rendered on request from the published content, kept for half a minute, and answer `503` while the CMS does not.
+- A site that serves one of them itself (`public/` or `src/pages/`) keeps its own; `seamlet({ sitemap, robots, llms })` turns each off. Without `site` the sitemap is not served and the build warns.
+- Structured data: `@seamlet/astro/search` with `localBusinessOf` (the business with its contacts and hours, `businessContactsOf` for `contactsFields()`, `openingHoursSpecificationOf` for `openingHoursField()`), `productOf` (a `productFields()` product with its price in rubles), `breadcrumbsOf` and `faqPageOf`, and `components/StructuredData.astro`, which renders them as JSON-LD no word of the content can break. `sitemapOf`, `robotsTxtOf` and `llmsTxtOf` are what the integration writes the files with.
+
+A site sets `site` in its Astro config to get the sitemap. A site whose policy allows scripts from itself only needs no change for the structured data: a data block is never run.
+
 ## 2.2.2
 
 - The examples of the README, the comments and the tests name no real site: `my-site`, «Моя кофейня», `example.ru`. A CMS a feature needs is named by the version of the description it reads. Nothing behaves differently.

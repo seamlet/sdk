@@ -81,6 +81,26 @@ export default tseslint.config(
     },
   },
   {
+    // What a site gives search engines is plain text and data made from content: it knows only
+    // itself, the schema language and how the feeds write XML and read a product.
+    files: ["packages/astro/src/search/**"],
+    ignores: ["**/*.test.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex: "^(?!\\./|\\.\\./schema$|\\.\\./feeds/(xml|offers)$)",
+              message:
+                "The search layer depends only on itself, the schema language and the feeds' XML and offers",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // An example is a site like any other: it knows the SDK only as an installed package.
     files: ["examples/**"],
     rules: {

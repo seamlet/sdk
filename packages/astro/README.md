@@ -487,11 +487,93 @@ export async function GET() {
 }
 ```
 
+## Search engines and AI assistants
+
+A site connected this way is ready to be found by search engines (Яндекс, Google, Bing) and AI assistants (Алиса, ChatGPT, Claude, Perplexity) without code of its own: the integration serves three files from the content published at that moment, and the site's pages tell what they are about with structured data.
+
+Give the integration the site's address, `site` of the Astro config: the sitemap and robots.txt name the pages by it.
+
+```js
+// astro.config.mjs
+export default defineConfig({
+  site: "https://example.ru",
+  integrations: [seamlet()],
+});
+```
+
+- `/sitemap.xml` lists the whole address of every page the site shows: its own pages and the pages of the records `shows` keeps on the site, never the preview or a hidden record. Without `site` it is not served, and the build says so.
+- `/robots.txt` lets every crawler read the site and names the crawlers of search engines and AI assistants (`SEARCH_CRAWLERS`: `YandexBot`, `Googlebot`, `GPTBot`, `ClaudeBot`, `PerplexityBot` and the others), closes what serves the CMS (`/preview`, `/seamlet`, `/seamlet-photos`) and names the sitemap.
+- `/llms.txt` ([llmstxt.org](https://llmstxt.org)) is the site for an AI assistant: its name from `seamlet.json`, the description of its home page, then its pages and the pages of its records, each a link with its title and description for search engines.
+
+They are rendered on request and keep the published content for half a minute, so a new record's page reaches them with its publication. While the CMS does not answer they answer `503` with `Retry-After`, and crawlers come back. The titles and descriptions are the owner's: the group `searchTexts` names for a page or a record (`seoFields()`), and a page's name in the editor while the owner leaves its title empty.
+
+A site that serves one of the files itself keeps its own: `public/robots.txt`, or a route `src/pages/robots.txt.ts`, wins. To turn one off, pass `false`:
+
+```js
+integrations: [seamlet({ sitemap: false, robots: false, llms: false })],
+```
+
+### Structured data
+
+`@seamlet/astro/search` builds schema.org things from the content the presets hold, leaving out what the owner left empty, and `StructuredData.astro` renders them as one `<script type="application/ld+json">`, with `<` written as `\u003c`, so no word of the content can close it. Browsers never run a data block, so a policy of scripts from the site alone (`script-src 'self'`) lets it be.
+
+- `localBusinessOf({ type, name, url, ... })` — the business, for every page: `type` is `LocalBusiness` or a more exact type of schema.org (`CafeOrCoffeeShop`, `Restaurant`, `Florist`, `HomeAndConstructionBusiness`), with its `telephone`, `email`, `address` (a line, or `{ streetAddress, addressLocality, ... }`), `openingHours` (the rows of `openingHoursField()`), `images`, `logo`, `sameAs`, `hasMap`, `priceRange`, `areaServed` and `geo`. `businessContactsOf(content.contacts)` reads the phone, the address, the map and the links of `contactsFields()`.
+- `productOf(product, { url, availability, prices, category, brand })` — a product of `productFields()` for its page: its name, description, photos and its price in rubles; several `prices` (sizes) are a range, and a product without a price has no offer.
+- `breadcrumbsOf([{ name, url }, ...])` — the way from the home page to a page.
+- `faqPageOf(questions)` — the questions of a page with their answers, plain or formatted; undefined when none has an answer.
+
+```astro
+---
+// src/components/Layout.astro
+import StructuredData from "@seamlet/astro/components/StructuredData.astro";
+import {
+  businessContactsOf,
+  faqPageOf,
+  localBusinessOf,
+} from "@seamlet/astro/search";
+
+const { content } = Astro.props;
+const business = localBusinessOf({
+  type: "CafeOrCoffeeShop",
+  name: content.name,
+  url: Astro.site?.href ?? Astro.url.origin,
+  openingHours: content.openingHours,
+  ...businessContactsOf(content.contacts),
+});
+const faq = faqPageOf(content.faq);
+---
+
+<head>
+  <StructuredData value={[business, faq]} />
+</head>
+```
+
+On a product's page, beside the business:
+
+```astro
+---
+import { breadcrumbsOf, productOf } from "@seamlet/astro/search";
+
+const url = new URL(productPages.pathOf(record) ?? "/", Astro.site).href;
+const product = productOf(record, { url });
+const breadcrumbs = breadcrumbsOf([
+  { name: "Главная", url: new URL("/", Astro.site).href },
+  { name: "Каталог", url: new URL("/catalog", Astro.site).href },
+  { name: record.name, url },
+]);
+---
+
+<StructuredData value={[business, product, breadcrumbs]} />
+```
+
+What a page shows and what its structured data says must be the same: a price, hours or a question only in the data and not on the page is what search engines punish.
+
 ## What the integration adds
 
 - `/preview` and `/preview/<page>`: the preview the CMS's editor frames, the pages of records too (at their address or at the record's id, a page the site does not show too). `GET` shows the published content; `POST` with the content as JSON shows that content without saving it, which is how the editor shows every edit at once. Only the CMS may frame it (`Content-Security-Policy: frame-ancestors`), and it is never indexed or cached; its refusals (an address of no page, a record a draft does not have, a draft that is not JSON or is over 1 MB) say the same.
 - The bridge on the preview: it tells the editor where the marked elements are and what a person does on the page, and types texts in place, formatted ones too.
 - `/seamlet/site.json`: what the site tells the CMS about itself (`SITE_DESCRIPTION_PATH`): its id and name from `seamlet.json`, its schema, the content it starts with and its pages. The CMS reads it with `readSiteDescription` whenever the site is opened in its editor.
+- `/sitemap.xml`, `/robots.txt` and `/llms.txt` for search engines and AI assistants (above), unless the site serves its own or turns them off.
 - `/seamlet-photos/<address>`: the site's own photo at an address its content gives it, found by `photos` of `defineSeamletSite`, for the CMS's editor.
 - `/media/<site>/<file>`: the photos uploaded for the site in the CMS, taken from it on request (`502` when the CMS does not answer in 10 seconds or fails); a static build copies every photo uploaded for the site that its built pages refer to next to them, a few at a time, so a static host serves them too. Loading the published content waits 30 seconds for the CMS and stops the build when it does not answer.
 

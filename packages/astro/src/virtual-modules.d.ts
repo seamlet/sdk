@@ -13,3 +13,10 @@ declare module "virtual:seamlet/site" {
   const site: import("./site").SeamletSite;
   export default site;
 }
+
+declare module "virtual:seamlet/search" {
+  /** The whole address of the site, `site` of its Astro config; undefined when it sets none. */
+  export const siteUrl: string | undefined;
+  /** The whole address of the sitemap the integration serves; undefined when it serves none. */
+  export const sitemapUrl: string | undefined;
+}
