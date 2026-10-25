@@ -34,7 +34,7 @@ A site never renders content as raw HTML (`set:html`): the CMS's editor acts on 
 
 ## Impersonal package
 
-The package and this repository name no one: no site, client, business, person, server, host or domain, except the CMS's own `https://cms.seamlet.ru` as the default of `init` and Seamlet (`seamlet.ru`) as the processor in the template of the privacy policy, which the law asks it to name. Examples, comments, tests, the README and the changelog use made-up names that point at nobody (`my-site`, `cafe`, «Моя кофейня», «ООО «Ромашка»», `example.ru`, `cms.example`) and never the sites built with Seamlet; the test site is a coffee shop with no name of its own. Nothing here depends on what runs elsewhere: a CMS is named by the version of the description it reads, never by its address or its releases. The review checks every change against this.
+The package and this repository name no one: no site, client, business, person, server, host or domain, except the CMS's own `https://cms.seamlet.ru` as the default of `init` Seamlet (`seamlet.ru`) as the processor in the template of the privacy policy, which the law asks it to name, and Seamlet (`https://seamlet.ru/`) in the credit the README asks every site to carry in its footer. Examples, comments, tests, the README and the changelog use made-up names that point at nobody (`my-site`, `cafe`, «Моя кофейня», «ООО «Ромашка»», `example.ru`, `cms.example`) and never the sites built with Seamlet; the test site is a coffee shop with no name of its own. Nothing here depends on what runs elsewhere: a CMS is named by the version of the description it reads, never by its address or its releases. The review checks every change against this.
 
 ## Public API
 

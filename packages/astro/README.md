@@ -655,6 +655,50 @@ const breadcrumbs = breadcrumbsOf([
 
 What a page shows and what its structured data says must be the same: a price, hours or a question only in the data and not on the page is what search engines punish.
 
+## The credit in the footer
+
+Every site made with Seamlet names it once, at the very bottom of its footer, beside the legal links: a small link «Сделано на Seamlet» to `https://seamlet.ru/`, there for whoever looks for it and quiet for everyone else.
+
+- It is the code's own text, so it carries `data-cms-fixed`, and the owner does not edit it.
+- It takes the footer's muted text colour and is a size smaller than the footer's text (`0.8125rem`), with no underline; it brightens to the footer's main text colour and is underlined only on hover and focus.
+- It matches the site's own footer: its font, its spacing and the colours of its surface, still readable at 4.5:1 and with a touch target of at least 44 px.
+- A site that already names Seamlet in a fixed text of its footer («Демо-сайт, сделанный на Seamlet») needs no second one.
+
+```astro
+<p class="footer-legal" data-cms-fixed>
+  <a href="/privacy">Политика конфиденциальности</a>
+  <a class="footer-made" href="https://seamlet.ru/">
+    Сделано на Seamlet
+  </a>
+</p>
+
+<style>
+  .footer-legal {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1.5rem;
+  }
+
+  .footer-legal a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .footer-made {
+    color: var(--footer-muted);
+    font-size: 0.8125rem;
+    text-decoration: none;
+  }
+
+  .footer-made:hover,
+  .footer-made:focus-visible {
+    color: var(--footer-text);
+    text-decoration: underline;
+  }
+</style>
+```
+
 ## What the integration adds
 
 - `/preview` and `/preview/<page>`: the preview the CMS's editor frames, the pages of records too (at their address or at the record's id, a page the site does not show too). `GET` shows the published content; `POST` with the content as JSON shows that content without saving it, which is how the editor shows every edit at once. Only the CMS may frame it (`Content-Security-Policy: frame-ancestors`), and it is never indexed or cached; its refusals (an address of no page, a record a draft does not have, a draft that is not JSON or is over 1 MB) say the same.
