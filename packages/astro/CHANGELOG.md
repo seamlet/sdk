@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.8.0
+
+- `start-typing`, `start-rich-typing`, `start-value-typing` and `scroll-to` may say `copy`: which of the elements marked with the path to type or to bring into view, in the order of the page, from 0. The editor names it when no click chose the element, as when Tab takes a typing to the next field: a field the page shows twice (a phone in the header and in the contacts) is typed and shown where Tab went, not at its first copy. A copy a click made ready, or the one at the message's `point`, still comes first.
+
+The protocol keeps version 3: a bridge before 2.8.0 ignores `copy` and takes the first copy, as before.
+
 ## 2.7.0
 
 The bridge tells the CMS's editor where a marked element is seen, so the editor's outlines stay on what a person sees. The protocol keeps version 3: everything new is an addition an older editor does not read.

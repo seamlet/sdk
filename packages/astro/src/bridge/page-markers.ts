@@ -60,14 +60,18 @@ export function copyOf(marked: MarkedElement): number {
 
 /**
  * The element of the field a typing goes into, when the page shows the field more than once: the
- * one a click made ready, else the copy at the point, else the first.
+ * one a click made ready, else the copy at the point, else the copy named, else the first.
  */
 export function copyToType(
   document: Document,
   path: string,
-  near: { readonly prepared?: HTMLElement; readonly point?: Point },
+  near: {
+    readonly prepared?: HTMLElement;
+    readonly point?: Point;
+    readonly copy?: number;
+  },
 ): HTMLElement | undefined {
-  const { prepared, point } = near;
+  const { prepared, point, copy } = near;
   const isPreparedCopy = prepared?.getAttribute(FIELD_PATH_ATTRIBUTE) === path;
   if (isPreparedCopy) return prepared;
 
@@ -77,7 +81,18 @@ export function copyToType(
       : shownCopiesOf(document, path).find((element) =>
           holdsPoint(element, point),
         );
-  return atPoint ?? findMarkedElement(document, path);
+  const named =
+    copy === undefined ? undefined : markedCopyOf(document, path, copy);
+  return atPoint ?? named ?? findMarkedElement(document, path);
+}
+
+/** The element of the path's copy, in the order of the page, among the copies that take space. */
+export function markedCopyOf(
+  document: Document,
+  path: string,
+  copy: number,
+): HTMLElement | undefined {
+  return shownCopiesOf(document, path)[copy];
 }
 
 /** The elements marked with the path that take space, in the order of the page, as reported. */

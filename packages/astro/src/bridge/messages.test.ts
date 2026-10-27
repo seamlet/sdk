@@ -36,6 +36,22 @@ describe("readPageMessage", () => {
     expect(readPageMessage(drop)).toBe(drop);
   });
 
+  it("reads which copy of a field shown more than once to type and to scroll to", () => {
+    const typing = {
+      type: "start-typing",
+      path: "title",
+      text: "Кофейня",
+      isSingleLine: true,
+      copy: 1,
+    };
+    const scroll = { type: "scroll-to", path: ["title"], copy: 1 };
+
+    expect(readEditorMessage(typing)).toEqual(typing);
+    expect(readEditorMessage(scroll)).toEqual(scroll);
+    expect(readEditorMessage({ ...typing, copy: "1" })).toBeUndefined();
+    expect(readEditorMessage({ ...scroll, copy: -2 })).toBeUndefined();
+  });
+
   it("reads which copy of a field shown more than once the pointer is over", () => {
     const hover = { type: "hover", path: "title", copy: 2 };
 

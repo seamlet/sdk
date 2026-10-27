@@ -212,6 +212,28 @@ describe("connectToEditor", () => {
     ]);
   });
 
+  it("scrolls to the copy of a field shown twice that the editor names", () => {
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      `<footer><b id="copy" data-cms-path="title">Кофейня</b></footer>`,
+    );
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 0, 100, 20),
+    );
+    const scrolled: string[] = [];
+    for (const element of document.querySelectorAll("[data-cms-path]")) {
+      element.scrollIntoView = () => {
+        scrolled.push(element.id || element.localName);
+      };
+    }
+    connect();
+
+    say({ type: "scroll-to", path: ["title"], copy: 1 });
+    say({ type: "scroll-to", path: ["title"] });
+
+    expect(scrolled).toEqual(["copy", "h1"]);
+  });
+
   it("lets only a photo take a dragged file", () => {
     connect();
     const overTitle = fileDrag();

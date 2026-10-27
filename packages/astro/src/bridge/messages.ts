@@ -195,6 +195,11 @@ export type EditorMessage =
       readonly isSingleLine: boolean;
       /** Where to put the caret; without it (version 3 and later), after the text. */
       readonly point?: Point;
+      /**
+       * Which of the elements marked with the path to type, in the order of the page, from 0, when
+       * no click made one ready (Tab): a page may show a field more than once. Before 2.8.0 the first.
+       */
+      readonly copy?: number;
     }
   /** Type the formatted text of the field in its element, if the element shows it as it is. */
   | {
@@ -205,6 +210,11 @@ export type EditorMessage =
       readonly isInline: boolean;
       /** Where to put the caret; without it (version 3 and later), after the text. */
       readonly point?: Point;
+      /**
+       * Which of the elements marked with the path to type, in the order of the page, from 0, when
+       * no click made one ready (Tab): a page may show a field more than once. Before 2.8.0 the first.
+       */
+      readonly copy?: number;
     }
   /**
    * Type a number or a time in its element, if the element shows the value as it is: a number with
@@ -216,14 +226,26 @@ export type EditorMessage =
       readonly path: string;
       /** Where to put the caret; without it, after the value. */
       readonly point?: Point;
+      /**
+       * Which of the elements marked with the path to type, in the order of the page, from 0, when
+       * no click made one ready (Tab): a page may show a field more than once. Before 2.8.0 the first.
+       */
+      readonly copy?: number;
     } & TypedValue)
   /** Mark the selected words of the formatted text typed in place, or make its lines a list. */
   | { readonly type: "format-typed"; readonly format: TextFormat }
   /** The selected words of the typed text, or the link at the cursor, lead here, or nowhere. */
   | { readonly type: "link-typed"; readonly href: string | undefined }
   | { readonly type: "stop-typing" }
-  /** Bring the field, or the closest marked element around it, into view. */
-  | { readonly type: "scroll-to"; readonly path: FieldPath };
+  /**
+   * Bring the field, or the closest marked element around it, into view: the copy named, as for
+   * `start-typing`, when the page shows the field more than once.
+   */
+  | {
+      readonly type: "scroll-to";
+      readonly path: FieldPath;
+      readonly copy?: number;
+    };
 
 const EDITOR_KEYS: ReadonlySet<string> = new Set(EDITOR_KEY_NAMES);
 const TEXT_FORMATS: ReadonlySet<string> = new Set(TEXT_FORMAT_NAMES);
@@ -305,20 +327,23 @@ function isEditorMessage(message: JsonObject): message is EditorMessage {
         isString(message["path"]) &&
         isString(message["text"]) &&
         isBoolean(message["isSingleLine"]) &&
-        isOptional(message["point"], isPoint)
+        isOptional(message["point"], isPoint) &&
+        isOptional(message["copy"], isCopy)
       );
     case "start-rich-typing":
       return (
         isString(message["path"]) &&
         isRichText(message["text"]) &&
         isBoolean(message["isInline"]) &&
-        isOptional(message["point"], isPoint)
+        isOptional(message["point"], isPoint) &&
+        isOptional(message["copy"], isCopy)
       );
     case "start-value-typing":
       return (
         isString(message["path"]) &&
         isTypedValue(message) &&
-        isOptional(message["point"], isPoint)
+        isOptional(message["point"], isPoint) &&
+        isOptional(message["copy"], isCopy)
       );
     case "format-typed":
       return isString(message["format"]) && TEXT_FORMATS.has(message["format"]);
@@ -327,7 +352,9 @@ function isEditorMessage(message: JsonObject): message is EditorMessage {
     case "stop-typing":
       return true;
     case "scroll-to":
-      return isFieldPath(message["path"]);
+      return (
+        isFieldPath(message["path"]) && isOptional(message["copy"], isCopy)
+      );
     default:
       return false;
   }

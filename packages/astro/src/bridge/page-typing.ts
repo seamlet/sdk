@@ -121,10 +121,11 @@ export function createPageTyping(options: {
   /** Types the field in its element if it can be typed there; tells the editor either way. */
   const begin = (start: TypingStart) => {
     stop();
-    const { path, point } = start;
+    const { path, point, copy } = start;
     const element = copyToType(options.document, path, {
       prepared: prepared?.element,
       point,
+      copy,
     });
     const canType =
       element !== undefined &&
@@ -152,6 +153,7 @@ export function createPageTyping(options: {
     begin({
       path,
       point: request.point,
+      copy: request.copy,
       canTypeIn: (element) => canEditTextInPlace(element, text),
       typeIn: (element, onEnd) => ({
         stop: startInlineTextEditing(element, {
@@ -169,6 +171,7 @@ export function createPageTyping(options: {
     begin({
       path,
       point: request.point,
+      copy: request.copy,
       canTypeIn: (element) => canTypeValueInPlace(element, request),
       typeIn: (element, onEnd) => ({
         stop: startInlineTextEditing(element, {
@@ -188,6 +191,7 @@ export function createPageTyping(options: {
     begin({
       path,
       point: request.point,
+      copy: request.copy,
       canTypeIn: (element) => canEditRichTextInPlace(element, text, layout),
       typeIn: (element, onEnd) => {
         const editing = startRichTextEditing(element, {
@@ -234,6 +238,8 @@ interface TypingStart {
   readonly path: string;
   /** Where the caret goes; after the text without it. */
   readonly point: Point | undefined;
+  /** Which copy of the field to type when no click made one ready. */
+  readonly copy: number | undefined;
   readonly canTypeIn: (element: HTMLElement) => boolean;
   readonly typeIn: (
     element: HTMLElement,
