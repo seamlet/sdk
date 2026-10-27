@@ -4,6 +4,7 @@ import {
   listenToAll,
   onDocument,
   onElement,
+  onPageClick,
   onWindow,
 } from "./event-listening";
 
@@ -31,6 +32,28 @@ describe("listenToAll", () => {
     window.dispatchEvent(new Event("resize"));
 
     expect(heard).toEqual(["document", "site", "element", "window", "site"]);
+  });
+
+  it("hears a click on the page before the site's own listener stops it", () => {
+    document.body.innerHTML = "<p>Капучино</p>";
+    const paragraph = document.querySelector("p");
+    if (paragraph === null) throw new Error("No paragraph");
+    const heard: string[] = [];
+    paragraph.addEventListener("click", (event) => {
+      heard.push("site");
+      event.stopPropagation();
+    });
+
+    const stop = listenToAll([
+      onPageClick(document, (event) => {
+        heard.push(event.target === paragraph ? "page" : "elsewhere");
+      }),
+    ]);
+    paragraph.click();
+    stop();
+    paragraph.click();
+
+    expect(heard).toEqual(["page", "site", "site"]);
   });
 
   it("keeps a window's listener out when the document has no window", () => {

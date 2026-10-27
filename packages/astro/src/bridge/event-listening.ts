@@ -38,6 +38,24 @@ export function onDocument<K extends keyof DocumentEventMap>(
   };
 }
 
+/**
+ * A listener of a click anywhere in the page, heard before the site's own. It stands on the root
+ * element, not on the document: WebKit sends a tap's click only where something listens to clicks,
+ * and a listener on the document is not that for it, so a tap on a paragraph on an iPhone would
+ * click nothing.
+ */
+export function onPageClick(
+  document: Document,
+  listener: (event: MouseEvent) => void,
+): EventListening {
+  return {
+    target: document.documentElement,
+    type: "click",
+    listener: listener as EventListener,
+    isCapturing: true,
+  };
+}
+
 /** A listener of an event of the window, if the document has one. */
 export function onWindow<K extends keyof WindowEventMap>(
   view: Window | null,

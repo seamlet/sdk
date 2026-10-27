@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.8.1
+
+- A tap on a text of the preview selects it on an iPhone. The bridge listened to clicks on the document, and Safari sends a tap's click only where something listens to clicks: a listener on the document does not count for it, so a tap on a paragraph, a heading or a price clicked nothing there and the editor chose no field. The bridge now listens on the root element, which Safari counts, before the site's own listeners as before.
+
 ## 2.8.0
 
 - A new field kind, `words({ label })`: a list of words or short phrases the site shows apart, as tags (the notes of a coffee's taste, «Бергамот, персик, мёд»). Its value is a list of strings, kept trimmed, none empty and none twice, in the order given (`normalWords`). A text saved in the field before it became a list is read as its words between commas, semicolons or line breaks (`wordsOf`), so a site turns a `text` «через запятую» into `words` without losing what the owner wrote; a `words` field that becomes a `text` again keeps them between commas (`wordsTextOf`, `WORDS_SEPARATOR`). A CMS reads a schema with a `words` field only from 2.8.0 on: the CMS takes 2.8.0 before a site uses it.
