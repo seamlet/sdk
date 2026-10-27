@@ -54,6 +54,7 @@ function issuesInField(
     case "toggle":
     case "choice":
     case "choices":
+    case "words":
     case "url":
     case "time":
     case "slug":

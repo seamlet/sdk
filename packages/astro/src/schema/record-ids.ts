@@ -88,6 +88,7 @@ function collectionIn(
     case "toggle":
     case "choice":
     case "choices":
+    case "words":
     case "url":
     case "time":
     case "slug":
@@ -127,6 +128,7 @@ export function collectionFieldAt(
     case "toggle":
     case "choice":
     case "choices":
+    case "words":
     case "url":
     case "time":
     case "slug":
@@ -181,6 +183,7 @@ function withIdsIn(
     case "toggle":
     case "choice":
     case "choices":
+    case "words":
     case "url":
     case "time":
     case "slug":

@@ -20,6 +20,7 @@ export {
   time,
   toggle,
   url,
+  words,
   type ChoiceField,
   type ChoiceOption,
   type ChoicesField,
@@ -42,7 +43,9 @@ export {
   type TimeField,
   type ToggleField,
   type UrlField,
+  type WordsField,
 } from "./fields";
+export { normalWords, wordsOf, wordsTextOf, WORDS_SEPARATOR } from "./words";
 export {
   defaultContent,
   defaultValue,

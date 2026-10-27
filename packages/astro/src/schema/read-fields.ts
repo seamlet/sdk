@@ -128,6 +128,7 @@ function readFieldOfKind(field: FieldInput): Reading<Field> {
     case "file":
     case "link":
     case "toggle":
+    case "words":
     case "url":
     case "time":
     case "slug":
@@ -240,6 +241,7 @@ function unknownCollectionIn(
     case "toggle":
     case "choice":
     case "choices":
+    case "words":
     case "url":
     case "time":
     case "slug":
@@ -280,6 +282,7 @@ function misplacedSlugIn(
     case "toggle":
     case "choice":
     case "choices":
+    case "words":
     case "url":
     case "time":
     case "reference":
@@ -350,6 +353,7 @@ const FIELD_KINDS: Readonly<Record<FieldKind, true>> = {
   toggle: true,
   choice: true,
   choices: true,
+  words: true,
   url: true,
   time: true,
   slug: true,
