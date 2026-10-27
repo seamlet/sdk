@@ -20,6 +20,7 @@ import { isRecordId, RECORD_ID_KEY } from "./record-ids";
 import { missingRecordIssues } from "./reference-checks";
 import { takenSlugIssues } from "./slug-checks";
 import { isSlug, MAX_SLUG_LENGTH } from "./slugs";
+import { normalWords, wordsOf, wordsTextOf } from "./words";
 import type {
   ChoiceField,
   ChoicesField,
@@ -39,6 +40,7 @@ import type {
   TimeField,
   ToggleField,
   UrlField,
+  WordsField,
 } from "./fields";
 
 /** Where a value lives in the content: field names and, inside a collection, record indexes. */
@@ -185,6 +187,8 @@ function parseField(
       return parseChoice(field, input, path);
     case "choices":
       return parseChoices(field, input, path);
+    case "words":
+      return parseWords(field, input, path);
     case "url":
       return parseUrl(field, input, path);
     case "time":
@@ -224,11 +228,13 @@ function parseText(
 }
 
 /**
- * The text as it was typed, or the words of a formatted one: a field that was formatted text and
- * became plain keeps what the owner wrote, as a plain one that became formatted does.
+ * The text as it was typed, or the words of a formatted one or of a list: a field that was formatted
+ * text or a list and became plain keeps what the owner wrote, as a plain one that became formatted
+ * or a list does.
  */
 function typedTextOf(input: unknown): string | undefined {
   if (typeof input === "string") return input;
+  if (isListOfStrings(input)) return wordsTextOf(input);
 
   const formatted = readRichText(input);
   return formatted === undefined ? undefined : plainTextOf(formatted);
@@ -439,6 +445,25 @@ function unknownChoiceIssues(
   const known = new Set(field.options.map((option) => option.value));
   const unknown = picked.filter((value) => !known.has(value));
   return unknown.map((value) => ({ path, code: "unknown-choice", value }));
+}
+
+/** A list of words, or a text whose words stand between commas: a text field that became a list. */
+function parseWords(
+  field: WordsField,
+  input: unknown,
+  path: FieldPath,
+): ParsedValue {
+  if (typeof input === "string") return valid(wordsOf(input));
+  if (!isListOfStrings(input)) return invalidType(defaultValue(field), path);
+
+  return valid(normalWords(input));
+}
+
+function isListOfStrings(input: unknown): input is readonly string[] {
+  return (
+    Array.isArray(input) &&
+    input.every((value: unknown) => typeof value === "string")
+  );
 }
 
 function parseUrl(

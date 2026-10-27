@@ -30,6 +30,7 @@ export function typedKindAt(
     case "toggle":
     case "choice":
     case "choices":
+    case "words":
     case "reference":
     case "references":
     case "group":

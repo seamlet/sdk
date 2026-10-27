@@ -134,10 +134,13 @@ The site's pages take their published content with `site.loadPublishedContent()`
 | `toggle({ label })`                        | `true` or `false`                                                       | `false`          |
 | `choice({ label, options })`               | the `value` of one option                                               | `null`           |
 | `choices({ label, options })`              | the `value`s of any number of options                                   | `[]`             |
+| `words({ label })`                         | a list of words the owner types, shown as tags: the notes of a taste    | `[]`             |
 | `reference({ label, collection })`         | the `id` of a record of a collection of the schema                      | `null`           |
 | `references({ label, collection })`        | the `id`s of any number of such records                                 | `[]`             |
 | `group({ label, fields })`                 | named fields shown together                                             | each field empty |
 | `collection({ label, item, itemTitle? })`  | a list of records of the same fields                                    | `[]`             |
+
+A `words` field is for a short list the site shows apart, as tags or a list: «Бергамот, персик, мёд». The CMS edits it word by word, and a table or a file of Excel writes it as one cell with the words between commas (`wordsTextOf`, read back by `wordsOf`). A `text` field whose words stand between commas may become a `words` field at any time: the CMS reads what the owner saved as the list, and a `words` field that becomes a `text` again keeps the words between commas. A CMS reads a schema with a `words` field from 2.8.0 of the package on.
 
 `itemTitle` names the field whose words name a record in the CMS's list of records, its history and the site's `llms.txt`: a `text`, a `link` by its text, or a `choice` or `choices` by the labels of the options picked. `choiceTitleOf(field, value)` of `@seamlet/astro/schema` is how such a title reads, the same in the CMS and on the site: a `choice` gives its option's label; `choices` gives the labels in the schema's order, joined by commas, and when its options are days of the week in the week's order (`WEEKDAYS`, or some of them), three or more days in a row read as the first and the last: «Пн–Пт, Сб». `recordTitleOf(collection, record)` reads the title of any record that way. A CMS reads a site's description with its own version of the package: a schema that titles records by a choice needs a CMS that reads 2.5.
 

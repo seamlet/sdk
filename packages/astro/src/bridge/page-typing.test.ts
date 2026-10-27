@@ -57,6 +57,35 @@ function press(element: HTMLElement, key: string): void {
 }
 
 describe("createPageTyping", () => {
+  it("types the copy of a field shown twice that the editor names, when no click made one ready", () => {
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      `<footer><b id="named" data-cms-path="title">Кофейня</b></footer>`,
+    );
+    const named = document.querySelector<HTMLElement>("#named");
+    if (named === null) throw new Error("No copy of the title in the page");
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 0, 100, 20),
+    );
+
+    typing.start({
+      type: "start-typing",
+      path: "title",
+      text: "Кофейня",
+      isSingleLine: true,
+      copy: 1,
+    });
+    type(named, "Кофейня у моря");
+
+    expect(send).toHaveBeenLastCalledWith({
+      type: "typed",
+      path: "title",
+      text: "Кофейня у моря",
+    });
+    expect(marked("title").hasAttribute("contenteditable")).toBe(false);
+    vi.restoreAllMocks();
+  });
+
   it("types the copy of a field shown twice that a click made ready", () => {
     document.body.insertAdjacentHTML(
       "beforeend",

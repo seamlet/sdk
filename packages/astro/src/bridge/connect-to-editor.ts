@@ -1,4 +1,9 @@
-import { resolveFieldPath, type FieldPath, type Fields } from "../schema";
+import {
+  formatFieldPath,
+  resolveFieldPath,
+  type FieldPath,
+  type Fields,
+} from "../schema";
 import { readElementText } from "./element-text";
 import { fieldStepOf, shortcutOf } from "./editor-shortcuts";
 import { holdMotionOnPage, isEditedInPopover } from "./held-motion";
@@ -21,6 +26,7 @@ import {
   copyOf,
   findClosestMarkedElement,
   hasMarkedDescendants,
+  markedCopyOf,
 } from "./page-markers";
 import { revealAround } from "./page-reveals";
 import { followPresses } from "./page-presses";
@@ -268,14 +274,24 @@ function receiveEditorMessage(
       typing.stop();
       break;
     case "scroll-to":
-      scrollToField(page.document, message.path);
+      scrollToField(page.document, message);
       break;
   }
 }
 
-/** Shows the field the editor chose: opens what hides it, then scrolls to it. */
-function scrollToField(document: Document, path: FieldPath): void {
-  const element = findClosestMarkedElement(document, path);
+/**
+ * Shows the field the editor chose, the copy it names when the page shows the field more than
+ * once: opens what hides it, then scrolls to it.
+ */
+function scrollToField(
+  document: Document,
+  target: { readonly path: FieldPath; readonly copy?: number },
+): void {
+  const named =
+    target.copy === undefined
+      ? undefined
+      : markedCopyOf(document, formatFieldPath(target.path), target.copy);
+  const element = named ?? findClosestMarkedElement(document, target.path);
   if (element === undefined) return;
 
   revealAround(element);

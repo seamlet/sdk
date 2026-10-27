@@ -93,6 +93,16 @@ export interface ChoicesField<
   readonly options: O;
 }
 
+/**
+ * A short list of words or phrases the site shows apart, as tags: the notes of a coffee's taste
+ * («Бергамот, персик, мёд»), the woods a sauna is built of. The editor adds, removes and moves each
+ * word; a text the field held before, its words between commas, is read as the list (see wordsOf).
+ */
+export interface WordsField {
+  readonly kind: "words";
+  readonly label: string;
+}
+
 /** A web address without a text: a booking widget, a map. Only `http://` and `https://`. */
 export interface UrlField {
   readonly kind: "url";
@@ -165,6 +175,7 @@ export type Field =
   | ToggleField
   | ChoiceField
   | ChoicesField
+  | WordsField
   | UrlField
   | TimeField
   | SlugField
@@ -233,6 +244,10 @@ export function choices<const O extends readonly ChoiceOption[]>(
   options: FieldOptions<ChoicesField<O>>,
 ): ChoicesField<O> {
   return { kind: "choices", ...options };
+}
+
+export function words(options: FieldOptions<WordsField>): WordsField {
+  return { kind: "words", ...options };
 }
 
 export function url(options: FieldOptions<UrlField>): UrlField {
