@@ -57,6 +57,26 @@ function press(element: HTMLElement, key: string): void {
 }
 
 describe("createPageTyping", () => {
+  it("types the copy of a field shown twice that a click made ready", () => {
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      `<footer><b id="copy" data-cms-path="title">Кофейня</b></footer>`,
+    );
+    const copy = document.querySelector<HTMLElement>("#copy");
+    if (copy === null) throw new Error("No copy of the title in the page");
+
+    typing.prepare(copy, "plain");
+    startAt("title", "Кофейня");
+    type(copy, "Кофейня у моря");
+
+    expect(send).toHaveBeenLastCalledWith({
+      type: "typed",
+      path: "title",
+      text: "Кофейня у моря",
+    });
+    expect(marked("title").hasAttribute("contenteditable")).toBe(false);
+  });
+
   it("says when nothing is typed any more: the typing ended, or was refused", () => {
     startAt("title", "Кофейня");
     expect(onTypingOver).not.toHaveBeenCalled();

@@ -29,6 +29,18 @@ export interface Point {
 export interface MarkerBox {
   readonly path: string;
   readonly box: Box;
+  /**
+   * The part of the box a person sees: cut by what clips it (a strip that scrolls sideways) and by
+   * what is fixed over it (a sticky header), or null when none of it is seen. A bridge before
+   * @seamlet/astro 2.7.0 does not say it, and its whole box is taken as seen (`seenBoxOf`).
+   */
+  readonly shown?: Box | null;
+}
+
+/** The part of a marked element a person sees, or undefined when none of it is seen. */
+export function seenBoxOf(marker: MarkerBox): Box | undefined {
+  if (marker.shown === undefined) return marker.box;
+  return marker.shown ?? undefined;
 }
 
 /** A link on the page that is not a field. */
@@ -40,7 +52,7 @@ export interface LinkBox {
 
 /** Where everything the editor draws over is on the page now. */
 export interface PageLayout {
-  /** Every marked element that takes space, in the order of the page. */
+  /** Every marked element that takes space, in the order of the page, seen or not. */
   readonly markers: readonly MarkerBox[];
   readonly viewport: Viewport;
   /** The link under the pointer, if it is not a field. */
@@ -117,8 +129,16 @@ export type PageMessage =
   /** The bridge runs and waits for the editor to connect; it speaks this version of the protocol. */
   | { readonly type: "ready"; readonly protocol: number }
   | { readonly type: "layout"; readonly layout: PageLayout }
-  /** The pointer moved onto a marked element, or off all of them. */
-  | { readonly type: "hover"; readonly path: string | undefined }
+  /**
+   * The pointer moved onto a marked element, or off all of them. `copy` says which of the elements
+   * marked with the path it is, in the order of the page, from 0, since a page may show a field
+   * more than once; a bridge before @seamlet/astro 2.7.0 does not say it.
+   */
+  | {
+      readonly type: "hover";
+      readonly path: string | undefined;
+      readonly copy?: number;
+    }
   /**
    * The pointer moved onto a text of the page outside every marked element (the site's own words,
    * `data-cms-fixed` or not), or off it: where it is (a bridge of version 3 and later).
@@ -232,6 +252,10 @@ function isPageMessage(message: JsonObject): message is PageMessage {
     case "layout":
       return isLayout(message["layout"]);
     case "hover":
+      return (
+        isOptional(message["path"], isString) &&
+        isOptional(message["copy"], isCopy)
+      );
     case "file-drag":
       return isOptional(message["path"], isString);
     case "static-hover":
@@ -321,7 +345,16 @@ function isLayout(value: unknown): value is PageLayout {
 }
 
 function isMarkerBox(value: unknown): value is MarkerBox {
-  return isJsonObject(value) && isString(value["path"]) && isBox(value["box"]);
+  return (
+    isJsonObject(value) &&
+    isString(value["path"]) &&
+    isBox(value["box"]) &&
+    isOptional(value["shown"], isShownBox)
+  );
+}
+
+function isShownBox(value: unknown): value is Box | null {
+  return value === null || isBox(value);
 }
 
 function isLinkBox(value: unknown): value is LinkBox {
@@ -335,6 +368,10 @@ function isClickTarget(value: unknown): value is ClickTarget {
     isPoint(value["point"]) &&
     isOptional(value["shownText"], isString)
   );
+}
+
+function isCopy(value: unknown): value is number {
+  return isNumber(value) && Number.isInteger(value) && value >= 0;
 }
 
 function isTypedValue(message: JsonObject): boolean {

@@ -8,7 +8,11 @@ describe("readPageMessage", () => {
     const layout = {
       type: "layout",
       layout: {
-        markers: [{ path: "title", box }],
+        markers: [
+          { path: "title", box },
+          { path: "lead", box, shown: box },
+          { path: "photo", box, shown: null },
+        ],
         viewport: { width: 800, height: 600 },
         link: undefined,
       },
@@ -30,6 +34,14 @@ describe("readPageMessage", () => {
     });
     expect(readPageMessage({ type: "key", key: "save" })).toBeDefined();
     expect(readPageMessage(drop)).toBe(drop);
+  });
+
+  it("reads which copy of a field shown more than once the pointer is over", () => {
+    const hover = { type: "hover", path: "title", copy: 2 };
+
+    expect(readPageMessage(hover)).toEqual(hover);
+    expect(readPageMessage({ ...hover, copy: -1 })).toBeUndefined();
+    expect(readPageMessage({ ...hover, copy: 1.5 })).toBeUndefined();
   });
 
   it("reads formatted text typed in place and where its selection is", () => {
@@ -117,6 +129,15 @@ describe("readPageMessage", () => {
         type: "layout",
         layout: {
           markers: [{ path: "title", box: { ...box, top: Number.NaN } }],
+          viewport: { width: 1, height: 1 },
+        },
+      }),
+    ).toBeUndefined();
+    expect(
+      readPageMessage({
+        type: "layout",
+        layout: {
+          markers: [{ path: "title", box, shown: "all" }],
           viewport: { width: 1, height: 1 },
         },
       }),

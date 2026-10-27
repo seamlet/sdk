@@ -11,6 +11,7 @@ import {
   linkAround,
   markedElementAround,
   markedElementPickedAt,
+  type MarkedElement,
   type PageLink,
 } from "./page-markers";
 import { revealPartAt, togglePartAt } from "./page-reveals";
@@ -38,7 +39,7 @@ export interface PagePointer {
 
 export interface PageListeners {
   /** The pointer moved onto a marked element, or off all of them (undefined). */
-  readonly onHover: (path: string | undefined) => void;
+  readonly onHover: (marked: MarkedElement | undefined) => void;
   /** The pointer moved onto a text of the site's own, outside every marked element, or off it. */
   readonly onStaticTextHover: (text: Element | undefined) => void;
   /** A click on a marked element: the one it chooses. */
@@ -105,10 +106,10 @@ export function listenToPage(
 
 function hover(event: MouseEvent, listeners: PageListeners): void {
   const link = linkToFollow(event.target);
-  const path =
-    link === undefined ? markedElementAround(event.target)?.path : undefined;
-  const isStaticTextPossible = link === undefined && path === undefined;
-  listeners.onHover(path);
+  const marked =
+    link === undefined ? markedElementAround(event.target) : undefined;
+  const isStaticTextPossible = link === undefined && marked === undefined;
+  listeners.onHover(marked);
   listeners.onLinkHover(link);
   listeners.onStaticTextHover(
     isStaticTextPossible ? staticTextAround(event.target) : undefined,

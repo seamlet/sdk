@@ -63,10 +63,9 @@ describe("listenToPage", () => {
       new MouseEvent("mouseover", { bubbles: true }),
     );
 
-    expect(listeners.onHover.mock.calls).toEqual([
-      ["contacts.phone"],
-      [undefined],
-    ]);
+    expect(
+      listeners.onHover.mock.calls.map(([marked]) => marked?.path),
+    ).toEqual(["contacts.phone", undefined]);
   });
 
   it("selects on a click and keeps links from navigating", () => {
