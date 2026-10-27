@@ -81,8 +81,35 @@ describe("warnAboutUnreachableFields", () => {
   it("warns once about a field in view another element covers, once the page is still", () => {
     document.body.innerHTML = `
       <article data-cms-path="products.0">
-        <h3 data-cms-path="products.0.name"><a class="card-link" href="/p">Пион</a></h3>
         <p data-cms-path="products.0.price">900</p>
+      </article>
+      <div class="veil"></div>`;
+    const card = document.querySelector("article");
+    const price = document.querySelector('[data-cms-path="products.0.price"]');
+    const veil = document.querySelector(".veil");
+    if (card === null || price === null || veil === null) {
+      throw new Error("the card is not on the page");
+    }
+    placeAt(card, { left: 0, top: 0, width: 300, height: 400 });
+    placeAt(price, { left: 0, top: 340, width: 100, height: 20 });
+    // A veil of the page, outside the card, lies over it and holds no field.
+    document.elementFromPoint = () => veil;
+
+    stop = warnAboutUnreachableFields(document);
+    vi.advanceTimersByTime(SETTLED);
+    window.dispatchEvent(new Event("scroll"));
+    vi.advanceTimersByTime(SETTLED);
+
+    expect(warnings(warn)).toEqual([
+      expect.stringContaining("products.*.price is under div.veil"),
+    ]);
+  });
+
+  it("finds a field under its card's stretched link reachable: a click chooses it by its box", () => {
+    document.body.innerHTML = `
+      <article data-cms-path="products.0">
+        <h3 data-cms-path="products.0.name"><a class="card-link" href="/p" data-cms-fixed>Пион</a></h3>
+        <p data-cms-path="products.0.price" data-cms-fixed>900</p>
       </article>`;
     const card = document.querySelector("article");
     const link = document.querySelector("a");
@@ -99,13 +126,26 @@ describe("warnAboutUnreachableFields", () => {
 
     stop = warnAboutUnreachableFields(document);
     vi.advanceTimersByTime(SETTLED);
-    window.dispatchEvent(new Event("scroll"));
+
+    expect(warnings(warn)).toEqual([]);
+  });
+
+  it("leaves out a field scrolled under a sticky header: it is not in view yet", () => {
+    document.body.innerHTML = `
+      <header style="position: sticky"><a href="/" data-cms-fixed>Пион</a></header>
+      <h2 data-cms-path="catalog.title">Каталог</h2>`;
+    const header = document.querySelector("header");
+    const title = document.querySelector("h2");
+    if (header === null || title === null) {
+      throw new Error("the header is not on the page");
+    }
+    placeAt(header, { left: 0, top: 0, width: 1000, height: 80 });
+    placeAt(title, { left: 40, top: 20, width: 480, height: 40 });
+    document.elementFromPoint = () => header;
+
+    stop = warnAboutUnreachableFields(document);
     vi.advanceTimersByTime(SETTLED);
 
-    expect(warnings(warn)).toEqual([
-      expect.stringContaining(
-        "products.*.price is under the field products.*.name (a.card-link)",
-      ),
-    ]);
+    expect(warnings(warn)).toEqual([]);
   });
 });

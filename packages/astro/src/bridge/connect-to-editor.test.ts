@@ -178,10 +178,37 @@ describe("connectToEditor", () => {
     expect(said().slice(2)).toEqual([
       {
         type: "click",
-        target: { path: "title", point: { x: 0, y: 0 }, shownText: "Кофейня" },
+        target: {
+          path: "title",
+          point: { x: 0, y: 0 },
+          shownText: "Кофейня",
+        },
       },
       { type: "link-click", href: "/menu" },
       { type: "key", key: "save" },
+    ]);
+  });
+
+  it("says which copy of a field shown twice the pointer is over", () => {
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      `<footer><b id="copy" data-cms-path="title">Кофейня</b></footer>`,
+    );
+    connect();
+    const copy = document.querySelector("#copy");
+    if (copy === null) throw new Error("No copy of the title in the page");
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 0, 100, 20),
+    );
+
+    document
+      .querySelector("h1")
+      ?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    copy.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+
+    expect(said().slice(2)).toEqual([
+      { type: "hover", path: "title", copy: 0 },
+      { type: "hover", path: "title", copy: 1 },
     ]);
   });
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.7.0
+
+The bridge tells the CMS's editor where a marked element is seen, so the editor's outlines stay on what a person sees. The protocol keeps version 3: everything new is an addition an older editor does not read.
+
+- `layout` says, beside the box of every marked element, `shown`: the part of the box a person sees, cut by the parts around it that clip what overflows them (a strip that scrolls sideways, a card with rounded corners) and by the parts fixed over it across its width (a sticky header, a bar at the bottom of the screen), or `null` when none of it is seen. The element stays in `markers` either way, so the editor still knows the page shows it. `seenBoxOf(marker)` of `@seamlet/astro/protocol` reads it, and takes the whole box of a bridge before 2.7.0 as seen. An outline of a field scrolled under a sticky header no longer lies over the header.
+- `pickedPathAt` and `rankedMarkersAt` choose by the seen part, so a click on a sticky header never chooses a field under it, and the link and the text of the site's own under the pointer are reported by their seen part too.
+- `hover` says `copy`, which of the elements marked with its path the pointer is over, in the order of the page, from 0: a page may show a field more than once (a section's name on its tile and on a chip of a filter), and the editor outlines the one hovered.
+- A typing goes into the copy of the field a click made ready, or the copy at its `point`, instead of the first one: typing a field shown twice no longer jumps the page to its first copy.
+- The check of covered fields in the console of the editor's frame tries the seen part of a field, so a field scrolled under a sticky header is checked once it comes out, and takes a field as reachable when a click chooses it by the rule of the editor, so a price under its card's stretched link is no longer reported.
+
+The order of updates does not matter: an editor of 2.6.0 ignores `shown` and `copy`, and an editor of 2.7.0 takes the whole box and the first copy from a bridge of 2.6.0.
+
 ## 2.6.0
 
 The bridge on the preview speaks version 3 of the protocol with the CMS's editor (`PROTOCOL_VERSION` is 3):

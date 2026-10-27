@@ -1,9 +1,10 @@
 import { FIELD_PATH_ATTRIBUTE, type FieldPath } from "../schema";
-import { boxOf } from "./boxes";
 import { asElement } from "./dom-nodes";
 import { rankedMarkersAt } from "./marker-picks";
 import { closestMarkedPath } from "./marked-paths";
+import { boxOf } from "./boxes";
 import type { Point } from "./messages";
+import { measureVisibleBoxes } from "./visible-boxes";
 
 // Finding the elements a site marked with the paths of its fields.
 
@@ -35,14 +36,66 @@ export function markedElementPickedAt(
   landed: MarkedElement,
   point: Point,
 ): MarkedElement {
+  const visibleBoxOf = measureVisibleBoxes(document);
   const placed = allMarkedElements(document).flatMap((marked) => {
-    const box = boxOf(marked.element);
-    return box === undefined ? [] : [{ ...marked, box }];
+    const shown = visibleBoxOf(marked.element);
+    return shown === undefined ? [] : [{ ...marked, box: shown }];
   });
   const [picked] = rankedMarkersAt(placed, { path: landed.path, point });
   return picked === undefined
     ? landed
     : { element: picked.element, path: picked.path };
+}
+
+/**
+ * Which copy of its field the marked element is: the page may show a field more than once (a
+ * section's name on its tile and on a chip of a filter), and the editor outlines the one meant.
+ * The copies are counted in the order of the page, from 0.
+ */
+export function copyOf(marked: MarkedElement): number {
+  const document = marked.element.ownerDocument;
+  const copy = shownCopiesOf(document, marked.path).indexOf(marked.element);
+  return Math.max(copy, 0);
+}
+
+/**
+ * The element of the field a typing goes into, when the page shows the field more than once: the
+ * one a click made ready, else the copy at the point, else the first.
+ */
+export function copyToType(
+  document: Document,
+  path: string,
+  near: { readonly prepared?: HTMLElement; readonly point?: Point },
+): HTMLElement | undefined {
+  const { prepared, point } = near;
+  const isPreparedCopy = prepared?.getAttribute(FIELD_PATH_ATTRIBUTE) === path;
+  if (isPreparedCopy) return prepared;
+
+  const atPoint =
+    point === undefined
+      ? undefined
+      : shownCopiesOf(document, path).find((element) =>
+          holdsPoint(element, point),
+        );
+  return atPoint ?? findMarkedElement(document, path);
+}
+
+/** The elements marked with the path that take space, in the order of the page, as reported. */
+function shownCopiesOf(document: Document, path: string): HTMLElement[] {
+  return allMarkedElements(document).flatMap((marked) => {
+    const isShownCopy =
+      marked.path === path && boxOf(marked.element) !== undefined;
+    return isShownCopy ? [marked.element] : [];
+  });
+}
+
+function holdsPoint(element: Element, point: Point): boolean {
+  const box = boxOf(element);
+  if (box === undefined) return false;
+
+  const isAcross = point.x >= box.left && point.x <= box.left + box.width;
+  const isAlong = point.y >= box.top && point.y <= box.top + box.height;
+  return isAcross && isAlong;
 }
 
 export interface PageLink {

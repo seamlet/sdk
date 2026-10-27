@@ -5,6 +5,7 @@ export {
   PROTOCOL_VERSION,
   readEditorMessage,
   readPageMessage,
+  seenBoxOf,
   type ClickTarget,
   type EditorKey,
   type EditorMessage,

@@ -1,11 +1,11 @@
 import { FIELD_PATH_SEPARATOR } from "../schema";
 import type { Box } from "./boxes";
-import type { MarkerBox, Point } from "./messages";
+import { seenBoxOf, type MarkerBox, type Point } from "./messages";
 
 // Which marked element a click chooses. The element on top is not always the one meant: a card's
 // name is often a link stretched over the whole card, so a click on its price or photo lands on the
 // link. The choice is made by the boxes instead: the smallest marked element whose box holds the
-// point. The bridge chooses so, to give the focus to the right element at once, and the editor by
+// point, by the part of it a person sees. The bridge chooses so, to give the focus to the right element at once, and the editor by
 // the same rule from the boxes the page reported, with a bridge of any version.
 
 /** Where a click landed: the marked element the page names (the closest around the top one). */
@@ -25,10 +25,11 @@ export function rankedMarkersAt<M extends MarkerBox>(
   click: MarkerClick,
 ): M[] {
   const scope = parentPathOf(click.path) ?? click.path;
-  const candidates = markers.filter(
-    (marker) =>
-      isWithin(marker.path, scope) && holdsPoint(marker.box, click.point),
-  );
+  const candidates = markers.filter((marker) => {
+    const seen = seenBoxOf(marker);
+    const isHit = seen !== undefined && holdsPoint(seen, click.point);
+    return isWithin(marker.path, scope) && isHit;
+  });
   return candidates.sort(
     (first, second) =>
       areaOf(first.box) - areaOf(second.box) ||

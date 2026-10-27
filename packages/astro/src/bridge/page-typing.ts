@@ -15,7 +15,7 @@ import type {
   Point,
   TextFormat,
 } from "./messages";
-import { findMarkedElement } from "./page-markers";
+import { copyToType } from "./page-markers";
 import {
   canEditRichTextInPlace,
   startRichTextEditing,
@@ -121,8 +121,11 @@ export function createPageTyping(options: {
   /** Types the field in its element if it can be typed there; tells the editor either way. */
   const begin = (start: TypingStart) => {
     stop();
-    const { path } = start;
-    const element = findMarkedElement(options.document, path);
+    const { path, point } = start;
+    const element = copyToType(options.document, path, {
+      prepared: prepared?.element,
+      point,
+    });
     const canType =
       element !== undefined &&
       !isEditedInPopover(element) &&
@@ -137,7 +140,7 @@ export function createPageTyping(options: {
     handOverPrepared();
     send({ type: "typing-started", path });
     typing = start.typeIn(element, endedAt(path));
-    placeCaretAt(element, start.point);
+    placeCaretAt(element, point);
   };
 
   const reportTyped = (message: PageMessage) => {

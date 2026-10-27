@@ -1,29 +1,35 @@
 import { boxOf, type Box } from "./boxes";
 import type { LinkBox, MarkerBox, PageLayout } from "./messages";
 import { allMarkedElements, type PageLink } from "./page-markers";
+import { measureVisibleBoxes, type VisibleBoxes } from "./visible-boxes";
 
 /** Where the marked elements of the page and the link under the pointer are now. */
 export function measureLayout(
   document: Document,
   link: PageLink | undefined,
 ): PageLayout {
+  const visibleBoxOf = measureVisibleBoxes(document);
   const markers = allMarkedElements(document).flatMap(
     ({ element, path }): MarkerBox[] => {
       const box = boxOf(element);
-      return box === undefined ? [] : [{ path, box }];
+      const shown = visibleBoxOf(element) ?? null;
+      return box === undefined ? [] : [{ path, box, shown }];
     },
   );
   const root = document.documentElement;
   return {
     markers,
     viewport: { width: root.clientWidth, height: root.clientHeight },
-    link: link === undefined ? undefined : linkBoxOf(link),
+    link: link === undefined ? undefined : linkBoxOf(link, visibleBoxOf),
   };
 }
 
-/** Where the link is, or undefined for a link that takes no space. */
-function linkBoxOf(link: PageLink): LinkBox | undefined {
-  const box = boxOf(link.element);
+/** Where the link is seen, or undefined for a link that takes no space or is hidden. */
+function linkBoxOf(
+  link: PageLink,
+  visibleBoxOf: VisibleBoxes,
+): LinkBox | undefined {
+  const box = visibleBoxOf(link.element);
   return box === undefined ? undefined : { href: link.href, box };
 }
 
@@ -61,7 +67,9 @@ export function createLayoutReports(
     // A render replaced the hovered text: it is gone from the page.
     if (staticText?.isConnected === false) staticText = undefined;
     reporters.onStaticText(
-      staticText === undefined ? undefined : boxOf(staticText),
+      staticText === undefined
+        ? undefined
+        : measureVisibleBoxes(document)(staticText),
     );
   };
   const reportNow = () => {

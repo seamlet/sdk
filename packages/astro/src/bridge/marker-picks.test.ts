@@ -38,6 +38,27 @@ describe("pickedPathAt", () => {
     ).toBe("brand.name");
   });
 
+  it("chooses by the part of an element a person sees, not by the part under a header", () => {
+    const underHeader = [
+      {
+        path: "menu.0.photo",
+        box: photo,
+        shown: { ...photo, top: 80, height: 120 },
+      },
+      { path: "menu.0.price", box: price, shown: null },
+    ];
+
+    expect(
+      pickedPathAt(underHeader, { path: "menu.0", point: { x: 50, y: 50 } }),
+    ).toBe("menu.0");
+    expect(
+      pickedPathAt(underHeader, { path: "menu.0", point: { x: 50, y: 310 } }),
+    ).toBe("menu.0");
+    expect(
+      pickedPathAt(underHeader, { path: "menu.0", point: { x: 50, y: 150 } }),
+    ).toBe("menu.0.photo");
+  });
+
   it("gives the element the page named when no box holds the point", () => {
     expect(
       pickedPathAt([], { path: "menu.0.name", point: { x: 50, y: 50 } }),

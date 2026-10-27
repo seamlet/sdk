@@ -28,7 +28,7 @@ describe("measureLayout", () => {
     const layout = measureLayout(document, { element: link, href: "/menu" });
 
     const box = { top: 100, left: 20, width: 300, height: 40 };
-    expect(layout.markers).toEqual([{ path: "title", box }]);
+    expect(layout.markers).toEqual([{ path: "title", box, shown: box }]);
     expect(layout.link).toEqual({ href: "/menu", box });
   });
 });

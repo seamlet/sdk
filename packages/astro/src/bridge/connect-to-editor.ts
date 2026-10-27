@@ -17,7 +17,11 @@ import {
   type PagePointer,
 } from "./page-events";
 import { createLayoutReports, type LayoutReports } from "./page-layout";
-import { findClosestMarkedElement, hasMarkedDescendants } from "./page-markers";
+import {
+  copyOf,
+  findClosestMarkedElement,
+  hasMarkedDescendants,
+} from "./page-markers";
 import { revealAround } from "./page-reveals";
 import { followPresses } from "./page-presses";
 import { warnAboutUnreachableFields } from "./page-checks";
@@ -154,8 +158,12 @@ interface ConnectedPage {
 function pageListenersOf(page: ConnectedPage): PageListeners {
   const { schema, send, layout } = page;
   return {
-    onHover: (path) => {
-      send({ type: "hover", path });
+    onHover: (marked) => {
+      send(
+        marked === undefined
+          ? { type: "hover", path: undefined }
+          : { type: "hover", path: marked.path, copy: copyOf(marked) },
+      );
     },
     onClick: (pointer) => {
       clickOn(page, pointer);

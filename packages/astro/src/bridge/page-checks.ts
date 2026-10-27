@@ -1,5 +1,5 @@
 import { FIELD_PATH_SEPARATOR } from "../schema";
-import { boxOf, type Box } from "./boxes";
+import type { Box } from "./boxes";
 import {
   coveredFieldsOf,
   isShownIn,
@@ -7,12 +7,18 @@ import {
 } from "./covered-fields";
 import { asElement } from "./dom-nodes";
 import { listenToAll, onWindow } from "./event-listening";
-import { allMarkedElements, markedElementAround } from "./page-markers";
+import {
+  allMarkedElements,
+  markedElementAround,
+  markedElementPickedAt,
+} from "./page-markers";
 import {
   describeUnmarkedText,
   unmarkedTextsOf,
   type PageNode,
 } from "./unmarked-texts";
+import type { Point } from "./messages";
+import { measureVisibleBoxes } from "./visible-boxes";
 
 // What the preview tells a site's author in the console of the editor's frame: the texts of the
 // page the editor cannot reach, once, and the fields another element covers, each once, as they
@@ -89,7 +95,7 @@ function warnAboutCoveredFields(
   const covered = coveredFieldsOf(inView, {
     viewport,
     isFieldAt: (field, point) =>
-      field.element.contains(document.elementFromPoint(point.x, point.y)),
+      field.element.contains(elementClickedAt(document, point)),
     whatIsAt: (point) =>
       describeHit(document.elementFromPoint(point.x, point.y)),
   });
@@ -107,11 +113,29 @@ function warnAboutCoveredFields(
   );
 }
 
+/**
+ * The marked elements by the part of each a person sees: a field scrolled under a sticky header is
+ * not in view yet, and is checked once it comes out.
+ */
 function placedElementsOf(document: Document): PlacedElement[] {
+  const visibleBoxOf = measureVisibleBoxes(document);
   return allMarkedElements(document).flatMap(({ element, path }) => {
-    const box = boxOf(element);
+    const box = visibleBoxOf(element);
     return box === undefined ? [] : [{ path, box, element }];
   });
+}
+
+/**
+ * What a click at the point chooses, by the rule a click on the page follows: the smallest marked
+ * element at the point in the block of the one it landed on, so a price under its card's stretched
+ * link is chosen; the element on top when it lands on no marked element.
+ */
+function elementClickedAt(document: Document, point: Point): Element | null {
+  const hit = document.elementFromPoint(point.x, point.y);
+  const landed = markedElementAround(hit);
+  if (landed === undefined) return hit;
+
+  return markedElementPickedAt(document, landed, point).element;
 }
 
 /** `the field menu.0.name (a.card-link)`, or the element alone when it holds no field. */
