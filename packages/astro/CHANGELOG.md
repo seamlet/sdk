@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.8.2
+
+- The outline of a block scrolled half above the screen stays under a sticky header. The bridge cut a box by a header fixed over it only when the header covered the box's own top, so a section that began above the screen, a header stuck over its middle, was reported whole, and the CMS's editor drew its outline over the header, up to the edge of the page. A fixed part now covers the top or the bottom of what the screen shows of a box.
+
 ## 2.8.1
 
 - A tap on a text of the preview selects it on an iPhone. The bridge listened to clicks on the document, and Safari sends a tap's click only where something listens to clicks: a listener on the document does not count for it, so a tap on a paragraph, a heading or a price clicked nothing there and the editor chose no field. The bridge now listens on the root element, which Safari counts, before the site's own listeners as before.

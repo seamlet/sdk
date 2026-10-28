@@ -99,6 +99,32 @@ describe("measureVisibleBoxes", () => {
     expect(shown).toEqual({ top: 60, left: 40, width: 480, height: 20 });
   });
 
+  it("cuts the band a sticky header covers of a section that begins above the screen", () => {
+    place(
+      `<nav id="tabs" style="position: sticky"><a href="#coffee">Кофе</a></nav>
+      <section id="section"><h2>Эспрессо и молоко</h2></section>`,
+      { tabs: [0, 0, 1280, 70], section: [64, -107, 1152, 570] },
+    );
+    seeOnTop("tabs");
+
+    const shown = measureVisibleBoxes(document)(element("section"));
+
+    expect(shown).toEqual({ top: 70, left: 64, width: 1152, height: 393 });
+  });
+
+  it("cuts the band a bar fixed at the bottom of the screen covers of a section that ends below it", () => {
+    place(
+      `<section id="section"><h2>Меню</h2></section>
+      <div id="bar" style="position: fixed">Позвонить</div>`,
+      { section: [64, 400, 1152, 900], bar: [0, 700, 1280, 68] },
+    );
+    seeOnTop("bar");
+
+    const shown = measureVisibleBoxes(document)(element("section"));
+
+    expect(shown).toEqual({ top: 400, left: 64, width: 1152, height: 300 });
+  });
+
   it("cuts the band a bar fixed at the bottom of the screen covers", () => {
     place(
       `<p id="lead">Цены обновляем каждое утро</p>
