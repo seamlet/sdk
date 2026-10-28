@@ -1,6 +1,7 @@
 import {
   listenToAll,
   onDocument,
+  onPageClick,
   onElement,
   onWindow,
   type EventListening,
@@ -80,7 +81,7 @@ export function listenToPage(
     onDocument(document, "mouseover", (event) => {
       hover(event, listeners);
     }),
-    onDocument(document, "click", (event) => {
+    onPageClick(document, (event) => {
       click(event, listeners);
     }),
     onDocument(document, "auxclick", preventDefault),

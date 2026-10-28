@@ -3,6 +3,7 @@ import { asElement } from "./dom-nodes";
 import {
   listenToAll,
   onDocument,
+  onPageClick,
   onElement,
   type EventListening,
 } from "./event-listening";
@@ -90,7 +91,7 @@ function listeningsOf(
     onDocument(document, "mouseover", (event) => {
       listeners.onPointerOver(event.target);
     }),
-    onDocument(document, "click", (event) => {
+    onPageClick(document, (event) => {
       listeners.onClick(event.target);
     }),
     onElement(document.documentElement, "mouseleave", listeners.onPointerLeave),
