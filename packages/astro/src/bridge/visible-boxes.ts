@@ -33,17 +33,17 @@ export type VisibleBoxes = (element: Element) => Box | undefined;
 export function measureVisibleBoxes(document: Document): VisibleBoxes {
   const placementOf = cachedPlacements(document);
   const overlays = fixedPartsOf(document, placementOf);
+  const screen = screenOf(document);
 
   return (element) => {
     const box = boxOf(element);
     if (box === undefined) return undefined;
 
     const clipped = clippedByAncestors(element, edgesOf(box), placementOf);
+    const covering = { element, placementOf, screen };
     const uncovered = overlays.reduce<Edges | undefined>(
       (edges, overlay) =>
-        edges === undefined
-          ? undefined
-          : uncoveredBy(edges, overlay, element, placementOf),
+        edges === undefined ? undefined : uncoveredBy(edges, overlay, covering),
       clipped,
     );
     return uncovered === undefined ? undefined : boxFromEdges(uncovered);
@@ -140,17 +140,35 @@ function fixedPartsOf(
   });
 }
 
+/** The top and the bottom of the screen, in the coordinates of the page's boxes. */
+interface Screen {
+  readonly top: number;
+  readonly bottom: number;
+}
+
+function screenOf(document: Document): Screen {
+  return { top: 0, bottom: document.defaultView?.innerHeight ?? Infinity };
+}
+
+/** What a fixed part is held against: the element, the page's measurement and the screen. */
+interface Covering {
+  readonly element: Element;
+  readonly placementOf: (element: Element) => Placement;
+  readonly screen: Screen;
+}
+
 /**
- * The edges without the band a fixed part covers across their whole width, at their top or their
- * bottom; a part over the element's middle or over some of its width leaves it as it is, since
- * what stays seen is then no box. A part the element holds, or one holding it, covers nothing.
+ * The edges without the band a fixed part covers across their whole width, at the top or the
+ * bottom of what the screen shows of them; a part over the element's middle or over some of its
+ * width leaves it as it is, since what stays seen is then no box. A part the element holds, or one
+ * holding it, covers nothing.
  */
 function uncoveredBy(
   edges: Edges,
   overlay: Element,
-  element: Element,
-  placementOf: (element: Element) => Placement,
+  covering: Covering,
 ): Edges | undefined {
+  const { element, placementOf, screen } = covering;
   const isRelated = overlay.contains(element) || element.contains(overlay);
   if (isRelated) return edges;
 
@@ -163,8 +181,12 @@ function uncoveredBy(
     cover.right >= edges.right - EDGE_TOLERANCE;
   if (!isAcrossWhole || !isOnTop(overlay, overlap)) return edges;
 
-  const coversTop = cover.top <= edges.top + EDGE_TOLERANCE;
-  const coversBottom = cover.bottom >= edges.bottom - EDGE_TOLERANCE;
+  // A section scrolled half above the screen goes on under a header stuck to its top: the header
+  // covers the top of what is seen of it, not of the section.
+  const seenTop = Math.max(edges.top, screen.top);
+  const seenBottom = Math.min(edges.bottom, screen.bottom);
+  const coversTop = cover.top <= seenTop + EDGE_TOLERANCE;
+  const coversBottom = cover.bottom >= seenBottom - EDGE_TOLERANCE;
   if (coversTop && coversBottom) return undefined;
   if (coversTop) return { ...edges, top: cover.bottom };
   if (coversBottom) return { ...edges, bottom: cover.top };
