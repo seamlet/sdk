@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.9.0
+
+- `shownUntilField()`, the last day a record or a block is shown: the owner sets it in the CMS, and the site leaves the record out from the day after with `isShownOn(shownUntil, calendarDayIn(timeZone, now))`. `calendarDayIn` names the day in the business's time zone, so an offer ends at its midnight, not the server's.
+
 ## 2.8.2
 
 - The outline of a block scrolled half above the screen stays under a sticky header. The bridge cut a box by a header fixed over it only when the header covered the box's own top, so a section that began above the screen, a header stuck over its middle, was reported whole, and the CMS's editor drew its outline over the header, up to the edge of the page. A fixed part now covers the top or the bottom of what the screen shows of a box.
