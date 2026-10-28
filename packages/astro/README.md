@@ -244,7 +244,21 @@ Sets of fields almost every site has, edited the same way everywhere; they are p
 - `contactsFields()` — `phone` (a link), `address`, `map` (an address) and `messengers` (links);
 - `openingHoursField()` — rows of `days` (`WEEKDAYS`), `opens` and `closes` times and a `note`; a row is named by its days, «Пн–Пт».
 
+- `shownUntilField()` — the last day a record or a block is shown, a `date` the owner may leave empty; the site checks it with `isShownOn(shownUntil, calendarDayIn(timeZone, new Date()))`, so an offer that ends on Sunday leaves the site on Monday with nobody pressing anything. `calendarDayIn` names the day where the business is (`"Europe/Moscow"`), not where the server is. A site rendered on request checks it on every visit; a static site only when it is built again.
+
 Each takes `{ label }` to name it otherwise.
+
+```astro
+---
+import { calendarDayIn, isShownOn } from "@seamlet/astro/schema";
+
+const { offer } = Astro.props;
+const today = calendarDayIn("Europe/Moscow", new Date());
+const isShown = isShownOn(offer.shownUntil, today);
+---
+
+{isShown && <p {...edit("offer", "text")}>{offer.text}</p>}
+```
 
 `productFields()` is the fields of a product of a catalog, for the record of a collection: `name`, `slug` (the address of its page), `photos` (records of one `photo`, the first is the main one), `summary` (one line for a card), `description`, `price` with `priceNote` («от», «за м²»), `characteristics` (records of a `name` and a `value`, so the owner adds a property without code: «Площадь» — «36 м²»), `isHidden` and `seo`. A site adds its own fields beside them, a category for one:
 

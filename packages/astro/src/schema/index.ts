@@ -104,6 +104,7 @@ export {
   type LinkTarget,
 } from "./link-addresses";
 export { imagePosition } from "./image-position";
+export { calendarDayIn, isShownOn, shownUntilField } from "./shown-until";
 export { estimateOf, ratesField, type Rate } from "./rates";
 export {
   contactsFields,
