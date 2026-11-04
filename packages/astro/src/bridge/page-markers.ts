@@ -42,9 +42,9 @@ export function markedElementPickedAt(
     return shown === undefined ? [] : [{ ...marked, box: shown }];
   });
   const [picked] = rankedMarkersAt(placed, { path: landed.path, point });
-  return picked === undefined
-    ? landed
-    : { element: picked.element, path: picked.path };
+  // Another copy of the same field with the same box is no better than the one the pointer is on.
+  const isLandedCopy = picked === undefined || picked.path === landed.path;
+  return isLandedCopy ? landed : { element: picked.element, path: picked.path };
 }
 
 /**

@@ -68,6 +68,10 @@ const EDITOR_KEY_NAMES = [
 ] as const;
 const TEXT_FORMAT_NAMES = ["bold", "italic", "list"] as const;
 const TYPING_OUTCOME_NAMES = ["kept", "reverted"] as const;
+const TYPED_VALUE_KIND_NAMES = {
+  number: true,
+  time: true,
+} satisfies Record<TypedValueKind, true>;
 
 /** A keyboard shortcut of the editor, pressed on the page. */
 export type Shortcut = (typeof SHORTCUTS)[number];
@@ -132,12 +136,16 @@ export type PageMessage =
   /**
    * The pointer moved onto a marked element, or off all of them. `copy` says which of the elements
    * marked with the path it is, in the order of the page, from 0, since a page may show a field
-   * more than once; a bridge before @seamlet/astro 2.7.0 does not say it.
+   * more than once; a bridge before @seamlet/astro 2.7.0 does not say it. Since 2.11.0 the path is
+   * the one a click at the pointer would choose (`pickedPathAt`), not the element on top, and
+   * `point` says where the pointer was, in the page's pixels as a click's. It is said when the
+   * hovered element changes, not on every move within one.
    */
   | {
       readonly type: "hover";
       readonly path: string | undefined;
       readonly copy?: number;
+      readonly point?: Point;
     }
   /**
    * The pointer moved onto a text of the page outside every marked element (the site's own words,
@@ -160,6 +168,18 @@ export type PageMessage =
   | { readonly type: "typing-started"; readonly path: string }
   /** The element does not show the text as it is: the field is edited beside the page. */
   | { readonly type: "typing-refused"; readonly path: string }
+  /**
+   * A character the number or the time typed in place does not take was refused (a letter in a
+   * price), so the editor can say so. Said once for a run of refused characters, and again after a
+   * character that went in (@seamlet/astro 2.11.0). It is not `typing-refused`, which an older editor
+   * reads as the text not being typable in place.
+   */
+  | {
+      readonly type: "characters-refused";
+      readonly path: string;
+      readonly copy: number;
+      readonly kind: TypedValueKind;
+    }
   | { readonly type: "typed"; readonly path: string; readonly text: string }
   /** The formatted text typed in place, after every character and every change of its marks. */
   | {
@@ -276,7 +296,8 @@ function isPageMessage(message: JsonObject): message is PageMessage {
     case "hover":
       return (
         isOptional(message["path"], isString) &&
-        isOptional(message["copy"], isCopy)
+        isOptional(message["copy"], isCopy) &&
+        isOptional(message["point"], isPoint)
       );
     case "file-drag":
       return isOptional(message["path"], isString);
@@ -296,6 +317,12 @@ function isPageMessage(message: JsonObject): message is PageMessage {
     case "typing-started":
     case "typing-refused":
       return isString(message["path"]);
+    case "characters-refused":
+      return (
+        isString(message["path"]) &&
+        isCopy(message["copy"]) &&
+        isTypedValueKind(message["kind"])
+      );
     case "typed":
       return isString(message["path"]) && isString(message["text"]);
     case "rich-typed":
@@ -399,6 +426,10 @@ function isClickTarget(value: unknown): value is ClickTarget {
 
 function isCopy(value: unknown): value is number {
   return isNumber(value) && Number.isInteger(value) && value >= 0;
+}
+
+function isTypedValueKind(value: unknown): value is TypedValueKind {
+  return isString(value) && Object.hasOwn(TYPED_VALUE_KIND_NAMES, value);
 }
 
 function isTypedValue(message: JsonObject): boolean {

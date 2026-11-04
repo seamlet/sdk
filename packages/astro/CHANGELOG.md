@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.11.0
+
+- The outline of a hovered field names the field a click there would choose. The bridge named the hovered field from the element under the pointer, so over a card whose name is a link stretched across it, the price under the link was outlined as the name, and a click then edited the price. It now hovers by the same rule as a click (`pickedPathAt`: the smallest marked element whose seen box holds the pointer). The pointer is looked at again as it moves, once per animation frame, and a `hover` is sent only when the field or its copy changes.
+- `hover` may say `point`: where the pointer was, in the page's pixels, as a click's `point`. It is sent with the change of the hovered field, not on every move, so an editor that wants to apply `pickedPathAt` to its own boxes has the point of the change.
+- A character a number or a time typed in place does not take is refused with a word to the person. A letter typed into a price was dropped without a sign. The page now says `characters-refused` (`{ path, copy, kind: "number" | "time" }`), once for a run of refused characters and again after one that went in, so the editor can say «Только цифры» or «Только часы и минуты». The name is not `typing-refused`, which already says that an element cannot be typed in place and which an older editor answers by opening the field in its panel.
+
+The protocol keeps version 3: both are additions an older editor does not read. It reads `hover` as before, with `path` and `copy` and no `point`, and drops `characters-refused` as it drops any message type it does not know (`readPageMessage` gives undefined for it). The order of updates does not matter: an editor of 2.11.0 takes a hover without `point` from an older bridge, which names the element under the pointer, and hears of no refused characters from it.
+
 ## 2.10.0
 
 - The preview stands still in the CMS's editor. The editor draws its outlines where the page last said its fields are, and renders the page anew after every edit, so rows that slid in, cards that faded up or a header that eased away left the outlines beside what they outline. In the editor's frame the bridge now ends every CSS animation and transition at once: an element that only shows up through its animation is shown as it ends, and scrolling to a field is not smoothed. Visitors see the site's motion as before. The rule is a stylesheet the bridge adopts, so a site's Content-Security-Policy that allows no inline styles does not stop it.

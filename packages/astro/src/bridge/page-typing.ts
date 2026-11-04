@@ -15,7 +15,7 @@ import type {
   Point,
   TextFormat,
 } from "./messages";
-import { copyToType } from "./page-markers";
+import { copyOf, copyToType } from "./page-markers";
 import {
   canEditRichTextInPlace,
   startRichTextEditing,
@@ -177,6 +177,14 @@ export function createPageTyping(options: {
         stop: startInlineTextEditing(element, {
           isSingleLine: true,
           acceptedCharacters: TYPED_VALUE_CHARACTERS[request.kind],
+          onRefused: () => {
+            send({
+              type: "characters-refused",
+              path,
+              copy: copyOf({ element, path }),
+              kind: request.kind,
+            });
+          },
           onInput: (typed) => {
             reportTyped({ type: "typed", path, text: typed });
           },

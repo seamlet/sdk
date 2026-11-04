@@ -12,6 +12,8 @@ export interface InlineTextEditingOptions {
   readonly isSingleLine: boolean;
   /** The characters a person may type or paste (a number's digits); any, without it. */
   readonly acceptedCharacters?: RegExp;
+  /** A character was refused: said once for a run of refused ones, and again after one that went in. */
+  readonly onRefused?: () => void;
   readonly onInput: (text: string) => void;
   readonly onEnd: (outcome: InlineEditingOutcome) => void;
 }
@@ -34,7 +36,7 @@ export function startInlineTextEditing(
     listeners: [
       onElement(element, "input", reportInput),
       onElement(element, "blur", endOnBlur),
-      ...characterChecks(element, options.acceptedCharacters),
+      ...characterChecks(element, options),
     ],
     onStop: () => undefined,
     onEnd: options.onEnd,
@@ -47,15 +49,21 @@ export function startInlineTextEditing(
 /** Refuses typed and pasted words with a character the field does not take; nothing without a rule. */
 function characterChecks(
   element: HTMLElement,
-  accepted: RegExp | undefined,
+  options: InlineTextEditingOptions,
 ): readonly EventListening[] {
+  const accepted = options.acceptedCharacters;
   if (accepted === undefined) return [];
 
+  let isInRefusedRun = false;
   const refuseOthers = (event: InputEvent) => {
     // A deletion or a line break inserts no words.
     const inserted = event.data ?? event.dataTransfer?.getData("text/plain");
-    const isRefused = inserted !== undefined && !accepted.test(inserted);
+    if (inserted === undefined) return;
+
+    const isRefused = !accepted.test(inserted);
     if (isRefused) event.preventDefault();
+    if (isRefused && !isInRefusedRun) options.onRefused?.();
+    isInRefusedRun = isRefused;
   };
   return [onElement(element, "beforeinput", refuseOthers)];
 }

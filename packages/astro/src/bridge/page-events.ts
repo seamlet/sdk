@@ -6,7 +6,9 @@ import {
   onWindow,
   type EventListening,
 } from "./event-listening";
+import { asElement } from "./dom-nodes";
 import { carriesFiles } from "./file-drags";
+import type { Point } from "./messages";
 import {
   isInTypedText,
   linkAround,
@@ -20,8 +22,9 @@ import { staticTextAround } from "./static-texts";
 
 // What the bridge hears from the site's page. In the editor a click selects what it points at and
 // does nothing else: links do not navigate and forms are not sent. What it points at is the
-// smallest marked element whose box holds the point, not the one on top (`markedElementPickedAt`). A link that is not a field is
-// reported, so the editor can open the page it leads to. The summary of a `<details>` still opens
+// smallest marked element whose box holds the point, not the one on top (`markedElementPickedAt`),
+// and so is what the pointer is said to hover, so the outline never names another field than the
+// click takes. A link that is not a field is reported, so the editor can open the page it leads to. The summary of a `<details>` still opens
 // it, and a switch (a tab, a filter) still flips: what they hide holds fields too.
 
 /**
@@ -35,12 +38,15 @@ export interface PagePointer {
   readonly element: HTMLElement;
   readonly path: string;
   /** Where the pointer was, in the coordinates of the page's viewport. */
-  readonly point: { readonly x: number; readonly y: number };
+  readonly point: Point;
 }
 
 export interface PageListeners {
-  /** The pointer moved onto a marked element, or off all of them (undefined). */
-  readonly onHover: (marked: MarkedElement | undefined) => void;
+  /**
+   * The pointer moved onto the marked element a click would choose, or off all of them (undefined),
+   * with the point it was at. Said when that element changes, not on every move within one.
+   */
+  readonly onHover: (marked: MarkedElement | undefined, point?: Point) => void;
   /** The pointer moved onto a text of the site's own, outside every marked element, or off it. */
   readonly onStaticTextHover: (text: Element | undefined) => void;
   /** A click on a marked element: the one it chooses. */
@@ -70,17 +76,11 @@ export function listenToPage(
   listeners: PageListeners,
 ): () => void {
   const fileDrags = followFileDrags(listeners);
+  const hovers = followHover(document, listeners);
   const { onLayoutChange } = listeners;
-  const leave = () => {
-    listeners.onHover(undefined);
-    listeners.onLinkHover(undefined);
-    listeners.onStaticTextHover(undefined);
-  };
 
   const stopListening = listenToAll([
-    onDocument(document, "mouseover", (event) => {
-      hover(event, listeners);
-    }),
+    ...hovers.listenings(document),
     onPageClick(document, (event) => {
       click(event, listeners);
     }),
@@ -96,25 +96,103 @@ export function listenToPage(
     onDocument(document, "change", onLayoutChange),
     // Images load after the page is shown and move what is below them; load does not bubble.
     onDocument(document, "load", onLayoutChange),
-    onElement(document.documentElement, "mouseleave", leave),
     ...onWindow(document.defaultView, "resize", onLayoutChange),
   ]);
   return () => {
+    hovers.stop();
     fileDrags.stop();
     stopListening();
   };
 }
 
-function hover(event: MouseEvent, listeners: PageListeners): void {
-  const link = linkToFollow(event.target);
-  const marked =
-    link === undefined ? markedElementAround(event.target) : undefined;
-  const isStaticTextPossible = link === undefined && marked === undefined;
-  listeners.onHover(marked);
-  listeners.onLinkHover(link);
-  listeners.onStaticTextHover(
-    isStaticTextPossible ? staticTextAround(event.target) : undefined,
-  );
+/** Where the pointer is, and the element under it. */
+interface PointerOver {
+  readonly target: EventTarget | null;
+  readonly point: Point;
+}
+
+function pointerOver(event: MouseEvent): PointerOver {
+  return {
+    target: event.target,
+    point: { x: event.clientX, y: event.clientY },
+  };
+}
+
+/**
+ * Follows the pointer. A move onto another element is looked at at once; moves within one only
+ * once per animation frame, since the element a click would choose depends on the point. Only a
+ * change of that element is reported as a hover.
+ */
+function followHover(
+  document: Document,
+  listeners: PageListeners,
+): {
+  readonly listenings: (document: Document) => readonly EventListening[];
+  readonly stop: () => void;
+} {
+  const view = document.defaultView;
+  // Wrapped, since "nothing is hovered" is a state too, and the first thing to report.
+  let reported: { readonly element: HTMLElement | undefined } | undefined;
+  let moved: PointerOver | undefined;
+  let frame: number | undefined;
+
+  const cancelFrame = () => {
+    if (frame !== undefined) view?.cancelAnimationFrame(frame);
+    frame = undefined;
+  };
+  const reportMarked = (picked: MarkedElement | undefined, point: Point) => {
+    if (reported !== undefined && reported.element === picked?.element) return;
+
+    reported = { element: picked?.element };
+    listeners.onHover(picked, point);
+  };
+  const look = (pointer: PointerOver) => {
+    cancelFrame();
+    const link = linkToFollow(pointer.target);
+    const landed =
+      link === undefined ? markedElementAround(pointer.target) : undefined;
+    const picked =
+      landed === undefined
+        ? undefined
+        : markedElementPickedAt(document, landed, pointer.point);
+    const isStaticTextPossible = link === undefined && landed === undefined;
+
+    reportMarked(picked, pointer.point);
+    listeners.onLinkHover(link);
+    listeners.onStaticTextHover(
+      isStaticTextPossible ? staticTextAround(pointer.target) : undefined,
+    );
+  };
+  const lookAtMove = () => {
+    frame = undefined;
+    // A render may have replaced the element the pointer moved over since.
+    const isGone = asElement(moved?.target ?? null)?.isConnected === false;
+    if (moved !== undefined && !isGone) look(moved);
+  };
+  const onOver = (event: MouseEvent) => {
+    look(pointerOver(event));
+  };
+  const onMove = (event: MouseEvent) => {
+    moved = pointerOver(event);
+    frame ??= view?.requestAnimationFrame(lookAtMove);
+  };
+  const onLeave = () => {
+    cancelFrame();
+    moved = undefined;
+    reported = { element: undefined };
+    listeners.onHover(undefined);
+    listeners.onLinkHover(undefined);
+    listeners.onStaticTextHover(undefined);
+  };
+
+  return {
+    listenings: (listened) => [
+      onDocument(listened, "mouseover", onOver),
+      onDocument(listened, "mousemove", onMove),
+      onElement(listened.documentElement, "mouseleave", onLeave),
+    ],
+    stop: cancelFrame,
+  };
 }
 
 /** A click selects what it points at: a link it follows, a field it chooses. */
