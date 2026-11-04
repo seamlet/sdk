@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.10.0
+
+- The preview stands still in the CMS's editor. The editor draws its outlines where the page last said its fields are, and renders the page anew after every edit, so rows that slid in, cards that faded up or a header that eased away left the outlines beside what they outline. In the editor's frame the bridge now ends every CSS animation and transition at once: an element that only shows up through its animation is shown as it ends, and scrolling to a field is not smoothed. Visitors see the site's motion as before. The rule is a stylesheet the bridge adopts, so a site's Content-Security-Policy that allows no inline styles does not stop it.
+
+
 ## 2.9.0
 
 - `shownUntilField()`, the last day a record or a block is shown: the owner sets it in the CMS, and the site leaves the record out from the day after with `isShownOn(shownUntil, calendarDayIn(timeZone, now))`. `calendarDayIn` names the day in the business's time zone, so an offer ends at its midnight, not the server's.
