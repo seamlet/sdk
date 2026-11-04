@@ -6,6 +6,7 @@ import {
 } from "../schema";
 import { readElementText } from "./element-text";
 import { fieldStepOf, shortcutOf } from "./editor-shortcuts";
+import { freezeMotion } from "./frozen-motion";
 import { holdMotionOnPage, isEditedInPopover } from "./held-motion";
 import { imageFieldAt } from "./image-fields";
 import { typedKindAt } from "./typed-fields";
@@ -68,11 +69,13 @@ export function connectToEditor(options: BridgeOptions): () => void {
     connection?.receive(message);
   };
 
+  const thawMotion = freezeMotion(document);
   window.addEventListener("message", receive);
   send({ type: "ready", protocol: PROTOCOL_VERSION });
   const stopChecks = warnAboutUnreachableFields(document);
   return () => {
     stopChecks();
+    thawMotion();
     window.removeEventListener("message", receive);
     connection?.stop();
   };
