@@ -167,11 +167,11 @@ interface ConnectedPage {
 function pageListenersOf(page: ConnectedPage): PageListeners {
   const { schema, send, layout } = page;
   return {
-    onHover: (marked) => {
+    onHover: (marked, point) => {
       send(
         marked === undefined
           ? { type: "hover", path: undefined }
-          : { type: "hover", path: marked.path, copy: copyOf(marked) },
+          : { type: "hover", path: marked.path, copy: copyOf(marked), point },
       );
     },
     onClick: (pointer) => {

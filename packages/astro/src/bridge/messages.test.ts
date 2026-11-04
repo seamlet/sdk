@@ -60,6 +60,40 @@ describe("readPageMessage", () => {
     expect(readPageMessage({ ...hover, copy: 1.5 })).toBeUndefined();
   });
 
+  it("reads where the pointer was when it hovered a field", () => {
+    const hover = {
+      type: "hover",
+      path: "menu.0.price",
+      copy: 0,
+      point: { x: 50, y: 310 },
+    };
+
+    expect(readPageMessage(hover)).toEqual(hover);
+    expect(readPageMessage({ ...hover, point: undefined })).toBeDefined();
+    expect(readPageMessage({ ...hover, point: { x: 1 } })).toBeUndefined();
+  });
+
+  it("reads that characters a number or a time does not take were refused", () => {
+    const refused = {
+      type: "characters-refused",
+      path: "menu.0.price",
+      copy: 1,
+      kind: "number",
+    };
+
+    expect(readPageMessage(refused)).toEqual(refused);
+    expect(readPageMessage({ ...refused, kind: "time" })).toBeDefined();
+    expect(readPageMessage({ ...refused, kind: "text" })).toBeUndefined();
+    expect(readPageMessage({ ...refused, copy: -1 })).toBeUndefined();
+    expect(readPageMessage({ ...refused, path: 3 })).toBeUndefined();
+  });
+
+  it("drops a message type it does not know, as an older editor drops a newer bridge's", () => {
+    expect(
+      readPageMessage({ type: "from-the-future", path: "x" }),
+    ).toBeUndefined();
+  });
+
   it("reads formatted text typed in place and where its selection is", () => {
     const typed = {
       type: "rich-typed",

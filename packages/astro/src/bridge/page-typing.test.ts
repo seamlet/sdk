@@ -208,6 +208,14 @@ describe("createPageTyping", () => {
     expect(digits.defaultPrevented).toBe(false);
     expect(send.mock.calls).toEqual([
       [{ type: "typing-started", path: "menu.0.price" }],
+      [
+        {
+          type: "characters-refused",
+          path: "menu.0.price",
+          copy: 0,
+          kind: "number",
+        },
+      ],
       [{ type: "typed", path: "menu.0.price", text: "2 490" }],
       [{ type: "typing-ended", path: "menu.0.price", outcome: "kept" }],
     ]);
@@ -242,6 +250,38 @@ describe("createPageTyping", () => {
       type: "typing-started",
       path: "hours.opensAt",
     });
+    expect(send).toHaveBeenCalledWith({
+      type: "characters-refused",
+      path: "hours.opensAt",
+      copy: 0,
+      kind: "time",
+    });
+  });
+
+  it("tells the editor once of letters typed one after another into a price", () => {
+    document.body.innerHTML = `<span data-cms-path="menu.0.price">150</span>`;
+    const price = marked("menu.0.price");
+    typing.startValue({
+      type: "start-value-typing",
+      path: "menu.0.price",
+      kind: "number",
+      value: 150,
+    });
+
+    for (const data of ["x", "y", "z"]) {
+      price.dispatchEvent(
+        new InputEvent("beforeinput", {
+          data,
+          inputType: "insertText",
+          cancelable: true,
+        }),
+      );
+    }
+
+    const refusals = send.mock.calls.filter(
+      ([message]) => message.type === "characters-refused",
+    );
+    expect(refusals).toHaveLength(1);
   });
 
   it("refuses a value its element shows with words around it", () => {

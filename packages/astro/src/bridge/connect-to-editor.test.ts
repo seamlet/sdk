@@ -207,8 +207,8 @@ describe("connectToEditor", () => {
     copy.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
 
     expect(said().slice(2)).toEqual([
-      { type: "hover", path: "title", copy: 0 },
-      { type: "hover", path: "title", copy: 1 },
+      { type: "hover", path: "title", copy: 0, point: { x: 0, y: 0 } },
+      { type: "hover", path: "title", copy: 1, point: { x: 0, y: 0 } },
     ]);
   });
 
@@ -327,6 +327,26 @@ describe("a bridge of version 3", () => {
     );
   }
 
+  function movePointer(target: Element, x: number, y: number): void {
+    target.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        clientX: x,
+        clientY: y,
+      }),
+    );
+  }
+
+  function moveOver(target: Element, x: number, y: number): void {
+    target.dispatchEvent(
+      new MouseEvent("mouseover", {
+        bubbles: true,
+        clientX: x,
+        clientY: y,
+      }),
+    );
+  }
+
   function pressKey(target: Element, init: KeyboardEventInit): KeyboardEvent {
     const event = new KeyboardEvent("keydown", {
       ...init,
@@ -366,6 +386,56 @@ describe("a bridge of version 3", () => {
     });
     expect(price.getAttribute("contenteditable")).toBe("plaintext-only");
     expect(document.activeElement).toBe(price);
+  });
+
+  it("names on hover the field a click there would choose, not the link stretched over it", () => {
+    connect();
+    const name = element('[data-cms-path="menu.0.name"]');
+
+    moveOver(name, 50, 310);
+    moveOver(name, 50, 50);
+
+    expect(said().slice(2)).toEqual([
+      {
+        type: "hover",
+        path: "menu.0.price",
+        copy: 0,
+        point: { x: 50, y: 310 },
+      },
+      { type: "hover", path: "menu.0.name", copy: 0, point: { x: 50, y: 50 } },
+    ]);
+  });
+
+  it("says a hover once while the pointer moves within one field, looking once per frame", () => {
+    vi.useFakeTimers({ toFake: ["requestAnimationFrame"] });
+    try {
+      connect();
+      const name = element('[data-cms-path="menu.0.name"]');
+      moveOver(name, 50, 310);
+
+      for (const x of [51, 52, 53]) movePointer(name, x, 311);
+      vi.advanceTimersByTime(50);
+      movePointer(name, 50, 50);
+      movePointer(name, 51, 51);
+      vi.advanceTimersByTime(50);
+
+      expect(said().slice(2)).toEqual([
+        {
+          type: "hover",
+          path: "menu.0.price",
+          copy: 0,
+          point: { x: 50, y: 310 },
+        },
+        {
+          type: "hover",
+          path: "menu.0.name",
+          copy: 0,
+          point: { x: 51, y: 51 },
+        },
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("says a click outside the fields landed on a text of the site's own", () => {

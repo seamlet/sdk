@@ -79,3 +79,58 @@ describe("startInlineTextEditing", () => {
     expect(onEnd).toHaveBeenCalledWith("kept");
   });
 });
+
+describe("startInlineTextEditing with accepted characters", () => {
+  function typeCharacters(element: HTMLElement, data: string): InputEvent {
+    const event = new InputEvent("beforeinput", {
+      data,
+      inputType: "insertText",
+      cancelable: true,
+    });
+    element.dispatchEvent(event);
+    return event;
+  }
+
+  function startAcceptingDigits(element: HTMLElement) {
+    const onRefused = vi.fn<() => void>();
+    startInlineTextEditing(element, {
+      isSingleLine: true,
+      acceptedCharacters: /^\d*$/u,
+      onInput: () => undefined,
+      onRefused,
+      onEnd: () => undefined,
+    });
+    return onRefused;
+  }
+
+  it("says once for a run of refused characters, and again after one that went in", () => {
+    const element = heading();
+    const onRefused = startAcceptingDigits(element);
+
+    const refused = typeCharacters(element, "x");
+    typeCharacters(element, "y");
+    typeCharacters(element, "z");
+    expect(onRefused).toHaveBeenCalledTimes(1);
+
+    const accepted = typeCharacters(element, "7");
+    typeCharacters(element, "x");
+
+    expect(refused.defaultPrevented).toBe(true);
+    expect(accepted.defaultPrevented).toBe(false);
+    expect(onRefused).toHaveBeenCalledTimes(2);
+  });
+
+  it("says nothing for a deletion, which inserts no characters", () => {
+    const element = heading();
+    const onRefused = startAcceptingDigits(element);
+
+    element.dispatchEvent(
+      new InputEvent("beforeinput", {
+        inputType: "deleteContentBackward",
+        cancelable: true,
+      }),
+    );
+
+    expect(onRefused).not.toHaveBeenCalled();
+  });
+});

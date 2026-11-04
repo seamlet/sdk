@@ -68,6 +68,49 @@ describe("listenToPage", () => {
     ).toEqual(["contacts.phone", undefined]);
   });
 
+  it("names the field a click at the pointer would choose, not the element on top", () => {
+    document.body.innerHTML = `
+      <article data-cms-path="menu.0">
+        <a data-cms-path="menu.0.name" href="/menu/latte">Латте</a>
+        <span data-cms-path="menu.0.price">150</span>
+      </article>`;
+    const boxes: Readonly<Record<string, DOMRect>> = {
+      "menu.0": new DOMRect(0, 0, 300, 400),
+      "menu.0.name": new DOMRect(0, 0, 300, 400),
+      "menu.0.price": new DOMRect(20, 300, 80, 30),
+    };
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
+      function (this: Element) {
+        return boxes[this.getAttribute("data-cms-path") ?? ""] ?? new DOMRect();
+      },
+    );
+    const overPrice = new MouseEvent("mouseover", {
+      bubbles: true,
+      clientX: 50,
+      clientY: 310,
+    });
+
+    element("a").dispatchEvent(overPrice);
+
+    expect(listeners.onHover).toHaveBeenCalledTimes(1);
+    expect(listeners.onHover).toHaveBeenCalledWith(
+      { element: element("span"), path: "menu.0.price" },
+      { x: 50, y: 310 },
+    );
+    vi.restoreAllMocks();
+  });
+
+  it("reports a hover again after the pointer left the page", () => {
+    element("b").dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    element("b").dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    document.documentElement.dispatchEvent(new MouseEvent("mouseleave"));
+    element("b").dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+
+    expect(
+      listeners.onHover.mock.calls.map(([marked]) => marked?.path),
+    ).toEqual(["contacts.phone", undefined, "contacts.phone"]);
+  });
+
   it("selects on a click and keeps links from navigating", () => {
     const click = new MouseEvent("click", {
       bubbles: true,
@@ -109,7 +152,10 @@ describe("listenToPage", () => {
       new MouseEvent("click", { bubbles: true }),
     );
 
-    expect(listeners.onHover).toHaveBeenLastCalledWith(undefined);
+    expect(listeners.onHover).toHaveBeenLastCalledWith(undefined, {
+      x: 0,
+      y: 0,
+    });
     expect(listeners.onLinkClick).toHaveBeenCalled();
     expect(listeners.onClick).not.toHaveBeenCalled();
   });
