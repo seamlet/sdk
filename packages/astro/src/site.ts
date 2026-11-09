@@ -1,6 +1,11 @@
 import type { ImageMetadata } from "astro";
 import type { AstroComponentFactory } from "astro/runtime/server/index.js";
-import { cmsOrigin, siteId, siteTitle } from "virtual:seamlet/config";
+import {
+  cmsOrigin,
+  ownerToken,
+  siteId,
+  siteTitle,
+} from "virtual:seamlet/config";
 import {
   parseContent,
   type Content,
@@ -120,7 +125,10 @@ export function defineSeamletSite<F extends Fields>(
     staticPaths: (content) => staticPagesOf(sitePages, contentOf(content)),
     loadPublishedContent: () => loadPublishedContent(definition.schema),
     ownPhotoAt: (src) => definition.photos?.(src),
-    description: describeSite({ id: siteId, title: siteTitle }, definition),
+    description: describeSite(
+      { id: siteId, title: siteTitle, ownerToken },
+      definition,
+    ),
   };
 }
 

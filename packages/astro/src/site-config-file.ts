@@ -16,6 +16,8 @@ const FIELD_RULES: Readonly<Record<SiteConfigField, string>> = {
   id: "the site's id in the CMS: lower-case letters, digits and single hyphens, such as coffee-shop",
   title: "how the CMS names the site, such as «Моя кофейня»",
   cms: "the address of the CMS, such as https://cms.seamlet.ru",
+  ownerToken:
+    "the token the CMS shows when you connect a site, as it is: letters, digits, _ and -",
 };
 
 /**

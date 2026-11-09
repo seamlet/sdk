@@ -6,6 +6,7 @@ vi.mock("virtual:seamlet/config", () => ({
   siteId: "coffee-shop",
   siteTitle: "Моя кофейня",
   cmsOrigin: "https://cms.example",
+  ownerToken: undefined,
 }));
 vi.mock("virtual:seamlet/site", () => ({
   default: { description: { initialContent: { title: "Кофейня" } } },

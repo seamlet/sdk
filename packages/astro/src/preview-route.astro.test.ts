@@ -7,6 +7,7 @@ vi.mock("virtual:seamlet/config", () => ({
   siteId: "coffee-shop",
   siteTitle: "Моя кофейня",
   cmsOrigin: "https://cms.example",
+  ownerToken: undefined,
 }));
 // A mock is hoisted above the imports: it takes what it needs itself.
 vi.mock("virtual:seamlet/site", async () => {

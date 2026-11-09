@@ -105,6 +105,18 @@ describe("readSiteDescription", () => {
     });
   });
 
+  it("reads the token of the site's owner, and refuses one the CMS does not give", () => {
+    const ownerToken = "owner_0123456789abcdef";
+
+    expect(readSiteDescription({ ...description, ownerToken })).toEqual({
+      ...description,
+      ownerToken,
+    });
+    expect(checkSiteDescription({ ...description, ownerToken: "a b" })).toEqual(
+      { status: "invalid", problems: [{ code: "invalid-owner-token" }] },
+    );
+  });
+
   it("says why a schema is not one", () => {
     expect(
       checkSiteDescription({
