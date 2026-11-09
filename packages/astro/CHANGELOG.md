@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.12.0
+
+- A site carries the token of its owner. The CMS will let developers connect their own sites, and must know that the person connecting a site is the one who deploys it. `seamlet.json` takes an optional `ownerToken`, the token the CMS shows when a site is connected; the site's description at `/seamlet/site.json` hands it back (`ownerToken` of `SiteDescription`, read by `readSiteDescription`, refused as `invalid-owner-token` when it is not letters, digits, `_` and `-`, 16 to 128 of them). `npx @seamlet/astro init --token <token>` writes it. A site without one is described as before.
+
 ## 2.11.0
 
 - The outline of a hovered field names the field a click there would choose. The bridge named the hovered field from the element under the pointer, so over a card whose name is a link stretched across it, the price under the link was outlined as the name, and a click then edited the price. It now hovers by the same rule as a click (`pickedPathAt`: the smallest marked element whose seen box holds the pointer). The pointer is looked at again as it moves, once per animation frame, and a `hover` is sent only when the field or its copy changes.

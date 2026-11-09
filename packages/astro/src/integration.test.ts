@@ -93,6 +93,7 @@ describe("the integration", () => {
         'export const siteId = "coffee-shop";',
         'export const siteTitle = "Моя кофейня";',
         'export const cmsOrigin = "https://cms.seamlet.ru";',
+        "export const ownerToken = undefined;",
       ].join("\n"),
     );
     expect(siteModule).toBe(join(root, "src", "seamlet.ts"));

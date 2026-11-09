@@ -11,7 +11,7 @@ npx @seamlet/astro init --title "Моя кофейня"   # seamlet.json, src/sc
 npx astro add @seamlet/astro node                   # the integration, and an adapter for the preview
 ```
 
-`init` takes the id from the name in `package.json` unless `--id` gives it, and the CMS `https://cms.seamlet.ru` unless `--cms` names another; it never overwrites a file the site has: a `seamlet.json` the site has already names the site for the modules it writes, and the three modules are written together or, when the site has any of them, not at all. It says what to render in a page. The steps below are what it starts, one by one.
+`init` takes the id from the name in `package.json` unless `--id` gives it, and the CMS `https://cms.seamlet.ru` unless `--cms` names another, and writes the owner's token `--token` gives; it never overwrites a file the site has: a `seamlet.json` the site has already names the site for the modules it writes, and the three modules are written together or, when the site has any of them, not at all. It says what to render in a page. The steps below are what it starts, one by one.
 
 1. Install the package. The site needs an adapter, because the preview is rendered on request; its own pages may stay static.
 
@@ -28,6 +28,8 @@ npx astro add @seamlet/astro node                   # the integration, and an ad
      "cms": "https://cms.seamlet.ru"
    }
    ```
+
+   A site you connect to the CMS yourself, from your own account, also carries `ownerToken`: the token the CMS shows when you connect a site (`npx @seamlet/astro init --token <token>` writes it). The site hands it back in its description, which tells the CMS that the person connecting the site is the one who deploys it. It is not a secret, and a site the administrator connects needs none.
 
    The environment variable `CMS_ORIGIN` takes the place of `cms` when it is set and not empty: a build for a CMS in development, or the CMS's own builder. A build without the file, or with a field it cannot read, stops and says which field to fix.
 

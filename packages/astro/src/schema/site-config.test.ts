@@ -81,4 +81,39 @@ describe("isSiteId", () => {
     expect(refused.filter(isSiteId)).toEqual([]);
     expect(isSiteId("a".repeat(63))).toBe(true);
   });
+
+  it("reads the token of the site's owner", () => {
+    const ownerToken = "owner_0123456789abcdef";
+
+    const reading = readSiteConfig({
+      id: "cafe",
+      title: "Кофейня",
+      cms: "https://cms.example",
+      ownerToken,
+    });
+
+    expect(reading).toEqual({
+      status: "read",
+      config: {
+        id: "cafe",
+        title: "Кофейня",
+        cms: "https://cms.example",
+        ownerToken,
+      },
+    });
+  });
+
+  it("names a token that is not one the CMS gives", () => {
+    const reading = readSiteConfig({
+      id: "cafe",
+      title: "Кофейня",
+      cms: "https://cms.example",
+      ownerToken: "short",
+    });
+
+    expect(reading).toEqual({
+      status: "invalid",
+      invalidFields: ["ownerToken"],
+    });
+  });
 });

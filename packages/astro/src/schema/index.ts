@@ -135,6 +135,7 @@ export {
   type SchemaProblemReason,
 } from "./read-fields";
 export {
+  isOwnerToken,
   isSiteId,
   readSiteConfig,
   SITE_CONFIG_FILE,

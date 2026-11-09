@@ -7,6 +7,8 @@ declare module "virtual:seamlet/config" {
   export const siteTitle: string;
   /** The origin of the CMS: where the content comes from and whose editor may frame the preview. */
   export const cmsOrigin: string;
+  /** The token of the account that connects the site, from `seamlet.json`; undefined without one. */
+  export const ownerToken: string | undefined;
 }
 
 declare module "virtual:seamlet/site" {

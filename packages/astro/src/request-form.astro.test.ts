@@ -25,6 +25,7 @@ vi.mock("virtual:seamlet/config", () => ({
   siteId: "my-site",
   siteTitle: "Ромашка",
   cmsOrigin: "https://cms.example",
+  ownerToken: undefined,
 }));
 
 const estimate = requestForm({

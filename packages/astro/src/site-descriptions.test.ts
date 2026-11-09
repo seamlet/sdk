@@ -36,6 +36,23 @@ describe("describeSite", () => {
     ).toEqual(description);
   });
 
+  it("hands the CMS the token of the site's owner", () => {
+    const ownerToken = "owner_0123456789abcdef";
+
+    const description = describeSite(
+      { id: "cafe", title: "Моя кофейня", ownerToken },
+      {
+        schema,
+        initialContent: { title: "Кофейня" },
+        pages: { "/": { title: "Главная", component } },
+      },
+    );
+
+    expect(
+      readSiteDescription(JSON.parse(JSON.stringify(description))),
+    ).toMatchObject({ ownerToken });
+  });
+
   it("stops a site the CMS would refuse and says what to fix", () => {
     const describe = (
       pages: Record<

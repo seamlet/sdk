@@ -293,5 +293,6 @@ function configModuleOf(config: SiteConfig): string {
     `export const siteId = ${JSON.stringify(config.id)};`,
     `export const siteTitle = ${JSON.stringify(config.title)};`,
     `export const cmsOrigin = ${JSON.stringify(config.cms)};`,
+    `export const ownerToken = ${JSON.stringify(config.ownerToken)};`,
   ].join("\n");
 }

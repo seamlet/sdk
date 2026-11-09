@@ -71,6 +71,34 @@ describe("runInit", () => {
     });
   });
 
+  it("writes the token the CMS gave into seamlet.json", async () => {
+    const token = "owner_0123456789abcdef";
+
+    const code = await init("init", "--id", "cafe", "--token", token);
+
+    expect(code).toBe(0);
+    await expect(readConfig()).resolves.toMatchObject({ ownerToken: token });
+  });
+
+  it("asks for a token the CMS gives when the one given is not", async () => {
+    const code = await init("init", "--id", "cafe", "--token", "short");
+
+    expect(code).toBe(1);
+    expect(lines[0]).toMatch(/^Give the site --token\./u);
+  });
+
+  it("says to put the token into the site's own seamlet.json by hand", async () => {
+    const own = { id: "cafe", title: "Кофейня", cms: "https://cms.example" };
+    await writeFile(join(root, "seamlet.json"), JSON.stringify(own));
+
+    await init("init", "--token", "owner_0123456789abcdef");
+
+    await expect(readConfig()).resolves.toEqual(own);
+    expect(lines).toContain(
+      'seamlet.json is kept as it is: put the token into it as "ownerToken".',
+    );
+  });
+
   it("writes the modules for the site's own seamlet.json", async () => {
     const own = {
       id: "cafe",

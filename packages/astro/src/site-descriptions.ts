@@ -21,7 +21,7 @@ import { SITE_MODULE_FILE } from "./site-addresses";
 // own build and says what to fix.
 
 /** How the site is named in the CMS: from its `seamlet.json`. */
-export type SiteIdentity = Pick<SiteConfig, "id" | "title">;
+export type SiteIdentity = Pick<SiteConfig, "id" | "title" | "ownerToken">;
 
 export function describeSite<F extends Fields>(
   identity: SiteIdentity,
@@ -49,6 +49,9 @@ export function describeSite<F extends Fields>(
   const description = {
     id: identity.id,
     title: identity.title,
+    ...(identity.ownerToken === undefined
+      ? {}
+      : { ownerToken: identity.ownerToken }),
     schema: definition.schema,
     initialContent: definition.initialContent,
     pages,
@@ -84,6 +87,8 @@ function problemText(problem: SiteDescriptionProblem): string {
       return "its id in seamlet.json is not one";
     case "invalid-title":
       return "its title in seamlet.json is empty";
+    case "invalid-owner-token":
+      return "its ownerToken in seamlet.json is not the token the CMS shows";
     case "invalid-schema": {
       const path = formatFieldPath(problem.problem.path);
       const where = path === "" ? "the schema" : `the field "${path}"`;

@@ -4,6 +4,7 @@ import { parseArgs } from "node:util";
 import {
   readSiteConfig,
   SITE_CONFIG_FILE,
+  type SiteConfigField,
   type SiteConfigReading,
 } from "../schema";
 import { configFileOf, moduleFilesOf, siteIdOf } from "./site-files";
@@ -17,12 +18,23 @@ const SUCCESS = 0;
 const FAILURE = 1;
 const MISUSE = 2;
 const MISSING = "ENOENT";
+/** The option of `init` that gives each field of the config. */
+const OPTION_OF_FIELD: Readonly<Record<SiteConfigField, string>> = {
+  id: "id",
+  title: "title",
+  cms: "cms",
+  ownerToken: "token",
+};
 
-const USAGE = `Usage: npx @seamlet/astro init [--id <id>] [--title <title>] [--cms <address>]
+const USAGE = `Usage: npx @seamlet/astro init [--id <id>] [--title <title>] [--cms <address>] [--token <token>]
 
 Writes ${SITE_CONFIG_FILE} and a first module of the site in the Astro project here. The id is the
 site's name in the CMS (lower-case letters, digits and hyphens); by default it comes from the
-name in package.json, the title from the id, the CMS is ${DEFAULT_CMS}.`;
+name in package.json, the title from the id, the CMS is ${DEFAULT_CMS}. The token is the one the
+CMS shows when you connect a site: it tells the CMS the site is yours.`;
+
+/** The site's own config is kept as it is, so the token given goes into it by hand. */
+const TOKEN_LEFT_OUT = `${SITE_CONFIG_FILE} is kept as it is: put the token into it as "ownerToken".`;
 
 const NEXT_STEPS = `
 Next:
@@ -59,6 +71,11 @@ export async function runInit(run: InitRun): Promise<number> {
   }
 
   const config = reading.config;
+  const isTokenLeftOut =
+    existing !== undefined &&
+    options.ownerToken !== undefined &&
+    config.ownerToken !== options.ownerToken;
+  if (isTokenLeftOut) run.log(TOKEN_LEFT_OUT);
   const configFile = await writeSiteFiles(run.root, [configFileOf(config)]);
   const moduleFiles = await writeSiteFiles(run.root, moduleFilesOf(config));
   logWritten(run, configFile);
@@ -78,6 +95,7 @@ async function configOfOptions(
     id,
     title: options.title ?? id,
     cms: options.cms ?? DEFAULT_CMS,
+    ownerToken: options.ownerToken,
   });
 }
 
@@ -118,7 +136,9 @@ function invalidConfigMessage(
       .join(", ");
     return `The site's ${SITE_CONFIG_FILE} needs ${fields}: fix it, or remove it to write a new one.`;
   }
-  const options = reading.invalidFields.map((field) => `--${field}`).join(", ");
+  const options = reading.invalidFields
+    .map((field) => `--${OPTION_OF_FIELD[field]}`)
+    .join(", ");
   return `Give the site ${options}.\n\n${USAGE}`;
 }
 
@@ -135,6 +155,7 @@ interface InitOptions {
   readonly id: string | undefined;
   readonly title: string | undefined;
   readonly cms: string | undefined;
+  readonly ownerToken: string | undefined;
 }
 
 /** The options of `init`, or undefined for any other command or an option it does not know. */
@@ -147,11 +168,17 @@ function optionsOf(argv: readonly string[]): InitOptions | undefined {
         id: { type: "string" },
         title: { type: "string" },
         cms: { type: "string" },
+        token: { type: "string" },
       },
     });
     const isInit = positionals.length === 1 && positionals[0] === "init";
     return isInit
-      ? { id: values.id, title: values.title, cms: values.cms }
+      ? {
+          id: values.id,
+          title: values.title,
+          cms: values.cms,
+          ownerToken: values.token,
+        }
       : undefined;
   } catch {
     // An option parseArgs does not know: the usage says which there are.

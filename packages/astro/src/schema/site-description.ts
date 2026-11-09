@@ -16,7 +16,7 @@ import {
   recordPageAt,
   type SiteRecordPageDescription,
 } from "./record-pages";
-import { isSiteId } from "./site-config";
+import { isOwnerToken, isSiteId } from "./site-config";
 import { PAGE_SEGMENT } from "./slugs";
 
 // What a site tells the CMS about itself: its id, its name, the schema of its content, the content
@@ -44,6 +44,8 @@ export interface SiteDescription {
   readonly id: string;
   /** How the CMS names the site. */
   readonly title: string;
+  /** The token of the account that connects the site (`ownerToken` of `seamlet.json`). */
+  readonly ownerToken?: string;
   readonly schema: Fields;
   /** The content shown and edited until the first save. */
   readonly initialContent: Content;
@@ -60,6 +62,8 @@ export type SiteDescriptionProblem =
   | { readonly code: "not-a-description" }
   | { readonly code: "invalid-id" }
   | { readonly code: "invalid-title" }
+  /** An owner's token that is not one the CMS gives. */
+  | { readonly code: "invalid-owner-token" }
   | { readonly code: "invalid-schema"; readonly problem: SchemaProblem }
   /** The initial content is not content the CMS could save. */
   | {
@@ -157,8 +161,13 @@ export function readSiteDescription(
 export function checkSiteDescription(input: unknown): SiteDescriptionReading {
   if (!isJsonObject(input)) return invalid([{ code: "not-a-description" }]);
 
-  const { id, title } = input;
-  const nameProblems = namingProblems(id, title);
+  const { id, title, ownerToken } = input;
+  const isOwnerTokenSound =
+    ownerToken === undefined || isOwnerToken(ownerToken);
+  const ownerProblems = isOwnerTokenSound
+    ? []
+    : [{ code: "invalid-owner-token" } as const];
+  const nameProblems = [...namingProblems(id, title), ...ownerProblems];
   const schema = checkFields(input["schema"]);
   if (schema.status === "invalid") {
     const { problem } = schema;
@@ -190,6 +199,7 @@ export function checkSiteDescription(input: unknown): SiteDescriptionReading {
   const description = {
     id,
     title,
+    ...(typeof ownerToken === "string" ? { ownerToken } : {}),
     schema: schema.fields,
     initialContent: initial.content,
     pages: pages.pages,
