@@ -119,6 +119,16 @@ const { component: Page, props } = Astro.props;
 
 The site's pages take their published content with `site.loadPublishedContent()`: at build time for a static site, on request otherwise. Until the first publication, and while the CMS does not know the site yet (a site connected from its repository is built before that), it is the site's initial content; any other refusal of the CMS stops the build. A module that needs the content without importing every page takes it with `loadPublishedContent(schema)` of `@seamlet/astro/site`.
 
+### Where the preview runs
+
+The preview is the site itself, rendered on request at `/preview` by the adapter the site is deployed with: the address the CMS is given is `https://<the site>/preview`. Its routes (`/preview`, `/seamlet/site.json`, `/media/...`, `/seamlet-photos/...`) are rendered on request whatever the adapter, and the site's own pages may stay static.
+
+- **Vercel**: `npx astro add vercel`, then deploy. The preview is a function of the deployment, and its answers carry their own headers (`frame-ancestors` of the CMS, `noindex`, `no-store`).
+- **Netlify**: `npx astro add netlify`, then deploy, the same way.
+- **A server of your own**: `npx astro add node`, `node dist/server/entry.mjs`.
+
+The address of the CMS is written into the build (`cms` of `seamlet.json`, or `CMS_ORIGIN` when the build sets it), not read when the preview answers. The check of the texts of the pages (below) runs with `@astrojs/node` only; with another adapter the build says that it is skipped.
+
 ## Fields
 
 | Builder                                    | Holds                                                                   | Empty            |
