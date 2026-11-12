@@ -28,3 +28,22 @@ jobs:
           cache: npm
       - run: npm ci
       - run: make check
+
+  starter:
+    name: Starter template
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      # A developer gets the template as a project of its own (npm create astro), not inside this
+      # repository, whose workspace and tsconfig would be found from within it.
+      - name: Copy the template out of the repository
+        run: cp -R templates/starter "$RUNNER_TEMP/starter"
+      - name: Install, check and build it as a developer would
+        working-directory: ${{ runner.temp }}/starter
+        run: |
+          npm install
+          npm run check
+          npm run build

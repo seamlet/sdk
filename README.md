@@ -3,6 +3,7 @@
 What a site installs to be edited in the Seamlet CMS: the owner of a business edits the texts, photos and records of their site right on its pages, while the site keeps its own design, components and code.
 
 - [`@seamlet/astro`](packages/astro/README.md) — for sites on [Astro](https://astro.build): the schema language that describes a site's content, the integration that adds the preview the CMS's editor frames, and the bridge between the two.
+- [`templates/starter`](templates/starter) — a small Astro site already wired to Seamlet, to start from: `npm create astro@latest -- --template seamlet/sdk/templates/starter`.
 - [`examples/coffee-shop`](examples/coffee-shop) — a test site connected the way every site is.
 
 The CMS itself is a separate product; this repository holds only what runs on a site.
@@ -20,6 +21,8 @@ The test site takes its content from a CMS at `CMS_ORIGIN` (`http://localhost:43
 ## Releases
 
 Raise `version` in `packages/astro/package.json` and merge, then run «Publish @seamlet/astro» from the Actions tab: it checks the repository, publishes the package to npm with provenance and tags the commit `astro-v<version>`.
+
+The starter is not a workspace: it installs the published `@seamlet/astro`, pinned exactly, as a site made from it does. After a release, raise that pin in `templates/starter/package.json` to the version just published (not before: the starter would then ask npm for a version that is not there). Its own CI job installs it and builds it, so `make check` stays free of the network.
 
 ## License
 
