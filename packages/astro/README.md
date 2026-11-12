@@ -156,7 +156,7 @@ A `words` field is for a short list the site shows apart, as tags or a list: «�
 
 `itemTitle` names the field whose words name a record in the CMS's list of records, its history and the site's `llms.txt`: a `text`, a `link` by its text, or a `choice` or `choices` by the labels of the options picked. `choiceTitleOf(field, value)` of `@seamlet/astro/schema` is how such a title reads, the same in the CMS and on the site: a `choice` gives its option's label; `choices` gives the labels in the schema's order, joined by commas, and when its options are days of the week in the week's order (`WEEKDAYS`, or some of them), three or more days in a row read as the first and the last: «Пн–Пт, Сб». `recordTitleOf(collection, record)` reads the title of any record that way. A CMS reads a site's description with its own version of the package: a schema that titles records by a choice needs a CMS that reads 2.5.
 
-A file is a document the owner uploads in the CMS as a PDF. The site links to it, and a static build copies it next to its pages as it copies the uploaded photos:
+A file is a document the owner uploads in the CMS as a PDF. Its address is a path of the site or an `https://` address, as a link's may be (`parseContent` refuses any other one as `unsupported-link-href`). The site links to it, and a static build copies it next to its pages as it copies the uploaded photos:
 
 ```astro
 {content.priceList && (

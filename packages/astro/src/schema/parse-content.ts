@@ -362,7 +362,17 @@ function parseFile(
   if (src.trim() === "") {
     return { value: file, issues: [{ path, code: "missing-file-src" }] };
   }
+  // A site links to its file: an address a link may not have (`javascript:`) never saves.
+  if (!isFileAddress(src)) {
+    return { value: file, issues: [{ path, code: "unsupported-link-href" }] };
+  }
   return valid(file);
+}
+
+/** A document is a file of the site (an upload of the CMS is one) or of another site. */
+function isFileAddress(src: string): boolean {
+  const kind = linkTargetOf(src)?.kind;
+  return kind === "page" || kind === "web";
 }
 
 function parseLink(
