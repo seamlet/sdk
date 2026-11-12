@@ -1,5 +1,6 @@
 import { experimental_AstroContainer as AstroContainer } from "astro/container";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import site from "virtual:seamlet/site";
 import PreviewRoute from "../routes/preview.astro";
 import { MAX_DRAFT_BYTES } from "./preview-requests";
 
@@ -194,5 +195,17 @@ describe("the preview route", () => {
     expectPreviewHeaders(wrongType);
     expect(tooBig.status).toBe(413);
     expectPreviewHeaders(tooBig);
+  });
+
+  it("answers as itself when the published content cannot be loaded", async () => {
+    vi.spyOn(site, "loadPublishedContent").mockRejectedValue(
+      new Error("the CMS did not answer"),
+    );
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const response = await requestPreview(undefined);
+
+    expect(response.status).toBe(502);
+    expectPreviewHeaders(response);
   });
 });

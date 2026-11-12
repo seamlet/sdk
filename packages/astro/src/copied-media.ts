@@ -7,28 +7,42 @@ import { isUploadedFile } from "./preview-requests";
 // folder is.
 
 const PDF_EXTENSION = ".pdf";
-export const PDF_CONTENT_TYPE = "application/pdf";
+const PDF_CONTENT_TYPE = "application/pdf";
 const PHOTO_CONTENT_TYPE = "image/webp";
 
-export interface CopiedMediaFile {
-  readonly bytes: Uint8Array<ArrayBuffer>;
-  readonly contentType: string;
-}
-
-/** The upload of that name in the folder of copied uploads, or undefined when it has none. */
+/** The bytes of the upload of that name in the folder of copied uploads, or undefined when it has none. */
 export async function copiedMediaFile(
   directory: string,
   fileName: string,
-): Promise<CopiedMediaFile | undefined> {
+): Promise<Uint8Array<ArrayBuffer> | undefined> {
   if (!isUploadedFile(fileName)) return undefined;
 
-  const bytes = await readIfThere(join(directory, fileName));
-  if (bytes === undefined) return undefined;
-  const isPdf = fileName.endsWith(PDF_EXTENSION);
-  return {
-    bytes,
-    contentType: isPdf ? PDF_CONTENT_TYPE : PHOTO_CONTENT_TYPE,
-  };
+  return readIfThere(join(directory, fileName));
+}
+
+/** What an upload is, by its name: the CMS names a photo `.webp` and a document `.pdf`. */
+function uploadContentTypeOf(fileName: string): string {
+  return fileName.endsWith(PDF_EXTENSION)
+    ? PDF_CONTENT_TYPE
+    : PHOTO_CONTENT_TYPE;
+}
+
+/**
+ * The headers an upload is handed out with on the site's origin, whoever gave its bytes: the type
+ * its name says and no other a browser could guess from the bytes, and a document saved, never
+ * shown, as the CMS hands it out. Whatever the answer of the CMS says, the site's origin never
+ * shows a page.
+ */
+export function uploadHeadersOf(fileName: string): Headers {
+  const contentType = uploadContentTypeOf(fileName);
+  const headers = new Headers({
+    "Content-Type": contentType,
+    "X-Content-Type-Options": "nosniff",
+  });
+  if (contentType === PDF_CONTENT_TYPE) {
+    headers.set("Content-Disposition", "attachment");
+  }
+  return headers;
 }
 
 async function readIfThere(

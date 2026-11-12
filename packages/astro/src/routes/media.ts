@@ -5,11 +5,7 @@ import {
   isContentCopyOnly,
 } from "virtual:seamlet/content-copy";
 import site from "virtual:seamlet/site";
-import {
-  copiedMediaFile,
-  PDF_CONTENT_TYPE,
-  type CopiedMediaFile,
-} from "../copied-media";
+import { copiedMediaFile, uploadHeadersOf } from "../copied-media";
 import { isUploadedFile } from "../preview-requests";
 import { uploadedPhotoPath } from "../site-addresses";
 
@@ -36,30 +32,26 @@ export const GET: APIRoute = async ({ params }) => {
   const url = new URL(uploadedPhotoPath(site.id, fileName), cmsOrigin);
   const response = isContentCopyOnly ? undefined : await photoFromCms(url);
   if (response?.ok === true) {
-    return new Response(response.body, {
-      headers: {
-        "Content-Type": response.headers.get("Content-Type") ?? "image/webp",
-        "Cache-Control": response.headers.get("Cache-Control") ?? "no-cache",
-      },
-    });
+    const headers = uploadHeadersOf(fileName);
+    headers.set(
+      "Cache-Control",
+      response.headers.get("Cache-Control") ?? "no-cache",
+    );
+    return new Response(response.body, { headers });
   }
 
   const copied = await copiedMediaFile(copiedMediaDirectory, fileName);
-  if (copied !== undefined) return copiedResponse(copied);
+  if (copied !== undefined) return copiedResponse(fileName, copied);
   return new Response(null, { status: failureStatusOf(response) });
 };
 
-function copiedResponse(file: CopiedMediaFile): Response {
-  const headers = new Headers({
-    "Content-Type": file.contentType,
-    "Cache-Control": COPIED_FILE_CACHE_CONTROL,
-    "X-Content-Type-Options": "nosniff",
-  });
-  // A document is saved, never shown on the site's origin, as the CMS hands it out.
-  if (file.contentType === PDF_CONTENT_TYPE) {
-    headers.set("Content-Disposition", "attachment");
-  }
-  return new Response(file.bytes, { headers });
+function copiedResponse(
+  fileName: string,
+  bytes: Uint8Array<ArrayBuffer>,
+): Response {
+  const headers = uploadHeadersOf(fileName);
+  headers.set("Cache-Control", COPIED_FILE_CACHE_CONTROL);
+  return new Response(bytes, { headers });
 }
 
 /** What a photo nobody has gets: nothing for a site that asks no CMS, else the CMS's failure. */

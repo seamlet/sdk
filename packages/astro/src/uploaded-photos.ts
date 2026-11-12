@@ -82,7 +82,7 @@ async function photoBytes(
     copiedMediaFile(options.copiedMediaDirectory, basename(address));
   if (options.cmsOrigin === undefined) {
     const file = await copied();
-    if (file !== undefined) return file.bytes;
+    if (file !== undefined) return file;
     throw new Error(
       `Copying the photo ${address} into the build failed: it is not in ${options.copiedMediaDirectory}`,
     );
@@ -91,7 +91,7 @@ async function photoBytes(
   const fromCms = await photoFromCms(new URL(address, options.cmsOrigin));
   if (fromCms.status === "taken") return fromCms.bytes;
   const file = await copied();
-  if (file !== undefined) return file.bytes;
+  if (file !== undefined) return file;
   throw fromCms.problem;
 }
 

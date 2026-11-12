@@ -40,6 +40,38 @@ describe("a file field", () => {
     ]);
   });
 
+  it("refuses an address a link of a site may not have", () => {
+    const addresses = [
+      "javascript:alert(1)",
+      " JavaScript:alert(1)",
+      "data:application/pdf;base64,JVBERi0=",
+      "//other.example/price.pdf",
+      "tel:+70000000000",
+    ];
+
+    const issues = addresses.map(
+      (src) =>
+        parseContent(schema, { priceList: { src, name: "Прайс" } }).issues,
+    );
+
+    expect(issues).toEqual(
+      addresses.map(() => [
+        { path: ["priceList"], code: "unsupported-link-href" },
+      ]),
+    );
+  });
+
+  it("takes a document of the site's own files or of another site", () => {
+    const addresses = ["/price.pdf", "https://example.ru/price.pdf"];
+
+    const issues = addresses.flatMap(
+      (src) =>
+        parseContent(schema, { priceList: { src, name: "Прайс" } }).issues,
+    );
+
+    expect(issues).toEqual([]);
+  });
+
   it("refuses a value of another shape", () => {
     const parsed = parseContent(schema, { priceList: "/price.pdf" });
 
