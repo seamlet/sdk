@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.13.1
+
+- The `/media/<site>/<file>` route hands an upload out as what its name says, whatever the CMS's answer says. It passed on the type the CMS's answer gave, so an answer of HTML (a CMS that fails, or a CMS reached over plain HTTP and changed on its way) would have been a page on the site's origin. A photo is now always `image/webp` and a document `application/pdf`, both with `X-Content-Type-Options: nosniff`, and a document taken from the CMS is handed out to be saved (`Content-Disposition: attachment`), as one taken from `seamlet/media/` already was.
+
 ## 2.13.0
 
 - A site builds from the copy of its content in its own repository when the CMS does not answer. The build stopped when the CMS did not answer in 30 seconds or failed. When `seamlet/content.json` (the copy the CMS commits on every publication, or its archive of the content unpacked at the site's root) exists, `loadPublishedContent` now takes the content from it, checked by `parseContent` against the schema, and says in the build log once that the site is built from the copy published on its date. This holds for no answer, a network error, a timeout and a 5xx. `unknown-site` still shows the initial content, and any other refusal still stops the build. Without a copy nothing changes. A copy that is not JSON, is the copy of another site or has no content stops the build, naming the file.

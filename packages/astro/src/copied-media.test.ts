@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { copiedMediaFile } from "./copied-media";
+import { copiedMediaFile, uploadHeadersOf } from "./copied-media";
 
 let directory: string;
 
@@ -30,9 +30,8 @@ describe("copiedMediaFile", () => {
     const photo = await copiedMediaFile(directory, "0123456789abcdef.webp");
     const document = await copiedMediaFile(directory, "price_list.pdf");
 
-    expect(photo?.contentType).toBe("image/webp");
-    expect([...(photo?.bytes ?? [])]).toEqual([1]);
-    expect(document?.contentType).toBe("application/pdf");
+    expect([...(photo ?? [])]).toEqual([1]);
+    expect([...(document ?? [])]).toEqual([2]);
   });
 
   it("has nothing for an upload that is not in the folder", async () => {
@@ -49,5 +48,22 @@ describe("copiedMediaFile", () => {
     await expect(
       copiedMediaFile(directory, "photo.jpg"),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe("uploadHeadersOf", () => {
+  it("names a photo by its name and keeps a browser from guessing another type", () => {
+    const headers = uploadHeadersOf("0123456789abcdef.webp");
+
+    expect(headers.get("Content-Type")).toBe("image/webp");
+    expect(headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(headers.get("Content-Disposition")).toBeNull();
+  });
+
+  it("hands a document out to be saved, never shown", () => {
+    const headers = uploadHeadersOf("price_list.pdf");
+
+    expect(headers.get("Content-Type")).toBe("application/pdf");
+    expect(headers.get("Content-Disposition")).toBe("attachment");
   });
 });

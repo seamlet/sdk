@@ -86,6 +86,43 @@ describe("the route of the uploaded photos", () => {
     expect((await requestPhoto("coffee-shop", PHOTO)).status).toBe(502);
   });
 
+  it("hands out the CMS's photo as a photo whatever type the answer says", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          new Response("<script>alert(1)</script>", {
+            headers: { "Content-Type": "text/html" },
+          }),
+        ),
+      ),
+    );
+
+    const response = await requestPhoto("coffee-shop", PHOTO);
+
+    expect(response.headers.get("Content-Type")).toBe("image/webp");
+    expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+  });
+
+  it("hands the CMS's document out to be saved, never shown", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          new Response("%PDF-1.4", {
+            headers: { "Content-Type": "application/pdf" },
+          }),
+        ),
+      ),
+    );
+
+    const response = await requestPhoto("coffee-shop", "price.pdf");
+
+    expect(response.headers.get("Content-Type")).toBe("application/pdf");
+    expect(response.headers.get("Content-Disposition")).toBe("attachment");
+    expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+  });
+
   it("passes on that the CMS has no such photo", async () => {
     vi.stubGlobal(
       "fetch",
