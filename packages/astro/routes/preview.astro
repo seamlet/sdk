@@ -14,6 +14,8 @@ import { cmsOrigin } from "virtual:seamlet/config";
 import site from "virtual:seamlet/site";
 
 const NOT_FOUND = 404;
+/** The published content could not be loaded: the CMS did not answer, and the site has no copy. */
+const BAD_GATEWAY = 502;
 
 const headers = previewHeadersOf(cmsOrigin);
 for (const [name, value] of Object.entries(headers)) {
@@ -29,14 +31,27 @@ const reading =
 if (reading !== undefined && !reading.isRead) {
   return new Response(null, { status: reading.response.status, headers });
 }
+const published = reading === undefined ? await publishedContent() : undefined;
+if (reading === undefined && published === undefined) {
+  return new Response(null, { status: BAD_GATEWAY, headers });
+}
 const content =
-  reading === undefined
-    ? previewContentAt(
-        site.description,
-        await site.loadPublishedContent(),
-        rest,
-      )
-    : parseContent(site.schema, reading.draft).content;
+  published === undefined
+    ? parseContent(site.schema, reading?.draft).content
+    : previewContentAt(site.description, published, rest);
+
+/**
+ * The published content, or undefined, said in the log, when it cannot be loaded: the preview
+ * answers then as itself, with its headers, and not with the server's page of an error.
+ */
+async function publishedContent() {
+  try {
+    return await site.loadPublishedContent();
+  } catch (error) {
+    console.error(error);
+    return undefined;
+  }
+}
 
 const page = site.previewPageOf(rest, content);
 if (page === undefined) {

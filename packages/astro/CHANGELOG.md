@@ -4,6 +4,7 @@
 
 - The `/media/<site>/<file>` route hands an upload out as what its name says, whatever the CMS's answer says. It passed on the type the CMS's answer gave, so an answer of HTML (a CMS that fails, or a CMS reached over plain HTTP and changed on its way) would have been a page on the site's origin. A photo is now always `image/webp` and a document `application/pdf`, both with `X-Content-Type-Options: nosniff`, and a document taken from the CMS is handed out to be saved (`Content-Disposition: attachment`), as one taken from `seamlet/media/` already was.
 - A file field's address must be one a link of the site may have: a path of the site (an upload of the CMS is one) or an `https://` or `http://` address. `parseContent` keeps any other one, `javascript:` among them, with the issue `unsupported-link-href`, so the CMS never saves it and a site that links to its file without `safeHref` cannot be made to run a script.
+- The preview answers `502` with its headers (`frame-ancestors`, `noindex`, `no-store`) when the published content cannot be loaded, and says why in the server's log. It answered with the server's page of an error, without them.
 
 ## 2.13.0
 
