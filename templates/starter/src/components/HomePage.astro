@@ -1,0 +1,168 @@
+---
+import { editable, safeHref } from "@seamlet/astro/schema";
+import type { Content } from "../schema";
+
+interface Props {
+  content: Content;
+}
+
+const { content } = Astro.props;
+const { hero, menu, contacts, seo } = content;
+// The CMS's editor lets the owner click the marked elements; a path the content lacks does not compile.
+const edit = editable<Content>();
+const priceFormat = new Intl.NumberFormat("ru-RU");
+const phoneHref =
+  contacts.phone === null ? undefined : safeHref(contacts.phone.href);
+const pageTitle = seo.title === "" ? hero.title : seo.title;
+---
+
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    {seo.description !== "" && (
+      <meta name="description" content={seo.description} />
+    )}
+  </head>
+  <body>
+    <header class="hero" {...edit("hero")}>
+      <div class="hero-text">
+        <h1 {...edit("hero", "title")}>{hero.title}</h1>
+        <p class="lead" {...edit("hero", "lead")}>
+          {hero.lead}
+        </p>
+      </div>
+      {hero.photo !== null && (
+        <img
+          class="hero-photo"
+          {...edit("hero", "photo")}
+          src={hero.photo.src}
+          alt={hero.photo.alt}
+        />
+      )}
+    </header>
+
+    <main>
+      <h2 data-cms-fixed>Меню</h2>
+      <ul class="menu">
+        {menu.map((dish, index) => (
+          <li {...edit("menu", index)}>
+            <div>
+              <h3 {...edit("menu", index, "name")}>{dish.name}</h3>
+              <p {...edit("menu", index, "description")}>{dish.description}</p>
+            </div>
+            {dish.price !== null && (
+              <p class="price">
+                <span {...edit("menu", index, "price")}>
+                  {priceFormat.format(dish.price)}
+                </span>{" "}
+                <span data-cms-fixed>₽</span>
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </main>
+
+    <footer class="contacts" {...edit("contacts")}>
+      <p {...edit("contacts", "address")}>{contacts.address}</p>
+      {contacts.phone !== null && phoneHref !== undefined && (
+        <p>
+          <a href={phoneHref} {...edit("contacts", "phone")}>
+            {contacts.phone.text || contacts.phone.href}
+          </a>
+        </p>
+      )}
+    </footer>
+  </body>
+</html>
+
+<style>
+  body {
+    margin: 0 auto;
+    max-width: 44rem;
+    padding: 0 1.25rem;
+    background: #fbf7f1;
+    color: #2b1d14;
+    font-family: Georgia, "Times New Roman", serif;
+    line-height: 1.5;
+  }
+
+  .hero {
+    display: grid;
+    gap: 1.5rem;
+    padding-block: 3rem 2rem;
+  }
+
+  .hero h1 {
+    margin: 0 0 0.5rem;
+    font-size: clamp(2rem, 6vw, 3rem);
+    line-height: 1.1;
+  }
+
+  .lead {
+    margin: 0;
+    font-size: 1.125rem;
+    color: #5f4a3b;
+    white-space: pre-line;
+  }
+
+  .hero-photo {
+    width: 100%;
+    max-height: 22rem;
+    border-radius: 0.75rem;
+    object-fit: cover;
+  }
+
+  h2 {
+    margin: 2rem 0 0.5rem;
+  }
+
+  .menu {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .menu li {
+    display: flex;
+    gap: 1rem;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-block: 1rem;
+    border-top: 1px solid #e2d3c0;
+  }
+
+  .menu h3,
+  .menu p {
+    margin: 0;
+  }
+
+  .menu p {
+    color: #5f4a3b;
+  }
+
+  .menu .price {
+    color: #2b1d14;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .contacts {
+    margin-top: 2rem;
+    padding-block: 2rem 3rem;
+    border-top: 1px solid #e2d3c0;
+    color: #5f4a3b;
+  }
+
+  .contacts p {
+    margin: 0 0 0.25rem;
+    white-space: pre-line;
+  }
+
+  .contacts a {
+    color: #a24a22;
+  }
+</style>

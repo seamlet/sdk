@@ -4,7 +4,17 @@ import astro from "eslint-plugin-astro";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["**/dist", "coverage", "**/.astro", ".cyberzavod", ".claude"] },
+  {
+    ignores: [
+      "**/dist",
+      "coverage",
+      "**/.astro",
+      ".cyberzavod",
+      ".claude",
+      // A starting point with dependencies of its own, outside the workspaces: its CI job checks it.
+      "templates",
+    ],
+  },
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   {
