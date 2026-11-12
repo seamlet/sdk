@@ -1,7 +1,16 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { APIContext } from "astro";
 import { GET } from "./media";
 
+const copy = vi.hoisted(() => ({
+  isContentCopyOnly: false,
+  copiedMediaDirectory: "",
+}));
+
+vi.mock("virtual:seamlet/content-copy", () => copy);
 vi.mock("virtual:seamlet/config", () => ({
   siteId: "coffee-shop",
   siteTitle: "Моя кофейня",
@@ -17,8 +26,14 @@ function requestPhoto(site: string, file: string): Promise<Response> {
   return Promise.resolve(GET(context));
 }
 
-afterEach(() => {
+beforeEach(async () => {
+  copy.isContentCopyOnly = false;
+  copy.copiedMediaDirectory = await mkdtemp(join(tmpdir(), "seamlet-media-"));
+});
+
+afterEach(async () => {
   vi.unstubAllGlobals();
+  await rm(copy.copiedMediaDirectory, { recursive: true, force: true });
 });
 
 describe("the route of the uploaded photos", () => {
@@ -78,5 +93,93 @@ describe("the route of the uploaded photos", () => {
     );
 
     expect((await requestPhoto("coffee-shop", PHOTO)).status).toBe(404);
+  });
+});
+
+describe("the route of the uploaded photos with the copy in the repository", () => {
+  const keepPhoto = (fileName: string) =>
+    writeFile(
+      join(copy.copiedMediaDirectory, fileName),
+      new Uint8Array([4, 5]),
+    );
+
+  it("serves the copied file when the CMS does not answer", async () => {
+    await keepPhoto(PHOTO);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.reject(new TypeError("fetch failed"))),
+    );
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const response = await requestPhoto("coffee-shop", PHOTO);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("image/webp");
+    expect([...new Uint8Array(await response.arrayBuffer())]).toEqual([4, 5]);
+  });
+
+  it("serves the copied file when the CMS fails", async () => {
+    await keepPhoto(PHOTO);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(new Response("error", { status: 500 }))),
+    );
+
+    expect((await requestPhoto("coffee-shop", PHOTO)).status).toBe(200);
+  });
+
+  it("hands a copied document out to be saved, never shown", async () => {
+    await keepPhoto("price.pdf");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(new Response(null, { status: 500 }))),
+    );
+
+    const response = await requestPhoto("coffee-shop", "price.pdf");
+
+    expect(response.headers.get("Content-Type")).toBe("application/pdf");
+    expect(response.headers.get("Content-Disposition")).toBe("attachment");
+  });
+
+  it("prefers the CMS's photo while it answers", async () => {
+    await keepPhoto(PHOTO);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(new Response(new Uint8Array([1])))),
+    );
+
+    const response = await requestPhoto("coffee-shop", PHOTO);
+
+    expect([...new Uint8Array(await response.arrayBuffer())]).toEqual([1]);
+  });
+
+  it("still answers 502 for a photo the copy lacks when the CMS fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(new Response("error", { status: 500 }))),
+    );
+
+    expect((await requestPhoto("coffee-shop", PHOTO)).status).toBe(502);
+  });
+
+  it("serves a site that left the CMS from the copy alone", async () => {
+    copy.isContentCopyOnly = true;
+    await keepPhoto(PHOTO);
+    const fetchPhoto = vi.fn();
+    vi.stubGlobal("fetch", fetchPhoto);
+
+    expect((await requestPhoto("coffee-shop", PHOTO)).status).toBe(200);
+    expect(
+      (await requestPhoto("coffee-shop", "ffffffffffffffff.webp")).status,
+    ).toBe(404);
+    expect(fetchPhoto).not.toHaveBeenCalled();
+  });
+
+  it("reads nothing outside the folder of the copy", async () => {
+    copy.isContentCopyOnly = true;
+
+    expect((await requestPhoto("coffee-shop", "../secret.webp")).status).toBe(
+      404,
+    );
   });
 });

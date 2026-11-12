@@ -14,3 +14,12 @@ export const UPLOADS_PATH = "/media";
 export function uploadedPhotoPath(siteId: string, fileName: string): string {
   return `${UPLOADS_PATH}/${siteId}/${fileName}`;
 }
+
+/** The folder at a site's root that holds the copy of the published content and of its uploads. */
+export const CONTENT_COPY_FOLDER = "seamlet";
+
+/** The copy of the published content the CMS commits on every publication, from the site's root. */
+export const CONTENT_COPY_FILE = `${CONTENT_COPY_FOLDER}/content.json`;
+
+/** The uploads the published content shows, kept beside it under the names the CMS gives them. */
+export const CONTENT_COPY_MEDIA_FOLDER = `${CONTENT_COPY_FOLDER}/media`;

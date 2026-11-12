@@ -3,6 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PreviewRoute from "../routes/preview.astro";
 import { MAX_DRAFT_BYTES } from "./preview-requests";
 
+vi.mock("virtual:seamlet/content-copy", () => ({
+  contentCopyText: undefined,
+  isContentCopyOnly: false,
+  copiedMediaDirectory: "/nowhere/seamlet/media",
+}));
 vi.mock("virtual:seamlet/config", () => ({
   siteId: "coffee-shop",
   siteTitle: "Моя кофейня",

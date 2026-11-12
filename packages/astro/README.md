@@ -728,6 +728,32 @@ Every site made with Seamlet names it once, at the very bottom of its footer, be
 </style>
 ```
 
+## If the CMS is unreachable, or you leave Seamlet
+
+A site keeps working without Seamlet: it can be built from a copy of its content that lives in its own repository.
+
+The copy is two things at the root of the site:
+
+- `seamlet/content.json`: the content as it was published (`site`, `version`, `publishedAt` and `content`);
+- `seamlet/media/`: the photos and documents that content shows, under the names the CMS gave them.
+
+It gets there in one of two ways: the CMS commits it on every publication when the site's deploy settings keep a copy of the content («копия содержимого»), or you unpack the archive the CMS gives with «Скачать всё содержимое» at the root of the site.
+
+What a build does with it:
+
+- **The CMS does not answer** (no answer in 30 seconds, a network error or a 5xx) and `seamlet/content.json` exists: the site is built from the copy, and the build log says so once with the date the copy was published. The photos and documents the CMS does not give are taken from `seamlet/media/` too, for a static build and for the `/media/<site>/<file>` route alike. A CMS that answers always wins.
+- **The CMS does not know the site** (`unknown-site`): the site's initial content is shown, as before.
+- **Any other refusal** (a wrong address, a refused request) stops the build, copy or not, so a mistake in the site's setup is not hidden.
+- **No copy, and the CMS does not answer:** the build stops, as before.
+
+A site whose owner has left Seamlet sets `SEAMLET_CONTENT=copy` for its build (and for its server, if it renders pages on request). Then the CMS is never asked for the content or for photos, and the site shows `seamlet/content.json` and `seamlet/media/` alone; a build without the copy stops, naming the file. The preview and the bridge may stay, but nothing sends them anything. Any other value of the variable is an error.
+
+```sh
+SEAMLET_CONTENT=copy npm run build
+```
+
+The copy is read when the site is built and put into the build; its `site` must be the id in `seamlet.json`. The folder `seamlet/media/` is read where the site's server runs, at the path it had when the site was built, so a server that renders pages on request keeps it next to the code it was built from (a static site gets the files copied into its build).
+
 ## What the integration adds
 
 - `/preview` and `/preview/<page>`: the preview the CMS's editor frames, the pages of records too (at their address or at the record's id, a page the site does not show too). `GET` shows the published content; `POST` with the content as JSON shows that content without saving it, which is how the editor shows every edit at once. Only the CMS may frame it (`Content-Security-Policy: frame-ancestors`), and it is never indexed or cached; its refusals (an address of no page, a record a draft does not have, a draft that is not JSON or is over 1 MB) say the same.
@@ -736,7 +762,7 @@ Every site made with Seamlet names it once, at the very bottom of its footer, be
 - After a build, the check of the texts of its pages the editor cannot reach (`checks`, above); in the preview, the same list and the fields another element covers, in the console of the editor's frame.
 - `/sitemap.xml`, `/robots.txt` and `/llms.txt` for search engines and AI assistants (above), unless the site serves its own or turns them off.
 - `/seamlet-photos/<address>`: the site's own photo at an address its content gives it, found by `photos` of `defineSeamletSite`, for the CMS's editor.
-- `/media/<site>/<file>`: the photos uploaded for the site in the CMS, taken from it on request (`502` when the CMS does not answer in 10 seconds or fails); a static build copies every photo uploaded for the site that its built pages refer to next to them, a few at a time, so a static host serves them too. Loading the published content waits 30 seconds for the CMS and stops the build when it does not answer.
+- `/media/<site>/<file>`: the photos uploaded for the site in the CMS, taken from it on request (`502` when the CMS does not answer in 10 seconds or fails, unless the photo is in `seamlet/media/`, which then serves it); a static build copies every photo uploaded for the site that its built pages refer to next to them, a few at a time, so a static host serves them too. Loading the published content waits 30 seconds for the CMS and stops the build when it does not answer, unless the site keeps a copy of its content (above).
 
 A site never renders content as raw HTML (`set:html`): the editor acts on what its preview says.
 

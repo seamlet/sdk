@@ -15,6 +15,11 @@ const search = vi.hoisted((): SearchModule => ({
 }));
 const published = vi.hoisted(() => ({ load: vi.fn<() => Promise<unknown>>() }));
 
+vi.mock("virtual:seamlet/content-copy", () => ({
+  contentCopyText: undefined,
+  isContentCopyOnly: false,
+  copiedMediaDirectory: "/nowhere/seamlet/media",
+}));
 vi.mock("virtual:seamlet/config", () => ({
   siteId: "cafe",
   siteTitle: "Моя кофейня",
