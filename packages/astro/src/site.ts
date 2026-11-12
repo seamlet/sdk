@@ -7,6 +7,16 @@ import {
   siteTitle,
 } from "virtual:seamlet/config";
 import {
+  contentCopyText,
+  isContentCopyOnly,
+} from "virtual:seamlet/content-copy";
+import {
+  copyIssuesWarning,
+  contentDecisionOf,
+  publishedOn,
+  readContentCopy,
+} from "./content-copies";
+import {
   parseContent,
   type Content,
   type ContentOf,
@@ -15,6 +25,7 @@ import {
   type SiteDescription,
 } from "./schema";
 import { fetchPublishedAnswer } from "./published-answers";
+import { CONTENT_COPY_FILE } from "./site-addresses";
 import { describeSite } from "./site-descriptions";
 import {
   pagePathOf,
@@ -134,19 +145,58 @@ export function defineSeamletSite<F extends Fields>(
 
 /**
  * What the CMS published for the site, in the shape of its schema: the site's initial content until
- * the first publication, and while the CMS does not know the site yet. For a module that needs the
+ * the first publication, and while the CMS does not know the site yet. A CMS that does not answer
+ * gives way to the copy of the content in the site's repository (`seamlet/content.json`), which a
+ * site that has left the CMS takes alone (`SEAMLET_CONTENT=copy`). For a module that needs the
  * content without the pages.
  */
 export async function loadPublishedContent<F extends Fields>(
   schema: F,
 ): Promise<ContentOf<F>> {
+  if (isContentCopyOnly) {
+    return contentOfCopy(schema, (published) => {
+      console.info(
+        `@seamlet/astro: SEAMLET_CONTENT=copy, the site is built from ${CONTENT_COPY_FILE} published ${published}`,
+      );
+    });
+  }
+
   const url = new URL(`/api/sites/${siteId}/published`, cmsOrigin);
   const answer = await fetchPublishedAnswer(url);
-  const content =
-    answer.status === "published"
-      ? answer.content
-      : await initialContentOfSite();
-  return parseContent(schema, content).content;
+  const decision = contentDecisionOf(answer, contentCopyText !== undefined);
+  switch (decision.source) {
+    case "cms":
+      return parseContent(schema, decision.content).content;
+    case "initial":
+      return parseContent(schema, await initialContentOfSite()).content;
+    case "copy":
+      return contentOfCopy(schema, (published) => {
+        console.warn(
+          `@seamlet/astro: the CMS did not answer (${decision.problem.message}); the site is built from the copy ${CONTENT_COPY_FILE} published ${published}`,
+        );
+      });
+    case "stop":
+      throw decision.problem;
+  }
+}
+
+/** The content of `seamlet/content.json` in the shape of the schema; `say` tells the build log. */
+function contentOfCopy<F extends Fields>(
+  schema: F,
+  say: (published: string) => void,
+): ContentOf<F> {
+  if (contentCopyText === undefined) {
+    throw new Error(
+      `@seamlet/astro: SEAMLET_CONTENT=copy needs the copy of the content at ${CONTENT_COPY_FILE}, and the site has none`,
+    );
+  }
+
+  const copy = readContentCopy(contentCopyText, siteId);
+  const parsed = parseContent(schema, copy.content);
+  const warning = copyIssuesWarning(parsed.issues);
+  if (warning !== undefined) console.warn(warning);
+  say(publishedOn(copy));
+  return parsed.content;
 }
 
 /** The initial content of the site's module, for a site the CMS does not know yet. */

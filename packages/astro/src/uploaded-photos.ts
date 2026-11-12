@@ -1,12 +1,14 @@
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
+import { copiedMediaFile } from "./copied-media";
 import { isUploadedFile } from "./preview-requests";
 import { UPLOADS_PATH } from "./site-addresses";
 
 // The photos and documents uploaded in the CMS, copied into a static build. A built page refers to
 // them at the addresses its content gives (`/media/<site>/<file>.webp`, `.pdf`), and a static host
 // has no route to take them from the CMS on request, so the build puts every upload its pages refer
-// to next to them.
+// to next to them. A photo the CMS does not give is taken from the copy kept in the site's own
+// repository, and a site that has left the CMS takes all of them from there.
 
 /** `/media/<site>/<file>`; only the site's own uploads (see isUploadedFile). */
 const PHOTO_ADDRESS = new RegExp(
@@ -34,12 +36,22 @@ export function uploadedPhotoAddresses(
   return [...new Set(addresses)];
 }
 
-/** Copies every uploaded photo the built pages in the directory refer to from the CMS. */
-export async function copyUploadedPhotos(options: {
+export interface PhotoCopying {
   readonly directory: string;
   readonly siteId: string;
-  readonly cmsOrigin: string;
-}): Promise<number> {
+  /** Where the CMS is; undefined for a site that never asks it, so its copy gives every photo. */
+  readonly cmsOrigin: string | undefined;
+  /** The folder of the uploads the CMS committed to the site's repository. */
+  readonly copiedMediaDirectory: string;
+}
+
+/**
+ * Copies every uploaded photo the built pages in the directory refer to into it: from the CMS, or
+ * from the copy of the site's uploads where the CMS does not give one.
+ */
+export async function copyUploadedPhotos(
+  options: PhotoCopying,
+): Promise<number> {
   const pages = await htmlFilesIn(options.directory);
   const texts = await Promise.all(pages.map((page) => readFile(page, "utf8")));
   const addresses = new Set(
@@ -47,38 +59,69 @@ export async function copyUploadedPhotos(options: {
   );
 
   await inTurns([...addresses], PHOTOS_COPIED_AT_ONCE, (address) =>
-    copyPhoto(address, options.directory, options.cmsOrigin),
+    copyPhoto(address, options),
   );
   return addresses.size;
 }
 
 async function copyPhoto(
   address: string,
-  directory: string,
-  cmsOrigin: string,
+  options: PhotoCopying,
 ): Promise<void> {
-  const url = new URL(address, cmsOrigin);
-  const response = await fetchPhoto(url);
-  if (!response.ok) {
+  const bytes = await photoBytes(address, options);
+  const target = join(options.directory, address);
+  await mkdir(dirname(target), { recursive: true });
+  await writeFile(target, bytes);
+}
+
+async function photoBytes(
+  address: string,
+  options: PhotoCopying,
+): Promise<Uint8Array<ArrayBuffer>> {
+  const copied = () =>
+    copiedMediaFile(options.copiedMediaDirectory, basename(address));
+  if (options.cmsOrigin === undefined) {
+    const file = await copied();
+    if (file !== undefined) return file.bytes;
     throw new Error(
-      `Copying the photo ${url.href} into the build failed with status ${String(response.status)}`,
+      `Copying the photo ${address} into the build failed: it is not in ${options.copiedMediaDirectory}`,
     );
   }
 
-  const target = join(directory, address);
-  await mkdir(dirname(target), { recursive: true });
-  await writeFile(target, new Uint8Array(await response.arrayBuffer()));
+  const fromCms = await photoFromCms(new URL(address, options.cmsOrigin));
+  if (fromCms.status === "taken") return fromCms.bytes;
+  const file = await copied();
+  if (file !== undefined) return file.bytes;
+  throw fromCms.problem;
 }
 
-async function fetchPhoto(url: URL): Promise<Response> {
+type PhotoFromCms =
+  | { readonly status: "taken"; readonly bytes: Uint8Array<ArrayBuffer> }
+  | { readonly status: "failed"; readonly problem: Error };
+
+async function photoFromCms(url: URL): Promise<PhotoFromCms> {
+  let response: Response;
   try {
-    return await fetch(url, { signal: AbortSignal.timeout(PHOTO_TIMEOUT_MS) });
+    response = await fetch(url, {
+      signal: AbortSignal.timeout(PHOTO_TIMEOUT_MS),
+    });
   } catch (error) {
-    throw new Error(
+    const problem = new Error(
       `Copying the photo ${url.href} into the build failed: the CMS did not answer`,
       { cause: error },
     );
+    return { status: "failed", problem };
   }
+  if (!response.ok) {
+    const problem = new Error(
+      `Copying the photo ${url.href} into the build failed with status ${String(response.status)}`,
+    );
+    return { status: "failed", problem };
+  }
+  return {
+    status: "taken",
+    bytes: new Uint8Array(await response.arrayBuffer()),
+  };
 }
 
 /** Runs the task for every item, at most `limit` at a time. */

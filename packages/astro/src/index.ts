@@ -11,6 +11,12 @@ import {
   type ChecksMode,
   type PageTexts,
 } from "./text-checks";
+import { CONTENT_SOURCE_VARIABLE } from "./content-copies";
+import {
+  contentCopyModuleOf,
+  loadContentCopyFiles,
+  type ContentCopyFiles,
+} from "./content-copy-files";
 import { copyUploadedPhotos } from "./uploaded-photos";
 import { OWN_PHOTOS_PATH } from "./own-photos";
 import {
@@ -18,7 +24,12 @@ import {
   SITE_DESCRIPTION_PATH,
   type SiteConfig,
 } from "./schema";
-import { PREVIEW_PATH, SITE_MODULE_FILE, UPLOADS_PATH } from "./site-addresses";
+import {
+  CONTENT_COPY_FILE,
+  PREVIEW_PATH,
+  SITE_MODULE_FILE,
+  UPLOADS_PATH,
+} from "./site-addresses";
 import { loadSiteConfig } from "./site-config-file";
 import {
   hasOwnFile,
@@ -37,9 +48,11 @@ import {
 const CONFIG_MODULE = "virtual:seamlet/config";
 const SITE_MODULE = "virtual:seamlet/site";
 const SEARCH_MODULE = "virtual:seamlet/search";
+const CONTENT_COPY_MODULE = "virtual:seamlet/content-copy";
 /** Rollup's mark of a module that is not a file. */
 const RESOLVED_CONFIG_MODULE = `\0${CONFIG_MODULE}`;
 const RESOLVED_SEARCH_MODULE = `\0${SEARCH_MODULE}`;
+const RESOLVED_CONTENT_COPY_MODULE = `\0${CONTENT_COPY_MODULE}`;
 /**
  * Takes the place of `cms` of `seamlet.json` when set: a build for another CMS, such as the one in
  * development, or the CMS's builder, which builds a site for itself.
@@ -76,6 +89,8 @@ export default function seamlet(
 ): AstroIntegration {
   /** Read when the site's config is set up, before the build that needs it. */
   let siteConfig: SiteConfig | undefined;
+  /** The copy of the content in the site's repository, found with the config. */
+  let contentCopy: ContentCopyFiles | undefined;
   /** Whether a sitemap was asked for and is not served, as the site sets no `site`. */
   let isSitemapWithoutSite = false;
   /** The built server that renders the pages for the check of texts, with the node adapter. */
@@ -97,8 +112,14 @@ export default function seamlet(
           process.env[CMS_ORIGIN_VARIABLE],
         );
         siteConfig = loaded;
+        const copyFiles = await loadContentCopyFiles(
+          config.root,
+          process.env[CONTENT_SOURCE_VARIABLE],
+        );
+        contentCopy = copyFiles;
         // The development server starts anew when the file changes.
         addWatchFile(new URL(SITE_CONFIG_FILE, config.root));
+        addWatchFile(new URL(CONTENT_COPY_FILE, config.root));
         const siteModule = fileURLToPath(
           new URL(SITE_MODULE_FILE, config.root),
         );
@@ -118,6 +139,9 @@ export default function seamlet(
                 resolveId: (id) => {
                   if (id === CONFIG_MODULE) return RESOLVED_CONFIG_MODULE;
                   if (id === SEARCH_MODULE) return RESOLVED_SEARCH_MODULE;
+                  if (id === CONTENT_COPY_MODULE) {
+                    return RESOLVED_CONTENT_COPY_MODULE;
+                  }
                   if (id === SITE_MODULE) return siteModule;
                   return undefined;
                 },
@@ -126,6 +150,9 @@ export default function seamlet(
                     return configModuleOf(loaded);
                   }
                   if (id === RESOLVED_SEARCH_MODULE) return searchModule;
+                  if (id === RESOLVED_CONTENT_COPY_MODULE) {
+                    return contentCopyModuleOf(copyFiles);
+                  }
                   return undefined;
                 },
               },
@@ -187,11 +214,12 @@ export default function seamlet(
       // the built pages refer to are copied next to them. Pages rendered on request take them
       // through the route above.
       "astro:build:done": async ({ dir, logger }) => {
-        if (siteConfig === undefined) return;
+        if (siteConfig === undefined || contentCopy === undefined) return;
         const copied = await copyUploadedPhotos({
           directory: fileURLToPath(dir),
           siteId: siteConfig.id,
-          cmsOrigin: siteConfig.cms,
+          cmsOrigin: contentCopy.isCopyOnly ? undefined : siteConfig.cms,
+          copiedMediaDirectory: contentCopy.mediaDirectory,
         });
         if (copied > 0) logger.info(`copied ${String(copied)} uploaded photos`);
         await checkPageTexts({ checks, serverEntry, logger });

@@ -21,6 +21,11 @@ import {
   type RequestSentDetail,
 } from "./schema";
 
+vi.mock("virtual:seamlet/content-copy", () => ({
+  contentCopyText: undefined,
+  isContentCopyOnly: false,
+  copiedMediaDirectory: "/nowhere/seamlet/media",
+}));
 vi.mock("virtual:seamlet/config", () => ({
   siteId: "my-site",
   siteTitle: "Ромашка",

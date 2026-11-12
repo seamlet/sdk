@@ -11,6 +11,15 @@ declare module "virtual:seamlet/config" {
   export const ownerToken: string | undefined;
 }
 
+declare module "virtual:seamlet/content-copy" {
+  /** The text of `seamlet/content.json` at the site's root; undefined when the site has none. */
+  export const contentCopyText: string | undefined;
+  /** Whether the build takes its content from the copy alone (`SEAMLET_CONTENT=copy`). */
+  export const isContentCopyOnly: boolean;
+  /** The folder of the uploads kept beside the copy (`seamlet/media`), an absolute path. */
+  export const copiedMediaDirectory: string;
+}
+
 declare module "virtual:seamlet/site" {
   const site: import("./site").SeamletSite;
   export default site;

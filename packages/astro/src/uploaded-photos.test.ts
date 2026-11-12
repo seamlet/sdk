@@ -39,9 +39,11 @@ describe("uploadedPhotoAddresses", () => {
 
 describe("copyUploadedPhotos", () => {
   let directory: string;
+  let copiedMediaDirectory: string;
 
   beforeEach(async () => {
     directory = await mkdtemp(join(tmpdir(), "seamlet-build-"));
+    copiedMediaDirectory = join(directory, "..", "seamlet-copied-media");
     await mkdir(join(directory, "praktiki"));
     await writeFile(join(directory, "index.html"), `<img src="${PHOTO}">`);
     await writeFile(
@@ -53,6 +55,7 @@ describe("copyUploadedPhotos", () => {
   afterEach(async () => {
     vi.unstubAllGlobals();
     await rm(directory, { recursive: true, force: true });
+    await rm(copiedMediaDirectory, { recursive: true, force: true });
   });
 
   it("copies every photo the pages refer to from the CMS, once", async () => {
@@ -65,6 +68,7 @@ describe("copyUploadedPhotos", () => {
       directory,
       siteId: "my-site",
       cmsOrigin: "https://cms.example",
+      copiedMediaDirectory,
     });
 
     expect(copied).toBe(1);
@@ -87,6 +91,7 @@ describe("copyUploadedPhotos", () => {
         directory,
         siteId: "my-site",
         cmsOrigin: "https://cms.example",
+        copiedMediaDirectory,
       }),
     ).rejects.toThrow(/failed with status 404/u);
   });
@@ -114,6 +119,7 @@ describe("copyUploadedPhotos", () => {
       directory,
       siteId: "my-site",
       cmsOrigin: "https://cms.example",
+      copiedMediaDirectory,
     });
 
     expect(copied).toBe(11);
@@ -132,9 +138,97 @@ describe("copyUploadedPhotos", () => {
         directory,
         siteId: "my-site",
         cmsOrigin: "https://cms.example",
+        copiedMediaDirectory,
       }),
     ).rejects.toThrow(
       `Copying the photo https://cms.example${PHOTO} into the build failed: the CMS did not answer`,
     );
+  });
+
+  describe("with the copy of the uploads in the site's repository", () => {
+    const copiedFile = () =>
+      join(copiedMediaDirectory, "0123456789abcdef.webp");
+
+    beforeEach(async () => {
+      await mkdir(copiedMediaDirectory, { recursive: true });
+      await writeFile(copiedFile(), new Uint8Array([7, 8, 9]));
+    });
+
+    it("takes a photo from the copy when the CMS does not answer", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => Promise.reject(new TypeError("fetch failed"))),
+      );
+
+      const copied = await copyUploadedPhotos({
+        directory,
+        siteId: "my-site",
+        cmsOrigin: "https://cms.example",
+        copiedMediaDirectory,
+      });
+
+      expect(copied).toBe(1);
+      expect([...(await readFile(join(directory, PHOTO)))]).toEqual([7, 8, 9]);
+    });
+
+    it("takes a photo from the copy when the CMS fails or does not have it", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => Promise.resolve(new Response(null, { status: 502 }))),
+      );
+
+      await copyUploadedPhotos({
+        directory,
+        siteId: "my-site",
+        cmsOrigin: "https://cms.example",
+        copiedMediaDirectory,
+      });
+
+      expect([...(await readFile(join(directory, PHOTO)))]).toEqual([7, 8, 9]);
+    });
+
+    it("prefers the CMS while it answers", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => Promise.resolve(new Response(new Uint8Array([1])))),
+      );
+
+      await copyUploadedPhotos({
+        directory,
+        siteId: "my-site",
+        cmsOrigin: "https://cms.example",
+        copiedMediaDirectory,
+      });
+
+      expect([...(await readFile(join(directory, PHOTO)))]).toEqual([1]);
+    });
+
+    it("never asks the CMS of a site that left it", async () => {
+      const fetchPhoto = vi.fn();
+      vi.stubGlobal("fetch", fetchPhoto);
+
+      await copyUploadedPhotos({
+        directory,
+        siteId: "my-site",
+        cmsOrigin: undefined,
+        copiedMediaDirectory,
+      });
+
+      expect(fetchPhoto).not.toHaveBeenCalled();
+      expect([...(await readFile(join(directory, PHOTO)))]).toEqual([7, 8, 9]);
+    });
+
+    it("fails the build, naming the photo, when the copy lacks it too", async () => {
+      await rm(copiedFile());
+
+      await expect(
+        copyUploadedPhotos({
+          directory,
+          siteId: "my-site",
+          cmsOrigin: undefined,
+          copiedMediaDirectory,
+        }),
+      ).rejects.toThrow(`Copying the photo ${PHOTO} into the build failed`);
+    });
   });
 });

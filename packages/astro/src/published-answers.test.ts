@@ -30,13 +30,25 @@ describe("readPublishedAnswer", () => {
 
   it("stops at any other refusal, naming the address", async () => {
     const elsewhere = new Response("Not Found", { status: 404 });
-    const broken = new Response(null, { status: 500 });
+    const refused = new Response(null, { status: 403 });
 
     await expect(readPublishedAnswer(elsewhere, url)).rejects.toThrow(
       "https://cms.seamlet.ru/api/sites/my-site/published failed with status 404",
     );
-    await expect(readPublishedAnswer(broken, url)).rejects.toThrow(
-      "failed with status 500",
+    await expect(readPublishedAnswer(refused, url)).rejects.toThrow(
+      "failed with status 403",
+    );
+  });
+
+  it("tells a CMS that fails from one that refuses", async () => {
+    const answer = await readPublishedAnswer(
+      new Response(null, { status: 503 }),
+      url,
+    );
+
+    expect(answer.status).toBe("unavailable");
+    expect(answer.status === "unavailable" && answer.problem.message).toBe(
+      `Loading the published content from ${url.href} failed with status 503`,
     );
   });
 });
@@ -46,7 +58,7 @@ describe("fetchPublishedAnswer", () => {
     vi.unstubAllGlobals();
   });
 
-  it("gives up on a CMS that does not answer in time, naming the address", async () => {
+  it("tells a CMS that does not answer in time, naming the address", async () => {
     const timeout = vi
       .spyOn(AbortSignal, "timeout")
       .mockImplementation(() =>
@@ -59,9 +71,13 @@ describe("fetchPublishedAnswer", () => {
       ),
     );
 
-    await expect(fetchPublishedAnswer(url)).rejects.toThrow(
-      "Loading the published content from https://cms.seamlet.ru/api/sites/my-site/published failed: the CMS did not answer",
-    );
+    await expect(fetchPublishedAnswer(url)).resolves.toMatchObject({
+      status: "unavailable",
+      problem: {
+        message:
+          "Loading the published content from https://cms.seamlet.ru/api/sites/my-site/published failed: the CMS did not answer",
+      },
+    });
     expect(timeout).toHaveBeenCalledWith(PUBLISHED_CONTENT_TIMEOUT_MS);
     timeout.mockRestore();
   });

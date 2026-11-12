@@ -68,6 +68,7 @@ async function setUp(setup: SiteSetup = {}) {
   if (plugin === undefined) throw new Error("No plugin of the site's modules");
   const configId = plugin.resolveId("virtual:seamlet/config") ?? "";
   const searchId = plugin.resolveId("virtual:seamlet/search") ?? "";
+  const copyId = plugin.resolveId("virtual:seamlet/content-copy") ?? "";
   const buildStart = integration.hooks["astro:build:start"] as BuildStart;
   await buildStart({
     logger: { warn },
@@ -75,6 +76,7 @@ async function setUp(setup: SiteSetup = {}) {
   return {
     configModule: plugin.load(configId),
     searchModule: plugin.load(searchId),
+    contentCopyModule: plugin.load(copyId),
     warnings: warn.mock.calls,
     siteModule: plugin.resolveId("virtual:seamlet/site"),
     routes: injectRoute.mock.calls.map(
@@ -109,6 +111,43 @@ describe("the integration", () => {
     expect((await setUp()).configModule).toContain(
       'export const cmsOrigin = "https://cms.seamlet.ru";',
     );
+  });
+
+  it("gives the build the copy of the content kept at the site's root", async () => {
+    await mkdir(join(root, "seamlet"));
+    await writeFile(join(root, "seamlet", "content.json"), '{"site":"x"}');
+
+    const { contentCopyModule } = await setUp();
+
+    expect(contentCopyModule).toBe(
+      [
+        `export const contentCopyText = ${JSON.stringify('{"site":"x"}')};`,
+        "export const isContentCopyOnly = false;",
+        `export const copiedMediaDirectory = ${JSON.stringify(join(root, "seamlet", "media"))};`,
+      ].join("\n"),
+    );
+  });
+
+  it("gives the build no copy when the site keeps none", async () => {
+    const { contentCopyModule } = await setUp();
+
+    expect(contentCopyModule).toContain(
+      "export const contentCopyText = undefined;",
+    );
+  });
+
+  it("builds from the copy alone with SEAMLET_CONTENT=copy", async () => {
+    vi.stubEnv("SEAMLET_CONTENT", "copy");
+
+    expect((await setUp()).contentCopyModule).toContain(
+      "export const isContentCopyOnly = true;",
+    );
+  });
+
+  it("refuses a value of SEAMLET_CONTENT it does not know", async () => {
+    vi.stubEnv("SEAMLET_CONTENT", "cms");
+
+    await expect(setUp()).rejects.toThrow('SEAMLET_CONTENT is "cms"');
   });
 
   it("adds the preview, the photos, the description and the bridge's loader", async () => {

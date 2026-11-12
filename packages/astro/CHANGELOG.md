@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.13.0
+
+- A site builds from the copy of its content in its own repository when the CMS does not answer. The build stopped when the CMS did not answer in 30 seconds or failed. When `seamlet/content.json` (the copy the CMS commits on every publication, or its archive of the content unpacked at the site's root) exists, `loadPublishedContent` now takes the content from it, checked by `parseContent` against the schema, and says in the build log once that the site is built from the copy published on its date. This holds for no answer, a network error, a timeout and a 5xx. `unknown-site` still shows the initial content, and any other refusal still stops the build. Without a copy nothing changes. A copy that is not JSON, is the copy of another site or has no content stops the build, naming the file.
+- The uploads come from the copy too. The photos and documents the content refers to are taken from `seamlet/media/` where the CMS does not give them: when a static build copies them, and in the `/media/<site>/<file>` route (only the names the CMS gives uploads are read, so nothing outside the folder is).
+- `SEAMLET_CONTENT=copy` makes a site that has left Seamlet take its content and uploads from the copy alone, and never ask the CMS for them. Any other value is an error.
+
 ## 2.12.0
 
 - A site carries the token of its owner. The CMS will let developers connect their own sites, and must know that the person connecting a site is the one who deploys it. `seamlet.json` takes an optional `ownerToken`, the token the CMS shows when a site is connected; the site's description at `/seamlet/site.json` hands it back (`ownerToken` of `SiteDescription`, read by `readSiteDescription`, refused as `invalid-owner-token` when it is not letters, digits, `_` and `-`, 16 to 128 of them). `npx @seamlet/astro init --token <token>` writes it. A site without one is described as before.
